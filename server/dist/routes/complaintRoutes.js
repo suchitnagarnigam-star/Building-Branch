@@ -11,10 +11,15 @@ const officerMapping_js_1 = require("../services/officerMapping.js");
 const complaintStorage_js_1 = require("../services/complaintStorage.js");
 const locationMapping_js_1 = require("../services/locationMapping.js");
 const router = (0, express_1.Router)();
+const moduleDirectory = __dirname;
+const parentDirectory = node_path_1.default.resolve(moduleDirectory, "..");
+const serverRoot = node_path_1.default.basename(parentDirectory) === "dist"
+    ? node_path_1.default.resolve(parentDirectory, "..")
+    : parentDirectory;
+const uploadDirectory = node_path_1.default.join(serverRoot, "uploads");
 // ── File storage: uploads/ directory, preserve extension ─────────────────────
 const storage = multer_1.default.diskStorage({
     destination: (_req, _file, cb) => {
-        const uploadDirectory = node_path_1.default.join(process.cwd(), "uploads");
         (0, promises_1.mkdir)(uploadDirectory, { recursive: true })
             .then(() => cb(null, uploadDirectory))
             .catch((error) => cb(error, uploadDirectory));
@@ -38,10 +43,20 @@ const upload = (0, multer_1.default)({
         }
     },
 });
+const handleUpload = (req, res, next) => {
+    upload.fields([{ name: "complaintImage", maxCount: 20 }])(req, res, (error) => {
+        if (error) {
+            res.status(400).json({
+                success: false,
+                message: error instanceof Error ? error.message : "Unable to save uploaded images.",
+            });
+            return;
+        }
+        next();
+    });
+};
 // ── POST /api/complaints ──────────────────────────────────────────────────────
-router.post("/complaints", upload.fields([
-    { name: "complaintImage", maxCount: 20 },
-]), async (req, res) => {
+router.post("/complaints", handleUpload, async (req, res) => {
     try {
         const body = req.body;
         const files = req.files;

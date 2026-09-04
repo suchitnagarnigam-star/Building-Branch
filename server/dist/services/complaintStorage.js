@@ -6,7 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveComplaint = exports.generateComplaintId = exports.getComplaints = void 0;
 const promises_1 = require("node:fs/promises");
 const node_path_1 = __importDefault(require("node:path"));
-const getComplaintsFilePath = () => node_path_1.default.join(process.cwd(), "data", "complaints.json");
+const moduleDirectory = __dirname;
+const parentDirectory = node_path_1.default.resolve(moduleDirectory, "..");
+const serverRoot = node_path_1.default.basename(parentDirectory) === "dist"
+    ? node_path_1.default.resolve(parentDirectory, "..")
+    : parentDirectory;
+const getComplaintsFilePath = () => node_path_1.default.join(serverRoot, "data", "complaints.json");
 const getComplaints = async () => {
     const filePath = getComplaintsFilePath();
     const file = await (0, promises_1.readFile)(filePath, "utf-8");
@@ -21,7 +26,7 @@ const generateComplaintId = async () => {
 exports.generateComplaintId = generateComplaintId;
 const saveComplaint = async (complaint) => {
     // Ensure uploads/ directory exists
-    await (0, promises_1.mkdir)(node_path_1.default.join(process.cwd(), "uploads"), { recursive: true });
+    await (0, promises_1.mkdir)(node_path_1.default.join(serverRoot, "uploads"), { recursive: true });
     const complaints = await (0, exports.getComplaints)();
     complaints.push(complaint);
     await (0, promises_1.writeFile)(getComplaintsFilePath(), JSON.stringify(complaints, null, 2), "utf-8");

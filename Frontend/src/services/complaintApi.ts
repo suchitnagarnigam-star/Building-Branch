@@ -26,31 +26,6 @@ const writeLatest = (complaint: Complaint) => {
 
 export const getStoredComplaints = (): Complaint[] => readStored();
 
-// ── Fallback local record (server unavailable) ───────────────────────────────
-
-const createLocalRecord = (data: ComplaintFormData): Complaint => {
-  const complaints = readStored();
-  const complaintId = `MCL-BB-${String(complaints.length + 1).padStart(4, "0")}`;
-
-  return {
-    complaintId,
-    registrationSource: "manual",
-    citizenName: data.citizenName,
-    phoneNumber: data.phoneNumber,
-    zone: data.zone,
-    block: data.block,
-    ward: data.ward,
-    address: data.address,
-    title: data.title,
-    description: data.description,
-    assignedOfficerId: null,
-    assignedOfficerName: null,
-    assignedOfficerMobile: null,
-    status: "Registered",
-    createdAt: new Date().toISOString(),
-  };
-};
-
 // ── Submit complaint (manual, with mandatory complaint image) ────────────────
 
 export const submitComplaint = async (data: ComplaintFormData, complaintImages: File[]) => {
@@ -69,7 +44,7 @@ export const submitComplaint = async (data: ComplaintFormData, complaintImages: 
     complaintImages.forEach((image) => body.append("complaintImage", image, image.name));
 
     const response = await fetch(API_URL, { method: "POST", body });
-    const result   = await response.json();
+    const result = await response.json().catch(() => ({}));
 
     if (!response.ok) throw new Error(result.message || "Failed to submit complaint");
 
@@ -99,16 +74,9 @@ export const submitComplaint = async (data: ComplaintFormData, complaintImages: 
 
     return { ...result, complaintId: complaint.complaintId, complaint };
   } catch (error) {
-    // Server unreachable — fall back to local storage
-    const saved = createLocalRecord(data);
-    writeStored([...readStored(), saved]);
-    writeLatest(saved);
-
-    return {
-      success:     true,
-      complaintId: saved.complaintId,
-      complaint:   { ...saved, assignedOfficerName: null },
-      message:     "Complaint saved locally while the server is unavailable.",
-    };
+    console.error("Complaint API submission failed:", error);
+    throw error instanceof Error
+      ? error
+      : new Error("Unable to reach the complaint server. Please start the backend and try again.");
   }
 };

@@ -119,5 +119,38 @@
     "assignedOfficerMobile": "87259-83841",
     "status": "Registered",
     "createdAt": "2026-09-03T10:22:20.460Z"
+  },
+  {
+    "complaintId": "MCL-BB-0009",
+    "registrationSource": "manual",
+    "citizenName": "xyz",
+    "phoneNumber": "9876543210",
+    "zone": "Zone C",
+    "block": "Block 22",
+    "address": "krishna nagar",
+    "title": "extra builiding floor",
+    "description": "A property owner builds an extra commercial floor",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-02 115640.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645091-298596.png"
+      },
+      {
+        "fileName": "Screenshot 2026-08-02 151501.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645093-670782.png"
+      },
+      {
+        "fileName": "Screenshot 2026-08-02 151515.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645096-951626.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-007",
+    "assignedOfficerName": "Sh. Randhir Singh",
+    "assignedOfficerMobile": "87259-83841",
+    "status": "Registered",
+    "createdAt": "2026-09-04T07:07:25.101Z"
   }
 ]

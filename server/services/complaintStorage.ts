@@ -3,8 +3,13 @@ import path from "node:path";
 
 import type { Complaint } from "../types/complaint.js";
 
+const moduleDirectory = __dirname;
+const parentDirectory = path.resolve(moduleDirectory, "..");
+const serverRoot = path.basename(parentDirectory) === "dist"
+  ? path.resolve(parentDirectory, "..")
+  : parentDirectory;
 const getComplaintsFilePath = () =>
-  path.join(process.cwd(), "data", "complaints.json");
+  path.join(serverRoot, "data", "complaints.json");
 
 export const getComplaints = async (): Promise<Complaint[]> => {
   const filePath = getComplaintsFilePath();
@@ -20,7 +25,7 @@ export const generateComplaintId = async (): Promise<string> => {
 
 export const saveComplaint = async (complaint: Complaint): Promise<void> => {
   // Ensure uploads/ directory exists
-  await mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+  await mkdir(path.join(serverRoot, "uploads"), { recursive: true });
 
   const complaints = await getComplaints();
   complaints.push(complaint);
