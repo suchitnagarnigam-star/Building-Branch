@@ -19,6 +19,9 @@ export interface Complaint {
   assignedOfficerId: string | null;
   assignedOfficerName: string | null;
   assignedOfficerMobile: string | null;
+  assignedAtpId?: string | null;
+  assignedAtpName?: string | null;
+  assignedAtpMobile?: string | null;
 
   status: "Registered";
   createdAt: string;

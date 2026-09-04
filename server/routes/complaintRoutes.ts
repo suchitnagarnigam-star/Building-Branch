@@ -101,7 +101,8 @@ router.post(
       })));
 
       // Officer mapping
-      const officer = await findResponsibleOfficer(derivedZone, block);
+      const bi = await findResponsibleOfficer(derivedZone, block, "BI");
+      const atp = await findResponsibleOfficer(derivedZone, block, "ATP");
 
       // Generate ID and persist
       const complaintId = await generateComplaintId();
@@ -118,9 +119,12 @@ router.post(
         title:                body.title.trim(),
         description:          body.description.trim(),
         attachments,
-        assignedOfficerId:    officer?.officerId    ?? null,
-        assignedOfficerName:  officer?.name         ?? null,
-        assignedOfficerMobile: officer?.mobile      ?? null,
+        assignedOfficerId:    bi?.officerId    ?? null,
+        assignedOfficerName:  bi?.name         ?? null,
+        assignedOfficerMobile: bi?.mobile      ?? null,
+        assignedAtpId:        atp?.officerId   ?? null,
+        assignedAtpName:      atp?.name        ?? null,
+        assignedAtpMobile:    atp?.mobile     ?? null,
         status:               "Registered" as const,
         createdAt:            new Date().toISOString(),
       };
