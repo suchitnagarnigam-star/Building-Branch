@@ -5,8 +5,9 @@ import multer from "multer";
 
 import type { ComplaintRequest, AttachmentMeta } from "../types/complaint.js";
 import { findResponsibleOfficer } from "../services/officerMapping.js";
-import { generateComplaintId, saveComplaint } from "../services/complaintStorage.js";
+import { generateComplaintId, getComplaints, saveComplaint } from "../services/complaintStorage.js";
 import { zoneForBlock } from "../services/locationMapping.js";
+import { getOfficers } from "../services/officerMapping.js";
 
 const router = Router();
 const moduleDirectory = __dirname;
@@ -55,6 +56,56 @@ const handleUpload = (req: express.Request, res: express.Response, next: express
     next();
   });
 };
+
+router.get("/officers", async (_req, res) => {
+  try {
+    const [allOfficers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
+    const bis = allOfficers.filter((officer) => {
+      const designation = officer.designation.trim().toUpperCase();
+      return designation === "BI" || designation.endsWith("-BI");
+    });
+
+      res.json({
+      success: true,
+      officers: bis.map((officer) => ({
+        ...officer,
+        zone: `Zone ${officer.zone}`,
+        activeComplaints: complaints.filter(
+          (complaint) => complaint.assignedOfficerId === officer.officerId,
+        ).length,
+      })),
+    });
+
+  } catch (error) {
+    console.error("Error loading officers:", error);
+    res.status(500).json({ success: false, message: "Unable to load officers." });
+  }
+});
+
+router.get("/complaints", async (_req, res) => {
+  try {
+    res.json({ success: true, complaints: await getComplaints() });
+  } catch (error) {
+    console.error("Error loading complaints:", error);
+    res.status(500).json({ success: false, message: "Unable to load complaints." });
+  }
+});
+
+router.get("/complaints/:complaintId", async (req, res) => {
+  try {
+    const complaint = (await getComplaints()).find(
+      (item) => item.complaintId === req.params.complaintId,
+    );
+    if (!complaint) {
+      res.status(404).json({ success: false, message: "Complaint not found." });
+      return;
+    }
+    res.json({ success: true, complaint });
+  } catch (error) {
+    console.error("Error loading complaint:", error);
+    res.status(500).json({ success: false, message: "Unable to load complaint." });
+  }
+});
 
 // ── POST /api/complaints ──────────────────────────────────────────────────────
 router.post(

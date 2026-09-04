@@ -10,6 +10,7 @@ const multer_1 = __importDefault(require("multer"));
 const officerMapping_js_1 = require("../services/officerMapping.js");
 const complaintStorage_js_1 = require("../services/complaintStorage.js");
 const locationMapping_js_1 = require("../services/locationMapping.js");
+const officerMapping_js_2 = require("../services/officerMapping.js");
 const router = (0, express_1.Router)();
 const moduleDirectory = __dirname;
 const parentDirectory = node_path_1.default.resolve(moduleDirectory, "..");
@@ -55,6 +56,50 @@ const handleUpload = (req, res, next) => {
         next();
     });
 };
+router.get("/officers", async (_req, res) => {
+    try {
+        const [allOfficers, complaints] = await Promise.all([(0, officerMapping_js_2.getOfficers)(), (0, complaintStorage_js_1.getComplaints)()]);
+        const bis = allOfficers.filter((officer) => {
+            const designation = officer.designation.trim().toUpperCase();
+            return designation === "BI" || designation.endsWith("-BI");
+        });
+        res.json({
+            success: true,
+            officers: bis.map((officer) => ({
+                ...officer,
+                zone: `Zone ${officer.zone}`,
+                activeComplaints: complaints.filter((complaint) => complaint.assignedOfficerId === officer.officerId).length,
+            })),
+        });
+    }
+    catch (error) {
+        console.error("Error loading officers:", error);
+        res.status(500).json({ success: false, message: "Unable to load officers." });
+    }
+});
+router.get("/complaints", async (_req, res) => {
+    try {
+        res.json({ success: true, complaints: await (0, complaintStorage_js_1.getComplaints)() });
+    }
+    catch (error) {
+        console.error("Error loading complaints:", error);
+        res.status(500).json({ success: false, message: "Unable to load complaints." });
+    }
+});
+router.get("/complaints/:complaintId", async (req, res) => {
+    try {
+        const complaint = (await (0, complaintStorage_js_1.getComplaints)()).find((item) => item.complaintId === req.params.complaintId);
+        if (!complaint) {
+            res.status(404).json({ success: false, message: "Complaint not found." });
+            return;
+        }
+        res.json({ success: true, complaint });
+    }
+    catch (error) {
+        console.error("Error loading complaint:", error);
+        res.status(500).json({ success: false, message: "Unable to load complaint." });
+    }
+});
 // ── POST /api/complaints ──────────────────────────────────────────────────────
 router.post("/complaints", handleUpload, async (req, res) => {
     try {

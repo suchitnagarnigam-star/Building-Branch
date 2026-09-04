@@ -1,272 +1,111 @@
 [
   {
-    "complaintId": "CMP-000001",
+    "complaintId": "MCL-BB-0001",
+    "registrationSource": "manual",
     "citizenName": "Arshdeep Kaur",
-    "phoneNumber": "9876543210",
-    "zone": "Zone 1",
-    "block": "Block A",
-    "ward": "Ward 1",
-    "address": "Model Town",
-    "title": "Garbage not collected",
-    "description": "Garbage has not been collected for three days.",
-    "assignedOfficerId": "OFF-001",
-    "assignedOfficerName": "Amit Kumar",
-    "status": "Registered",
-    "createdAt": "2026-08-30T09:05:49.458Z"
-  },
-  {
-    "complaintId": "CMP-000002",
-    "citizenName": "Arsh",
-    "phoneNumber": "9688543210",
-    "zone": "Zone 1",
-    "block": "Block A",
-    "ward": "Ward 1",
-    "address": "Model Town",
-    "title": "Street Lights issue",
-    "description": "Street lights are not working from 2 days.",
-    "assignedOfficerId": "OFF-001",
-    "assignedOfficerName": "Amit Kumar",
-    "status": "Registered",
-    "createdAt": "2026-08-30T09:07:11.748Z"
-  },
-  {
-    "complaintId": "CMP-000003",
-    "citizenName": "Arshdeep Kaur",
-    "phoneNumber": "9876543210",
-    "zone": "Zone 1",
-    "block": "Block A",
-    "ward": "Ward 1",
-    "address": "Model Town",
-    "title": "Garbage not collected",
-    "description": "Garbage has not been collected for three days.",
-    "assignedOfficerId": "OFF-001",
-    "assignedOfficerName": "Amit Kumar",
-    "status": "Registered",
-    "createdAt": "2026-08-30T10:05:09.539Z"
-  },
-  {
-    "complaintId": "CMP-000004",
-    "citizenName": "Browser Test",
-    "phoneNumber": "9876543210",
-    "zone": "Zone 1",
-    "block": "Block A",
-    "ward": "Ward 1",
-    "address": "Test Address",
-    "title": "Browser API Test",
-    "description": "Testing complaint submission from browser.",
-    "assignedOfficerId": "OFF-001",
-    "assignedOfficerName": "Amit Kumar",
-    "status": "Registered",
-    "createdAt": "2026-08-30T10:08:10.805Z"
-  },
-  {
-    "complaintId": "CMP-000005",
-    "citizenName": "suman",
-    "phoneNumber": "7865432189",
-    "zone": "Zone 2",
-    "block": "Block C",
-    "ward": "Ward 5",
-    "address": "vghbjk",
-    "title": "cvbnm,.",
-    "description": "xdfghjkl",
-    "assignedOfficerId": "OFF-003",
-    "assignedOfficerName": "Rohit Sharma",
-    "status": "Registered",
-    "createdAt": "2026-08-30T10:11:27.239Z"
-  },
-  {
-    "complaintId": "CMP-000006",
-    "citizenName": "szdfgh",
-    "phoneNumber": "7865432189",
-    "zone": "Zone 2",
-    "block": "Block D",
-    "ward": "Ward 7",
-    "address": "zsdfgchbj",
-    "title": "xdcfgvhbjnkml",
-    "description": "seertfyguhj",
-    "assignedOfficerId": "OFF-004",
-    "assignedOfficerName": "kirpal Singh",
-    "status": "Registered",
-    "createdAt": "2026-08-30T10:27:26.567Z"
-  },
-  {
-    "complaintId": "CMP-000007",
-    "citizenName": "komal",
-    "phoneNumber": "7865432189",
-    "zone": "Zone 1",
-    "block": "Block A",
-    "ward": "Ward 1",
-    "address": "xddcfvgbhnj",
-    "title": "sdfghjk",
-    "description": "sxrdctfghjk",
-    "assignedOfficerId": "OFF-001",
-    "assignedOfficerName": "Amit Kumar",
-    "status": "Registered",
-    "createdAt": "2026-08-30T11:06:42.181Z"
-  },
-  {
-    "complaintId": "MCL-BB-0008",
-    "citizenName": "qwerty",
-    "phoneNumber": "9876543210",
-    "zone": "Zone C",
-    "block": "Block 21",
-    "ward": "Ward-33",
-    "address": "xdcfgvhbj",
-    "title": "dxcfvgb",
-    "description": "fgvbhnj",
-    "assignedOfficerId": "OFF-008",
-    "assignedOfficerName": "Sh. Kamal Dhir",
-    "assignedOfficerMobile": "99888-13929",
-    "assignedAtpId": "OFF-007",
-    "assignedAtpName": "Sh. Randhir Singh",
-    "assignedAtpMobile": "87259-83841",
-    "status": "Registered",
-    "createdAt": "2026-09-03T10:22:20.460Z"
-  },
-  {
-    "complaintId": "MCL-BB-0009",
-    "registrationSource": "manual",
-    "citizenName": "xyz",
-    "phoneNumber": "9876543210",
-    "zone": "Zone C",
-    "block": "Block 22",
-    "address": "krishna nagar",
-    "title": "extra builiding floor",
-    "description": "A property owner builds an extra commercial floor",
-    "attachments": [
-      {
-        "fileName": "Screenshot 2026-08-02 115640.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645091-298596.png"
-      },
-      {
-        "fileName": "Screenshot 2026-08-02 151501.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645093-670782.png"
-      },
-      {
-        "fileName": "Screenshot 2026-08-02 151515.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645096-951626.png"
-      }
-    ],
-    "assignedOfficerId": "OFF-008",
-    "assignedOfficerName": "Sh. Kamal Dhir",
-    "assignedOfficerMobile": "99888-13929",
-    "assignedAtpId": "OFF-007",
-    "assignedAtpName": "Sh. Randhir Singh",
-    "assignedAtpMobile": "87259-83841",
-    "status": "Registered",
-    "createdAt": "2026-09-04T07:07:25.101Z"
-  },
-  {
-    "complaintId": "MCL-BB-0010",
-    "registrationSource": "manual",
-    "citizenName": "pqr",
-    "phoneNumber": "9876543210",
-    "zone": "Zone B",
-    "block": "Block 31(1)",
-    "address": "dfvgb",
-    "title": "sdfghj",
-    "description": "xsdcfghyju",
-    "attachments": [
-      {
-        "fileName": "Screenshot 2026-08-02 165010.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788507941963-233374.png"
-      }
-    ],
-    "assignedOfficerId": "OFF-004",
-    "assignedOfficerName": "Sh. Nirwan",
-    "assignedOfficerMobile": "95927-35111",
-    "status": "Registered",
-    "createdAt": "2026-09-04T07:45:41.966Z"
-  },
-  {
-    "complaintId": "MCL-BB-0011",
-    "registrationSource": "manual",
-    "citizenName": "cdfvgbn",
-    "phoneNumber": "9876543210",
-    "zone": "Zone C",
-    "block": "Block 22",
-    "address": "fcvgbhnjmk",
-    "title": "qawsrdtfyghuj",
-    "description": "eswrxdctfvygbhjk",
-    "attachments": [
-      {
-        "fileName": "Screenshot 2026-09-03 145657.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788508265807-82085.png"
-      }
-    ],
-    "assignedOfficerId": "OFF-008",
-    "assignedOfficerName": "Sh. Kamal Dhir",
-    "assignedOfficerMobile": "99888-13929",
-    "assignedAtpId": "OFF-007",
-    "assignedAtpName": "Sh. Randhir Singh",
-    "assignedAtpMobile": "87259-83841",
-    "status": "Registered",
-    "createdAt": "2026-09-04T07:51:05.814Z"
-  },
-  {
-    "complaintId": "MCL-BB-0012",
-    "registrationSource": "manual",
-    "citizenName": "first complaint",
-    "phoneNumber": "9876543210",
-    "zone": "Zone C",
-    "block": "Block 29",
-    "address": "qswdefrgthy",
-    "title": "unapproved industry",
-    "description": "fcgvhjkltjkl",
-    "attachments": [
-      {
-        "fileName": "Screenshot 2026-08-31 151237.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788509437619-792620.png"
-      }
-    ],
-    "assignedOfficerId": "OFF-008",
-    "assignedOfficerName": "Sh. Kamal Dhir",
-    "assignedOfficerMobile": "99888-13929",
-    "assignedBiId": "OFF-008",
-    "assignedBiName": "Sh. Kamal Dhir",
-    "assignedBiMobile": "99888-13929",
-    "assignedAtpId": "OFF-007",
-    "assignedAtpName": "Sh. Randhir Singh",
-    "assignedAtpMobile": "87259-83841",
-    "assignedAtp": "Sh. Randhir Singh",
-    "status": "Registered",
-    "createdAt": "2026-09-04T08:10:37.623Z"
-  },
-  {
-    "complaintId": "MCL-BB-0013",
-    "registrationSource": "manual",
-    "citizenName": "abcdef",
     "phoneNumber": "9876543210",
     "zone": "Zone D",
-    "block": "Block 1",
-    "address": "sdefrgthnjm",
-    "title": "aqswdefrgthyj",
-    "description": "aswdefrgthy",
+    "block": "Block 34",
+    "address": "sarabha nagar road",
+    "title": "illegal building",
+    "description": "unauthorized building floor",
     "attachments": [
       {
-        "fileName": "Screenshot 2026-08-02 142511.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788509679650-752548.png"
-      },
-      {
-        "fileName": "Screenshot 2026-08-02 151143.png",
-        "fileType": "image/png",
-        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788509679652-98691.png"
+        "fileName": "unauthorized building.jpg",
+        "fileType": "image/jpeg",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788534897787-343264.jpg"
       }
     ],
-    "assignedOfficerId": "OFF-012",
-    "assignedOfficerName": "Sh. Ravinder Walia",
-    "assignedOfficerMobile": "98551-99191",
+    "assignedOfficerId": "OFF-011",
+    "assignedOfficerName": "Sh. Kuljeet Mangat",
+    "assignedOfficerMobile": "98153-88860",
     "assignedAtpId": "OFF-009",
     "assignedAtpName": "Sh. Raj Kumar",
     "assignedAtpMobile": "9814245882",
     "status": "Registered",
-    "createdAt": "2026-09-04T08:14:39.660Z"
+    "createdAt": "2026-09-04T15:14:57.796Z"
+  },
+  {
+    "complaintId": "MCL-BB-0002",
+    "registrationSource": "manual",
+    "citizenName": "sxdcfvgbnm",
+    "phoneNumber": "9876543210",
+    "zone": "Zone A",
+    "block": "Block 4",
+    "address": "zxcvbn",
+    "title": "wertyjkl",
+    "description": "zwexdcfvghbj",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-09-03 145657.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788535635036-657428.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-003",
+    "assignedOfficerName": "Sh. Harminder Makkar",
+    "assignedOfficerMobile": "88722-22000",
+    "assignedAtpId": "OFF-001",
+    "assignedAtpName": "Sh. Kapil Dev",
+    "assignedAtpMobile": "90410-22742",
+    "status": "Registered",
+    "createdAt": "2026-09-04T15:27:15.044Z"
+  },
+  {
+    "complaintId": "MCL-BB-0003",
+    "registrationSource": "manual",
+    "citizenName": "abc",
+    "phoneNumber": "9876543219",
+    "zone": "Zone B",
+    "block": "Block 30",
+    "address": "wsedrftgyhujioxcvbnm",
+    "title": "sdfghjksedfghjx",
+    "description": "ssdfxghjklkzsfdghjkzfghjb",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-01 224943.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788540057858-443676.png"
+      },
+      {
+        "fileName": "Screenshot 2026-08-02 151446.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788540057863-243719.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-006",
+    "assignedOfficerName": "Sh. Paul Parneet",
+    "assignedOfficerMobile": "70875-47807",
+    "assignedAtpId": "OFF-004",
+    "assignedAtpName": "Sh. Nirwan",
+    "assignedAtpMobile": "95927-35111",
+    "status": "Registered",
+    "createdAt": "2026-09-04T16:40:57.876Z"
+  },
+  {
+    "complaintId": "MCL-BB-0004",
+    "registrationSource": "manual",
+    "citizenName": "Raman Kumar",
+    "phoneNumber": "9876543210",
+    "zone": "Zone B",
+    "block": "Block 23",
+    "address": "dfvgbhnj",
+    "title": "zsxdfcgvhbjkml",
+    "description": "asdxfcgvhbjnkml,",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-08 130443.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788543523124-148252.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-006",
+    "assignedOfficerName": "Sh. Paul Parneet",
+    "assignedOfficerMobile": "70875-47807",
+    "assignedAtpId": "OFF-004",
+    "assignedAtpName": "Sh. Nirwan",
+    "assignedAtpMobile": "95927-35111",
+    "status": "Registered",
+    "createdAt": "2026-09-04T17:38:43.131Z"
   }
 ]

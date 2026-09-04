@@ -60,7 +60,13 @@ function App() {
       route !== "/complaints/mine" &&
       route !== "/complaints/pending"
     ) {
-      return <ComplaintDetailPage complaint={activeComplaint} navigate={navigate} />;
+      return (
+        <ComplaintDetailPage
+          complaint={activeComplaint}
+          complaintId={route.split("/").at(-1) ?? activeComplaint.id}
+          navigate={navigate}
+        />
+      );
     }
     if (
       route === "/complaints" ||

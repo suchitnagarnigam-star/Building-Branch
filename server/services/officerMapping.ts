@@ -10,7 +10,7 @@ export interface Officer {
   blocks: string[];
 }
 
-const getOfficers = async (): Promise<Officer[]> => {
+export const getOfficers = async (): Promise<Officer[]> => {
   const moduleDirectory = __dirname;
   const parentDirectory = path.resolve(moduleDirectory, "..");
   const serverRoot = path.basename(parentDirectory) === "dist"
