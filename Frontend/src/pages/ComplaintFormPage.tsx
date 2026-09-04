@@ -1,0 +1,527 @@
+import { useRef, useState } from "react";
+import type { ChangeEvent, DragEvent, FormEvent } from "react";
+import type { ComplaintFormData } from "../types/complaint";
+import { locationData, zoneForBlock } from "../data/locationData";
+import { submitComplaint } from "../services/complaintApi";
+import Icon from "../shared/components/Icon";
+
+type ComplaintFormPageProps = {
+  navigate?: (route: string) => void;
+  setSelectedComplaintId?: (id: string) => void;
+};
+
+type FormErrors = Partial<Record<keyof ComplaintFormData | "complaintImage", string>>;
+
+type UploadedFile = {
+  file: File;
+  name: string;
+  size: number;
+  preview: string | null;
+};
+
+type SourceType = "news" | "email" | "other";
+
+// ── Accepted formats ─────────────────────────────────────────────────────────
+const IMAGE_TYPES   = ["image/jpeg", "image/png"];
+const SOURCE_TYPES  = ["image/jpeg", "image/png", "application/pdf"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const initialFormData: ComplaintFormData = {
+  citizenName: "",
+  phoneNumber: "",
+  block: "",
+  zone: "",
+  ward: "",
+  address: "",
+  title: "",
+  description: "",
+};
+
+function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPageProps = {}) {
+  const [formData, setFormData] = useState<ComplaintFormData>(initialFormData);
+  const [errors, setErrors]     = useState<FormErrors>({});
+  const [submitError, setSubmitError] = useState("");
+
+  // ── Mandatory complaint image (manual entry) ──────────────────────────────
+  const [complaintImages, setComplaintImages]     = useState<UploadedFile[]>([]);
+  const [imageError, setImageError]               = useState("");
+  const [isImageDragOver, setIsImageDragOver]     = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // ── External source upload (OR section) ──────────────────────────────────
+  const [sourceType, setSourceType]               = useState<SourceType>("news");
+  const [sourceFiles, setSourceFiles]             = useState<UploadedFile[]>([]);
+  const [sourceFileError, setSourceFileError]     = useState("");
+  const [isSourceDragOver, setIsSourceDragOver]   = useState(false);
+  const sourceFileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Form field handlers ───────────────────────────────────────────────────
+
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = event.target;
+    setSubmitError("");
+
+    setFormData((prev) => {
+      if (name === "block") {
+        // Derive zone automatically when block changes
+        const derivedZone = zoneForBlock(value);
+        return { ...prev, block: value, zone: derivedZone };
+      }
+      return { ...prev, [name]: value };
+    });
+
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  // ── Complaint image handlers ──────────────────────────────────────────────
+
+  const processImages = (fileList: FileList) => {
+    setImageError("");
+    const incoming = Array.from(fileList);
+    for (const file of incoming) {
+      if (!IMAGE_TYPES.includes(file.type)) {
+        setImageError("Only JPG and PNG images are accepted.");
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setImageError(`${file.name} exceeds the 5 MB limit.`);
+        return;
+      }
+    }
+
+    setComplaintImages((previous) => [
+      ...previous,
+      ...incoming.map((file) => ({
+        file,
+        name: file.name,
+        size: file.size,
+        preview: URL.createObjectURL(file),
+      })),
+    ]);
+    setErrors((e) => ({ ...e, complaintImage: undefined }));
+  };
+
+  const handleImageInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files?.length) processImages(event.target.files);
+    event.target.value = "";
+  };
+
+  const handleImageDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsImageDragOver(false);
+    if (event.dataTransfer.files?.length) processImages(event.dataTransfer.files);
+  };
+
+  const removeImage = (index: number) => {
+    setComplaintImages((previous) => {
+      const next = [...previous];
+      const removed = next.splice(index, 1)[0];
+      if (removed?.preview) URL.revokeObjectURL(removed.preview);
+      return next;
+    });
+  };
+
+  // ── Source file handlers ──────────────────────────────────────────────────
+
+  const processSourceFiles = (fileList: FileList) => {
+    setSourceFileError("");
+    const incoming = Array.from(fileList);
+
+    for (const file of incoming) {
+      if (!SOURCE_TYPES.includes(file.type)) {
+        setSourceFileError("Only JPG, PNG, and PDF files are accepted.");
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setSourceFileError(`${file.name} exceeds the 5 MB limit.`);
+        return;
+      }
+    }
+
+    const next: UploadedFile[] = incoming.map((file) => ({
+      file,
+      name: file.name,
+      size: file.size,
+      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+    }));
+
+    setSourceFiles((prev) => [...prev, ...next]);
+  };
+
+  const handleSourceFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files?.length) processSourceFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const handleSourceDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsSourceDragOver(false);
+    if (event.dataTransfer.files?.length) processSourceFiles(event.dataTransfer.files);
+  };
+
+  const removeSourceFile = (index: number) => {
+    setSourceFiles((prev) => {
+      const copy = [...prev];
+      const removed = copy.splice(index, 1)[0];
+      if (removed.preview) URL.revokeObjectURL(removed.preview);
+      return copy;
+    });
+  };
+
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  const validateForm = (): FormErrors => {
+    const next: FormErrors = {};
+    if (!formData.citizenName.trim()) next.citizenName = "Citizen name is required";
+    if (!formData.phoneNumber.trim()) {
+      next.phoneNumber = "Phone number is required";
+    } else if (!/^(\+91)?[6-9]\d{9}$/.test(formData.phoneNumber.trim())) {
+      next.phoneNumber = "Enter a valid 10-digit phone number";
+    }
+    if (!formData.block)   next.block   = "Please select a block";
+    if (!formData.address.trim()) next.address = "Address is required";
+    if (!formData.title.trim())   next.title   = "Complaint title is required";
+    if (!formData.description.trim()) next.description = "Complaint description is required";
+    if (complaintImages.length === 0) next.complaintImage = "Please upload at least one complaint image before submitting";
+    return next;
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const validatedErrors = validateForm();
+    setErrors(validatedErrors);
+    if (Object.keys(validatedErrors).length > 0) return;
+
+    try {
+      const response = await submitComplaint(formData, complaintImages.map((image) => image.file));
+      const complaintId = response?.complaintId ?? response?.complaint?.complaintId;
+
+      if (!complaintId) throw new Error("Complaint registration response did not include an ID.");
+
+      if (typeof setSelectedComplaintId === "function") setSelectedComplaintId(complaintId);
+      if (typeof navigate === "function") navigate(`/complaints/confirm/${complaintId}`);
+
+      // Reset form
+      setFormData(initialFormData);
+      setErrors({});
+      setSubmitError("");
+      complaintImages.forEach((image) => {
+        if (image.preview) URL.revokeObjectURL(image.preview);
+      });
+      setComplaintImages([]);
+      setSourceFiles([]);
+    } catch (error) {
+      console.error("Complaint submission failed:", error);
+      setSubmitError("Unable to submit the complaint right now. Please try again.");
+    }
+  };
+
+  // ── Derived state ─────────────────────────────────────────────────────────
+
+  const derivedZone = formData.block ? zoneForBlock(formData.block) : "";
+
+  const sourceDropLabel =
+    sourceType === "news"  ? "news image / PDF" :
+    sourceType === "email" ? "email screenshot / PDF" :
+    "file";
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="form-page">
+      <div className="complaint-form-layout">
+
+        {/* ── Left: manual entry form ── */}
+        <div className="page-card complaint-form-card">
+          <div className="page-card__header">
+            <h2 style={{ marginBottom: 0 }}>Register a Complaint</h2>
+          </div>
+
+          <form onSubmit={handleSubmit} className="complaint-form" noValidate>
+
+            {/* Citizen info */}
+            <div className="field-grid field-grid--2">
+              <div className="field">
+                <span>Citizen Name <span className="field__required">*</span></span>
+                <input
+                  name="citizenName"
+                  type="text"
+                  placeholder="Enter citizen name"
+                  value={formData.citizenName}
+                  onChange={handleChange}
+                />
+                {errors.citizenName && <small className="error-text">{errors.citizenName}</small>}
+              </div>
+
+              <div className="field">
+                <span>Phone Number <span className="field__required">*</span></span>
+                <input
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                />
+                {errors.phoneNumber && <small className="error-text">{errors.phoneNumber}</small>}
+              </div>
+            </div>
+
+            {/* Location — Block first, Zone derived */}
+            <div className="form-section-label">Complaint Location</div>
+
+            <div className="field-grid field-grid--2">
+              <div className="field">
+                <span>Block <span className="field__required">*</span></span>
+                <select name="block" value={formData.block} onChange={handleChange}>
+                  <option value="">Select Block</option>
+                  {locationData.map((entry) => (
+                    <option key={entry.block} value={entry.block}>{entry.block}</option>
+                  ))}
+                </select>
+                {errors.block && <small className="error-text">{errors.block}</small>}
+              </div>
+
+              <div className="field">
+                <span>Zone <span className="field__required">*</span></span>
+                <input
+                  name="zone"
+                  type="text"
+                  value={derivedZone}
+                  readOnly
+                  placeholder={formData.block ? "" : "Auto-filled from Block"}
+                  className="derived-field"
+                  aria-label="Zone — auto-filled from selected block"
+                />
+              </div>
+            </div>
+
+            <div className="field-grid field-grid--2">
+              <div className="field">
+                <span>Ward <span className="field__optional">(optional)</span></span>
+                <input
+                  name="ward"
+                  type="text"
+                  placeholder="Enter ward if known"
+                  value={formData.ward ?? ""}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="field">
+                <span>Address <span className="field__required">*</span></span>
+                <input
+                  name="address"
+                  type="text"
+                  placeholder="Exact location / address of the complaint"
+                  value={formData.address}
+                  onChange={handleChange}
+                />
+                {errors.address && <small className="error-text">{errors.address}</small>}
+              </div>
+            </div>
+
+            {/* Complaint details */}
+            <div className="field">
+              <span>Complaint Title <span className="field__required">*</span></span>
+              <input
+                name="title"
+                type="text"
+                placeholder="Brief title for the complaint"
+                value={formData.title}
+                onChange={handleChange}
+              />
+              {errors.title && <small className="error-text">{errors.title}</small>}
+            </div>
+
+            <div className="field">
+              <span>Complaint Description <span className="field__required">*</span></span>
+              <textarea
+                name="description"
+                rows={4}
+                placeholder="Describe the complaint in detail"
+                value={formData.description}
+                onChange={handleChange}
+              />
+              {errors.description && <small className="error-text">{errors.description}</small>}
+            </div>
+
+            {/* ── Mandatory complaint image ── */}
+            <div className="field">
+              <span>
+                Complaint Images <span className="field__required">*</span>
+                <span className="field__hint"> — JPG / PNG, max 5 MB each</span>
+              </span>
+
+              <div
+                  className={`upload-dropzone upload-dropzone--compact${isImageDragOver ? " upload-dropzone--active" : ""}${errors.complaintImage ? " upload-dropzone--error" : ""}`}
+                  onDrop={handleImageDrop}
+                  onDragOver={(e) => { e.preventDefault(); setIsImageDragOver(true); }}
+                  onDragLeave={() => setIsImageDragOver(false)}
+                  onClick={() => imageInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload complaint images"
+                  onKeyDown={(e) => e.key === "Enter" && imageInputRef.current?.click()}
+                >
+                  <span className="upload-dropzone__icon"><Icon name="upload" /></span>
+                  <strong>Add complaint images</strong>
+                  <small>JPG / PNG · select multiple</small>
+                </div>
+              {complaintImages.length > 0 && (
+               <ul className="upload-file-list" style={{ marginTop: 4 }}>
+                 {complaintImages.map((image, index) => (
+                   <li key={`${image.name}-${index}`} className="upload-file-item">
+                     <img src={image.preview!} alt={image.name} className="upload-file-item__thumb" />
+                     <div className="upload-file-item__meta">
+                       <span className="upload-file-item__name">{image.name}</span>
+                       <span className="upload-file-item__size">{formatBytes(image.size)}</span>
+                     </div>
+                     <button
+                       type="button"
+                       className="upload-file-item__remove"
+                       aria-label={`Remove ${image.name}`}
+                       onClick={() => removeImage(index)}
+                     >
+                       <Icon name="close" />
+                     </button>
+                   </li>
+                 ))}
+               </ul>
+              )}
+
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                multiple
+                style={{ display: "none" }}
+                onChange={handleImageInputChange}
+              />
+              {imageError && <small className="error-text">{imageError}</small>}
+              {errors.complaintImage && !imageError && (
+                <small className="error-text">{errors.complaintImage}</small>
+              )}
+            </div>
+
+            {submitError && (
+              <div className="error-text" style={{ marginBottom: 4 }}>{submitError}</div>
+            )}
+
+            <div className="sticky-actions" style={{ borderTop: "none", paddingTop: 0, marginTop: 8 }}>
+              <button type="submit" className="primary-button" style={{ minWidth: 180 }}>
+                Submit Complaint
+              </button>
+            </div>
+
+            {/* ── OR divider ── */}
+            <div className="source-upload-divider">
+              <span className="source-upload-divider__line" />
+              <span className="source-upload-divider__label">OR</span>
+              <span className="source-upload-divider__line" />
+            </div>
+
+            {/* ── External source upload ── */}
+            <div className="source-upload-section">
+              <div className="source-upload-section__header">
+                <span className="source-upload-section__title">Register from External Source</span>
+                <p className="source-upload-section__hint">
+                  Upload a news article, email screenshot, PDF, or other external document.
+                  The source type is stored with the record.
+                </p>
+              </div>
+
+              {/* Source type tabs */}
+              <div className="source-type-tabs" role="group" aria-label="Source type">
+                {(["news", "email", "other"] as SourceType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    className={`source-type-tab${sourceType === type ? " source-type-tab--active" : ""}`}
+                    onClick={() => setSourceType(type)}
+                  >
+                    {type === "news" ? "News" : type === "email" ? "Email" : "Other"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Drop zone */}
+              <div
+                className={`upload-dropzone source-upload-dropzone${isSourceDragOver ? " upload-dropzone--active" : ""}`}
+                onDrop={handleSourceDrop}
+                onDragOver={(e) => { e.preventDefault(); setIsSourceDragOver(true); }}
+                onDragLeave={() => setIsSourceDragOver(false)}
+                onClick={() => sourceFileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                aria-label={`Upload ${sourceType} source document`}
+                onKeyDown={(e) => e.key === "Enter" && sourceFileInputRef.current?.click()}
+              >
+                <span className="upload-dropzone__icon"><Icon name="upload" /></span>
+                <strong>Drop {sourceDropLabel} here or click to browse</strong>
+                <small>JPG, PNG, PDF · max 5 MB</small>
+              </div>
+
+              <input
+                ref={sourceFileInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                multiple
+                style={{ display: "none" }}
+                onChange={handleSourceFileInputChange}
+              />
+
+              {sourceFileError && (
+                <p className="error-text" style={{ marginTop: 4 }}>{sourceFileError}</p>
+              )}
+
+              {sourceFiles.length > 0 && (
+                <ul className="upload-file-list" style={{ marginTop: 4 }}>
+                  {sourceFiles.map((f, index) => (
+                    <li key={`src-${f.name}-${index}`} className="upload-file-item">
+                      {f.preview ? (
+                        <img src={f.preview} alt={f.name} className="upload-file-item__thumb" />
+                      ) : (
+                        <span className="upload-file-item__icon"><Icon name="file" /></span>
+                      )}
+                      <div className="upload-file-item__meta">
+                        <span className="upload-file-item__name">{f.name}</span>
+                        <span className="upload-file-item__size">{formatBytes(f.size)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="upload-file-item__remove"
+                        aria-label={`Remove ${f.name}`}
+                        onClick={() => removeSourceFile(index)}
+                      >
+                        <Icon name="close" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {sourceFiles.length === 0 && (
+                <p className="upload-empty-hint">No source document attached yet.</p>
+              )}
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+export default ComplaintFormPage;

@@ -1,0 +1,98 @@
+[
+  {
+    "officerId": "OFF-001",
+    "name": "Sh. Kapil Dev",
+    "mobile": "90410-22742",
+    "designation": "ATP",
+    "zone": "A",
+    "blocks": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "25", "32", "33"]
+  },
+  {
+    "officerId": "OFF-002",
+    "name": "Sh. Gurwinder Singh",
+    "mobile": "96461-89006",
+    "designation": "BI",
+    "zone": "A",
+    "blocks": ["2", "25", "32", "33"]
+  },
+  {
+    "officerId": "OFF-003",
+    "name": "Sh. Harminder Makkar",
+    "mobile": "88722-22000",
+    "designation": "BI",
+    "zone": "A",
+    "blocks": ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+  },
+  {
+    "officerId": "OFF-004",
+    "name": "Sh. Nirwan",
+    "mobile": "95927-35111",
+    "designation": "ATP",
+    "zone": "B",
+    "blocks": ["14", "23", "30", "31(1)", "24", "31(2)"]
+  },
+  {
+    "officerId": "OFF-005",
+    "name": "Sh. Randhir Rana",
+    "mobile": "89990-69000",
+    "designation": "BI",
+    "zone": "B",
+    "blocks": ["24", "31(2)"]
+  },
+  {
+    "officerId": "OFF-006",
+    "name": "Sh. Paul Parneet",
+    "mobile": "70875-47807",
+    "designation": "BI",
+    "zone": "B",
+    "blocks": ["14", "23", "30", "31(1)"]
+  },
+  {
+    "officerId": "OFF-007",
+    "name": "Sh. Randhir Singh",
+    "mobile": "87259-83841",
+    "designation": "ATP",
+    "zone": "C",
+    "blocks": ["15", "16", "21", "22", "29", "37"]
+  },
+  {
+    "officerId": "OFF-008",
+    "name": "Sh. Kamal Dhir",
+    "mobile": "99888-13929",
+    "designation": "BI",
+    "zone": "C",
+    "blocks": ["15", "16", "21", "22", "29", "37"]
+  },
+  {
+    "officerId": "OFF-009",
+    "name": "Sh. Raj Kumar",
+    "mobile": "9814245882",
+    "designation": "ATP",
+    "zone": "D",
+    "blocks": ["1", "17", "18", "19", "20", "26", "27", "28", "34", "35", "36"]
+  },
+  {
+    "officerId": "OFF-010",
+    "name": "Sh. Bharat Malik",
+    "mobile": "97836-29999",
+    "designation": "HDM-CDC-BI",
+    "zone": "D",
+    "blocks": ["18", "26", "27", "28"]
+  },
+  {
+    "officerId": "OFF-011",
+    "name": "Sh. Kuljeet Mangat",
+    "mobile": "98153-88860",
+    "designation": "BI",
+    "zone": "D",
+    "blocks": ["19", "20", "34"]
+  },
+  {
+    "officerId": "OFF-012",
+    "name": "Sh. Ravinder Walia",
+    "mobile": "98551-99191",
+    "designation": "DM-CDC-BI",
+    "zone": "D",
+    "blocks": ["1", "17", "35", "36"]
+  }
+]
