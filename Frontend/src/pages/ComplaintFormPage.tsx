@@ -50,6 +50,7 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
   // ── Mandatory complaint image (manual entry) ──────────────────────────────
   const [complaintImages, setComplaintImages]     = useState<UploadedFile[]>([]);
+  const [previewImage, setPreviewImage]           = useState<UploadedFile | null>(null);
   const [imageError, setImageError]               = useState("");
   const [isImageDragOver, setIsImageDragOver]     = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -71,9 +72,13 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
     setFormData((prev) => {
       if (name === "block") {
-        // Derive zone automatically when block changes
-        const derivedZone = zoneForBlock(value);
-        return { ...prev, block: value, zone: derivedZone };
+        return { ...prev, block: value, zone: zoneForBlock(value) || prev.zone };
+      }
+      if (name === "zone") {
+        const selectedBlock = locationData.find(
+          (entry) => entry.zone === value && entry.block === prev.block,
+        )?.block;
+        return { ...prev, zone: value, block: selectedBlock ? prev.block : "" };
       }
       return { ...prev, [name]: value };
     });
@@ -124,6 +129,7 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
     setComplaintImages((previous) => {
       const next = [...previous];
       const removed = next.splice(index, 1)[0];
+      if (previewImage === removed) setPreviewImage(null);
       if (removed?.preview) URL.revokeObjectURL(removed.preview);
       return next;
     });
@@ -229,7 +235,9 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const derivedZone = formData.block ? zoneForBlock(formData.block) : "";
+  const availableBlocks = formData.zone
+    ? locationData.filter((entry) => entry.zone === formData.zone)
+    : locationData;
 
   const sourceDropLabel =
     sourceType === "news"  ? "news image / PDF" :
@@ -285,7 +293,7 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
                 <span>Block <span className="field__required">*</span></span>
                 <select name="block" value={formData.block} onChange={handleChange}>
                   <option value="">Select Block</option>
-                  {locationData.map((entry) => (
+                {availableBlocks.map((entry) => (
                     <option key={entry.block} value={entry.block}>{entry.block}</option>
                   ))}
                 </select>
@@ -294,15 +302,12 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
               <div className="field">
                 <span>Zone <span className="field__required">*</span></span>
-                <input
-                  name="zone"
-                  type="text"
-                  value={derivedZone}
-                  readOnly
-                  placeholder={formData.block ? "" : "Auto-filled from Block"}
-                  className="derived-field"
-                  aria-label="Zone — auto-filled from selected block"
-                />
+                <select name="zone" value={formData.zone} onChange={handleChange}>
+                  <option value="">Select Zone</option>
+                  {[...new Set(locationData.map((entry) => entry.zone))].map((zone) => (
+                    <option key={zone} value={zone}>{zone}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -382,7 +387,14 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
                <ul className="upload-file-list" style={{ marginTop: 4 }}>
                  {complaintImages.map((image, index) => (
                    <li key={`${image.name}-${index}`} className="upload-file-item">
-                     <img src={image.preview!} alt={image.name} className="upload-file-item__thumb" />
+                     <button
+                       type="button"
+                       className="image-preview-button"
+                       onClick={() => setPreviewImage(image)}
+                       aria-label={`Preview ${image.name}`}
+                     >
+                       <img src={image.preview!} alt={image.name} className="upload-file-item__thumb" />
+                     </button>
                      <div className="upload-file-item__meta">
                        <span className="upload-file-item__name">{image.name}</span>
                        <span className="upload-file-item__size">{formatBytes(image.size)}</span>
@@ -520,6 +532,17 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
         </div>
 
       </div>
+      {previewImage && (
+        <div className="image-preview-modal" role="dialog" aria-modal="true" aria-label="Image preview" onClick={() => setPreviewImage(null)}>
+          <div className="image-preview-modal__content" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="image-preview-modal__close" onClick={() => setPreviewImage(null)} aria-label="Close image preview">
+              <Icon name="close" />
+            </button>
+            <img src={previewImage.preview!} alt={previewImage.name} className="image-preview-modal__image" />
+            <span className="image-preview-modal__name">{previewImage.name}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
-import { Router } from "express";
+import express, { Router } from "express";
 import multer from "multer";
 
 import type { ComplaintRequest, AttachmentMeta } from "../types/complaint.js";
@@ -9,11 +9,16 @@ import { generateComplaintId, saveComplaint } from "../services/complaintStorage
 import { zoneForBlock } from "../services/locationMapping.js";
 
 const router = Router();
+const moduleDirectory = __dirname;
+const parentDirectory = path.resolve(moduleDirectory, "..");
+const serverRoot = path.basename(parentDirectory) === "dist"
+  ? path.resolve(parentDirectory, "..")
+  : parentDirectory;
+const uploadDirectory = path.join(serverRoot, "uploads");
 
 // ── File storage: uploads/ directory, preserve extension ─────────────────────
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    const uploadDirectory = path.join(process.cwd(), "uploads");
     mkdir(uploadDirectory, { recursive: true })
       .then(() => cb(null, uploadDirectory))
       .catch((error: unknown) => cb(error as Error, uploadDirectory));
@@ -38,12 +43,23 @@ const upload = multer({
   },
 });
 
+const handleUpload = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  upload.fields([{ name: "complaintImage", maxCount: 20 }])(req, res, (error) => {
+    if (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Unable to save uploaded images.",
+      });
+      return;
+    }
+    next();
+  });
+};
+
 // ── POST /api/complaints ──────────────────────────────────────────────────────
 router.post(
   "/complaints",
-  upload.fields([
-    { name: "complaintImage", maxCount: 20 },
-  ]),
+  handleUpload,
   async (req, res) => {
     try {
       const body = req.body as Record<string, string>;
