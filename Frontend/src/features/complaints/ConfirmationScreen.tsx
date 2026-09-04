@@ -8,10 +8,12 @@ type ConfirmationScreenProps = {
 type SavedComplaint = {
   complaintId?: string;
   title?: string;
-  ward?: string;
+  block?: string;
+  address?: string;
   assignedOfficerName?: string | null;
   assignedOfficerMobile?: string | null;
-  assignedAtp?: string;
+  assignedAtpName?: string | null;
+  assignedAtpMobile?: string | null;
 };
 
 function readSavedComplaint(complaintId: string): SavedComplaint | null {
@@ -32,10 +34,11 @@ function ConfirmationScreen({ complaintId, navigate }: ConfirmationScreenProps) 
   const detail = saved ?? {
     complaintId,
     title: "—",
-    ward: "—",
+    block: "—",
+    address: "—",
     assignedOfficerName: null,
     assignedOfficerMobile: null,
-    assignedAtp: "—",
+    assignedAtpName: null,
   };
 
   return (
@@ -53,11 +56,11 @@ function ConfirmationScreen({ complaintId, navigate }: ConfirmationScreenProps) 
             <strong>{detail.title}</strong>
           </div>
           <div className="meta-row">
-            <span>Ward</span>
-            <strong>{detail.ward}</strong>
+            <span>Location</span>
+            <strong>{detail.block ?? "—"}{detail.address ? ` · ${detail.address}` : ""}</strong>
           </div>
           <div className="meta-row">
-            <span>Assigned officer</span>
+            <span>Assigned BI</span>
             {detail.assignedOfficerName ? (
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <strong>{detail.assignedOfficerName}</strong>
@@ -71,7 +74,14 @@ function ConfirmationScreen({ complaintId, navigate }: ConfirmationScreenProps) 
           </div>
           <div className="meta-row">
             <span>Assigned ATP</span>
-            <strong>{detail.assignedAtp ?? "—"}</strong>
+            {detail.assignedAtpName ? (
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <strong>{detail.assignedAtpName}</strong>
+                {detail.assignedAtpMobile && <small>{detail.assignedAtpMobile}</small>}
+              </span>
+            ) : (
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>Pending assignment</span>
+            )}
           </div>
           <div className="meta-row">
             <span>WhatsApp notification</span>

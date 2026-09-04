@@ -62,6 +62,9 @@ export const submitComplaint = async (data: ComplaintFormData, complaintImages: 
       assignedOfficerId:    null,
       assignedOfficerName:  result?.complaint?.assignedOfficerName ?? null,
       assignedOfficerMobile: result?.complaint?.assignedOfficerMobile ?? null,
+      assignedAtpId:         result?.complaint?.assignedAtpId ?? null,
+      assignedAtpName:       result?.complaint?.assignedAtpName ?? null,
+      assignedAtpMobile:     result?.complaint?.assignedAtpMobile ?? null,
       status:               "Registered",
       createdAt:            new Date().toISOString(),
     };

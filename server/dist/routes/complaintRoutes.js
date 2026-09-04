@@ -90,7 +90,8 @@ router.post("/complaints", handleUpload, async (req, res) => {
             filePath: imageFile.path,
         })));
         // Officer mapping
-        const officer = await (0, officerMapping_js_1.findResponsibleOfficer)(derivedZone, block);
+        const bi = await (0, officerMapping_js_1.findResponsibleOfficer)(derivedZone, block, "BI");
+        const atp = await (0, officerMapping_js_1.findResponsibleOfficer)(derivedZone, block, "ATP");
         // Generate ID and persist
         const complaintId = await (0, complaintStorage_js_1.generateComplaintId)();
         const complaint = {
@@ -105,9 +106,12 @@ router.post("/complaints", handleUpload, async (req, res) => {
             title: body.title.trim(),
             description: body.description.trim(),
             attachments,
-            assignedOfficerId: officer?.officerId ?? null,
-            assignedOfficerName: officer?.name ?? null,
-            assignedOfficerMobile: officer?.mobile ?? null,
+            assignedOfficerId: bi?.officerId ?? null,
+            assignedOfficerName: bi?.name ?? null,
+            assignedOfficerMobile: bi?.mobile ?? null,
+            assignedAtpId: atp?.officerId ?? null,
+            assignedAtpName: atp?.name ?? null,
+            assignedAtpMobile: atp?.mobile ?? null,
             status: "Registered",
             createdAt: new Date().toISOString(),
         };

@@ -114,9 +114,12 @@
     "address": "xdcfgvhbj",
     "title": "dxcfvgb",
     "description": "fgvbhnj",
-    "assignedOfficerId": "OFF-007",
-    "assignedOfficerName": "Sh. Randhir Singh",
-    "assignedOfficerMobile": "87259-83841",
+    "assignedOfficerId": "OFF-008",
+    "assignedOfficerName": "Sh. Kamal Dhir",
+    "assignedOfficerMobile": "99888-13929",
+    "assignedAtpId": "OFF-007",
+    "assignedAtpName": "Sh. Randhir Singh",
+    "assignedAtpMobile": "87259-83841",
     "status": "Registered",
     "createdAt": "2026-09-03T10:22:20.460Z"
   },
@@ -147,10 +150,123 @@
         "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788505645096-951626.png"
       }
     ],
-    "assignedOfficerId": "OFF-007",
-    "assignedOfficerName": "Sh. Randhir Singh",
-    "assignedOfficerMobile": "87259-83841",
+    "assignedOfficerId": "OFF-008",
+    "assignedOfficerName": "Sh. Kamal Dhir",
+    "assignedOfficerMobile": "99888-13929",
+    "assignedAtpId": "OFF-007",
+    "assignedAtpName": "Sh. Randhir Singh",
+    "assignedAtpMobile": "87259-83841",
     "status": "Registered",
     "createdAt": "2026-09-04T07:07:25.101Z"
+  },
+  {
+    "complaintId": "MCL-BB-0010",
+    "registrationSource": "manual",
+    "citizenName": "pqr",
+    "phoneNumber": "9876543210",
+    "zone": "Zone B",
+    "block": "Block 31(1)",
+    "address": "dfvgb",
+    "title": "sdfghj",
+    "description": "xsdcfghyju",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-02 165010.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788507941963-233374.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-004",
+    "assignedOfficerName": "Sh. Nirwan",
+    "assignedOfficerMobile": "95927-35111",
+    "status": "Registered",
+    "createdAt": "2026-09-04T07:45:41.966Z"
+  },
+  {
+    "complaintId": "MCL-BB-0011",
+    "registrationSource": "manual",
+    "citizenName": "cdfvgbn",
+    "phoneNumber": "9876543210",
+    "zone": "Zone C",
+    "block": "Block 22",
+    "address": "fcvgbhnjmk",
+    "title": "qawsrdtfyghuj",
+    "description": "eswrxdctfvygbhjk",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-09-03 145657.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788508265807-82085.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-008",
+    "assignedOfficerName": "Sh. Kamal Dhir",
+    "assignedOfficerMobile": "99888-13929",
+    "assignedAtpId": "OFF-007",
+    "assignedAtpName": "Sh. Randhir Singh",
+    "assignedAtpMobile": "87259-83841",
+    "status": "Registered",
+    "createdAt": "2026-09-04T07:51:05.814Z"
+  },
+  {
+    "complaintId": "MCL-BB-0012",
+    "registrationSource": "manual",
+    "citizenName": "first complaint",
+    "phoneNumber": "9876543210",
+    "zone": "Zone C",
+    "block": "Block 29",
+    "address": "qswdefrgthy",
+    "title": "unapproved industry",
+    "description": "fcgvhjkltjkl",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-31 151237.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788509437619-792620.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-008",
+    "assignedOfficerName": "Sh. Kamal Dhir",
+    "assignedOfficerMobile": "99888-13929",
+    "assignedBiId": "OFF-008",
+    "assignedBiName": "Sh. Kamal Dhir",
+    "assignedBiMobile": "99888-13929",
+    "assignedAtpId": "OFF-007",
+    "assignedAtpName": "Sh. Randhir Singh",
+    "assignedAtpMobile": "87259-83841",
+    "assignedAtp": "Sh. Randhir Singh",
+    "status": "Registered",
+    "createdAt": "2026-09-04T08:10:37.623Z"
+  },
+  {
+    "complaintId": "MCL-BB-0013",
+    "registrationSource": "manual",
+    "citizenName": "abcdef",
+    "phoneNumber": "9876543210",
+    "zone": "Zone D",
+    "block": "Block 1",
+    "address": "sdefrgthnjm",
+    "title": "aqswdefrgthyj",
+    "description": "aswdefrgthy",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-02 142511.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788509679650-752548.png"
+      },
+      {
+        "fileName": "Screenshot 2026-08-02 151143.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788509679652-98691.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-012",
+    "assignedOfficerName": "Sh. Ravinder Walia",
+    "assignedOfficerMobile": "98551-99191",
+    "assignedAtpId": "OFF-009",
+    "assignedAtpName": "Sh. Raj Kumar",
+    "assignedAtpMobile": "9814245882",
+    "status": "Registered",
+    "createdAt": "2026-09-04T08:14:39.660Z"
   }
 ]
