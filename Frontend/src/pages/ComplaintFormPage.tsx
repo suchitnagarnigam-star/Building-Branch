@@ -24,7 +24,7 @@ type SourceType = "news" | "email" | "other";
 // ── Accepted formats ─────────────────────────────────────────────────────────
 const IMAGE_TYPES   = ["image/jpeg", "image/png"];
 const SOURCE_TYPES  = ["image/jpeg", "image/png", "application/pdf"];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 5 * 104 * 1024; // 5 MB
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -35,8 +35,8 @@ function formatBytes(bytes: number): string {
 const initialFormData: ComplaintFormData = {
   citizenName: "",
   phoneNumber: "",
-  block: "",
   zone: "",
+  block: "",
   ward: "",
   address: "",
   title: "",
@@ -290,6 +290,16 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
             <div className="field-grid field-grid--2">
               <div className="field">
+                <span>Zone <span className="field__required">*</span></span>
+                <select name="zone" value={formData.zone} onChange={handleChange}>
+                  <option value="">Select Zone</option>
+                  {[...new Set(locationData.map((entry) => entry.zone))].map((zone) => (
+                    <option key={zone} value={zone}>{zone}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
                 <span>Block <span className="field__required">*</span></span>
                 <select name="block" value={formData.block} onChange={handleChange}>
                   <option value="">Select Block</option>
@@ -298,16 +308,6 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
                   ))}
                 </select>
                 {errors.block && <small className="error-text">{errors.block}</small>}
-              </div>
-
-              <div className="field">
-                <span>Zone <span className="field__required">*</span></span>
-                <select name="zone" value={formData.zone} onChange={handleChange}>
-                  <option value="">Select Zone</option>
-                  {[...new Set(locationData.map((entry) => entry.zone))].map((zone) => (
-                    <option key={zone} value={zone}>{zone}</option>
-                  ))}
-                </select>
               </div>
             </div>
 
