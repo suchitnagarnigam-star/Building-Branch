@@ -3,10 +3,10 @@ import { mkdir } from "node:fs/promises";
 import express, { Router } from "express";
 import multer from "multer";
 
-import type { ComplaintRequest, AttachmentMeta } from "../types/complaint.js";
-import { findResponsibleOfficer } from "../services/officerMapping.js";
-import { generateComplaintId, getComplaints, saveComplaint } from "../services/complaintStorage.js";
-import { zoneForBlock } from "../services/locationMapping.js";
+import type { ComplaintRequest, AttachmentMeta } from "../types/complaint";
+import { findResponsibleOfficer } from "../services/officerMapping";
+import { generateComplaintId, getComplaints, saveComplaint } from "../services/complaintStorage";
+import { zoneForBlock } from "../services/locationMapping";
 import { getOfficers } from "../services/officerMapping.js";
 
 const router = Router();
