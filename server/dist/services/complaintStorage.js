@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveComplaint = exports.generateComplaintId = exports.getComplaints = void 0;
 const database_1 = require("../db/database");
+const node_crypto_1 = require("node:crypto");
 const getComplaints = async () => {
     const result = await database_1.pool.query(`
     SELECT
@@ -31,12 +32,13 @@ const getComplaints = async () => {
 };
 exports.getComplaints = getComplaints;
 const generateComplaintId = async () => {
-    const result = await database_1.pool.query("SELECT nextval('complaint_id_seq') AS next_number");
-    const nextNumber = Number(result.rows[0]?.next_number);
-    if (!Number.isInteger(nextNumber)) {
-        throw new Error("Unable to generate complaint ID.");
+    while (true) {
+        const complaintId = String((0, node_crypto_1.randomInt)(10000000000000, 100000000000000));
+        const result = await database_1.pool.query("SELECT 1 FROM complaints WHERE complaint_id = $1 LIMIT 1", [complaintId]);
+        if (result.rowCount === 0) {
+            return complaintId;
+        }
     }
-    return `MCL-BB-${String(nextNumber).padStart(4, "0")}`;
 };
 exports.generateComplaintId = generateComplaintId;
 const saveComplaint = async (complaint) => {

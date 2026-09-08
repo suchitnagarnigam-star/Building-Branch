@@ -7,10 +7,11 @@ const node_path_1 = __importDefault(require("node:path"));
 const promises_1 = require("node:fs/promises");
 const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
+const officerMapping_1 = require("../services/officerMapping");
+const complaintStorage_1 = require("../services/complaintStorage");
+const locationMapping_1 = require("../services/locationMapping");
 const officerMapping_js_1 = require("../services/officerMapping.js");
-const complaintStorage_js_1 = require("../services/complaintStorage.js");
-const locationMapping_js_1 = require("../services/locationMapping.js");
-const officerMapping_js_2 = require("../services/officerMapping.js");
+const googleSheetsService_1 = require("../services/googleSheetsService");
 const router = (0, express_1.Router)();
 const moduleDirectory = __dirname;
 const parentDirectory = node_path_1.default.resolve(moduleDirectory, "..");
@@ -33,7 +34,6 @@ const storage = multer_1.default.diskStorage({
 });
 const upload = (0, multer_1.default)({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     fileFilter: (_req, file, cb) => {
         const allowed = ["image/jpeg", "image/png", "application/pdf"];
         if (allowed.includes(file.mimetype)) {
@@ -58,7 +58,7 @@ const handleUpload = (req, res, next) => {
 };
 router.get("/officers", async (_req, res) => {
     try {
-        const [allOfficers, complaints] = await Promise.all([(0, officerMapping_js_2.getOfficers)(), (0, complaintStorage_js_1.getComplaints)()]);
+        const [allOfficers, complaints] = await Promise.all([(0, officerMapping_js_1.getOfficers)(), (0, complaintStorage_1.getComplaints)()]);
         const bis = allOfficers.filter((officer) => {
             const designation = officer.designation.trim().toUpperCase();
             return designation === "BI" || designation.endsWith("-BI");
@@ -79,7 +79,7 @@ router.get("/officers", async (_req, res) => {
 });
 router.get("/complaints", async (_req, res) => {
     try {
-        res.json({ success: true, complaints: await (0, complaintStorage_js_1.getComplaints)() });
+        res.json({ success: true, complaints: await (0, complaintStorage_1.getComplaints)() });
     }
     catch (error) {
         console.error("Error loading complaints:", error);
@@ -88,7 +88,7 @@ router.get("/complaints", async (_req, res) => {
 });
 router.get("/complaints/:complaintId", async (req, res) => {
     try {
-        const complaint = (await (0, complaintStorage_js_1.getComplaints)()).find((item) => item.complaintId === req.params.complaintId);
+        const complaint = (await (0, complaintStorage_1.getComplaints)()).find((item) => item.complaintId === req.params.complaintId);
         if (!complaint) {
             res.status(404).json({ success: false, message: "Complaint not found." });
             return;
@@ -101,6 +101,19 @@ router.get("/complaints/:complaintId", async (req, res) => {
     }
 });
 // ── POST /api/complaints ──────────────────────────────────────────────────────
+router.post("/complaints/source-upload", handleUpload, (req, res) => {
+    const files = req.files;
+    const uploadedFiles = files?.["complaintImage"] ?? [];
+    if (uploadedFiles.length === 0) {
+        res.status(400).json({ success: false, message: "Please upload at least one image or PDF." });
+        return;
+    }
+    res.status(201).json({
+        success: true,
+        filesUploaded: uploadedFiles.length,
+        message: "Source files uploaded successfully.",
+    });
+});
 router.post("/complaints", handleUpload, async (req, res) => {
     try {
         const body = req.body;
@@ -122,7 +135,7 @@ router.post("/complaints", handleUpload, async (req, res) => {
         }
         // Derive Zone from Block (server always re-derives to prevent tampering)
         const block = body.block.trim();
-        const derivedZone = (0, locationMapping_js_1.zoneForBlock)(block);
+        const derivedZone = (0, locationMapping_1.zoneForBlock)(block);
         if (!derivedZone) {
             res.status(400).json({ success: false, message: `Unrecognised block: "${block}".` });
             return;
@@ -135,10 +148,10 @@ router.post("/complaints", handleUpload, async (req, res) => {
             filePath: imageFile.path,
         })));
         // Officer mapping
-        const bi = await (0, officerMapping_js_1.findResponsibleOfficer)(derivedZone, block, "BI");
-        const atp = await (0, officerMapping_js_1.findResponsibleOfficer)(derivedZone, block, "ATP");
+        const bi = await (0, officerMapping_1.findResponsibleOfficer)(derivedZone, block, "BI");
+        const atp = await (0, officerMapping_1.findResponsibleOfficer)(derivedZone, block, "ATP");
         // Generate ID and persist
-        const complaintId = await (0, complaintStorage_js_1.generateComplaintId)();
+        const complaintId = await (0, complaintStorage_1.generateComplaintId)();
         const complaint = {
             complaintId,
             registrationSource,
@@ -160,7 +173,13 @@ router.post("/complaints", handleUpload, async (req, res) => {
             status: "Registered",
             createdAt: new Date().toISOString(),
         };
-        await (0, complaintStorage_js_1.saveComplaint)(complaint);
+        await (0, complaintStorage_1.saveComplaint)(complaint);
+        try {
+            await (0, googleSheetsService_1.appendComplaintToGoogleSheet)(complaint);
+        }
+        catch (error) {
+            console.error("Google Sheets sync failed:", error);
+        }
         res.status(201).json({
             success: true,
             complaintId: complaint.complaintId,
