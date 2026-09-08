@@ -14,6 +14,8 @@ import AnalyticsPage from "./features/analytics/AnalyticsPage";
 import OfficersPage from "./features/officers/OfficersPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import NewComplaintScreen from "./features/complaints/NewComplaintScreen";
+import ExternalUploadSuccessScreen from "./features/complaints/ExternalUploadSuccessScreen";
+import ExtractedComplaintPage from "./features/complaints/ExtractedComplaintPage";
 
 import { useRouter } from "./shared/hooks/useRouter";
 import { complaints } from "./shared/constants/mockData";
@@ -48,11 +50,17 @@ function App() {
     if (route === "/complaints/new") {
       return <NewComplaintScreen navigate={navigate} setSelectedComplaintId={setSelectedComplaintId} />;
     }
+    if (route === "/complaints/new/extracted") {
+      return <ExtractedComplaintPage navigate={navigate} />;
+    }
     if (route.startsWith("/complaints/new")) {
       return <ComplaintFormPage navigate={navigate} setSelectedComplaintId={setSelectedComplaintId} />;
     }
     if (route.startsWith("/complaints/confirm/")) {
       return <ConfirmationScreen complaintId={route.split("/").at(-1) ?? ""} navigate={navigate} />;
+    }
+    if (route === "/complaints/upload-success") {
+      return <ExternalUploadSuccessScreen navigate={navigate} />;
     }
     if (
       route.startsWith("/complaints/") &&

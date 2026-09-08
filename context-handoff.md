@@ -1,7 +1,7 @@
 # MCL-BB — Context Handoff
 
-**Last updated:** 2026-09-05  
-**Current status:** The manual complaint-registration flow, local JSON persistence, upload handling, officer/ATP mapping, complaint list loading, complaint detail loading, and the BI officer list are implemented. The external-source OCR/LLM workflow and most complaint lifecycle actions are still pending.
+**Last updated:** 2026-09-07  
+**Current status:** The manual complaint-registration flow, local JSON persistence, upload handling, officer/ATP mapping, complaint list loading, complaint detail loading, BI officer list, external-source file upload, and Google Sheets synchronization are implemented. OCR/LLM extraction, operator review, document-based complaint registration, and most complaint lifecycle actions are still pending.
 
 ---
 
@@ -51,17 +51,16 @@ The work was implemented in these broad stages:
    - `/complaints/new` now opens the unified form through `NewComplaintScreen`.
    - `/complaints/new/*` routes directly to `ComplaintFormPage`.
 
-3. **Block-first location handling**
+3. **Location handling**
    - Location data was changed to a flat `BlockZoneEntry[]`.
-   - Block is selected by the operator.
-   - Zone is derived from Block and displayed as read-only.
+   - The form lets the operator select a Zone and then filters the available Blocks.
+   - The server derives Zone from Block and does not trust the client-supplied Zone.
    - Ward is optional free text because no structured ward data exists.
-   - The server derives Zone again and does not trust the client-supplied Zone.
 
 4. **Manual complaint submission and images**
    - Manual submission uses `multipart/form-data`.
    - A complaint image is mandatory for manual registration.
-   - Multiple JPG/PNG complaint images are supported, with a 5 MB per-file limit.
+   - Multiple JPG/PNG complaint images are supported.
    - Multer saves files with unique names while preserving extensions.
    - Attachment metadata stores original name, MIME type, and saved path.
    - `server/uploads/` is created automatically when needed.
@@ -88,6 +87,13 @@ The work was implemented in these broad stages:
    - Duplicate fields were removed from the confirmation presentation.
    - The registered complaint data is stored in `server/data/complaints.json` and can be inspected directly.
 
+8. **External-source upload and spreadsheet sync**
+   - The unified registration page accepts external JPG, PNG, and PDF files.
+   - `POST /api/complaints/source-upload` saves the uploaded files in `server/uploads/` and returns the number of files uploaded.
+   - The frontend shows upload progress/error states and navigates to `/complaints/upload-success` after a successful source upload.
+   - Manual complaint registration attempts to append the saved complaint to Google Sheets through `server/services/googleSheetsService.ts`.
+   - Google Sheets failures are logged without failing an otherwise successful local complaint registration.
+
 ---
 
 ## 3. Current end-to-end manual flow
@@ -95,7 +101,7 @@ The work was implemented in these broad stages:
 ```text
 Operator opens /complaints/new
         |
-        +--> selects Block; Zone is derived
+        +--> selects Zone, then selects a filtered Block
         +--> enters citizen/location/complaint fields
         +--> uploads at least one JPG/PNG complaint image
         |
@@ -131,14 +137,21 @@ The external-source section is present in the UI but is not connected to process
 
 Main unified registration form.
 
-- Block dropdown is available immediately.
-- Zone is read-only and derived with `zoneForBlock`.
+- Zone and Block dropdowns are available in the location section; Block options are filtered by the selected Zone.
+- The server remains authoritative and derives Zone from Block.
 - Ward is optional free text.
-- Manual complaint image is required, JPG/PNG only, max 5 MB.
+- Manual complaint image is required, JPG/PNG only.
 - Supports multiple complaint-image previews/removal.
 - Manual submit is above the OR divider.
 - External source tabs are News, Email, and Other.
-- External source dropzone accepts JPG/PNG/PDF and stores files in component state only.
+- External source files can be previewed, removed, and uploaded through the source-upload endpoint.
+- Manual and external uploads show request state and surface failures to the operator.
+
+#### `Frontend/src/features/complaints/ExternalUploadSuccessScreen.tsx`
+
+- Displays the successful external-source upload state.
+- Provides a Continue action back to `/complaints/new`.
+- External source dropzone accepts JPG/PNG/PDF and uploads them to the backend when the operator selects Upload source.
 - Supporting Documents is currently a placeholder.
 - On successful manual submission, stores the selected complaint ID and navigates to confirmation.
 
@@ -152,6 +165,7 @@ Main unified registration form.
 
 - `submitComplaint(data, complaintImages)` builds `FormData`.
 - Sends `registrationSource`, form values, and each image under `complaintImage`.
+- `uploadExternalSource(files)` sends external JPG/PNG/PDF files to `/api/complaints/source-upload` and verifies the server-reported file count.
 - Saves the returned complaint/latest complaint in localStorage for confirmation/detail fallback.
 - It currently rethrows API/network failures after logging; it does not silently convert a failed request into a successful local-only submission.
 
@@ -236,15 +250,16 @@ Implemented routes:
 - `GET /api/officers`: returns BI officers and active complaint counts.
 - `GET /api/complaints`: returns all saved complaints.
 - `GET /api/complaints/:complaintId`: returns one complaint or 404.
+- `POST /api/complaints/source-upload`: accepts external JPG/PNG/PDF files, saves them in `server/uploads/`, and returns the upload count. It does not create a complaint or run OCR.
 - `POST /api/complaints`: accepts multipart manual registration, validates fields/image, derives Zone, maps BI/ATP, saves, and returns the complaint.
+- Successful manual complaint registration also attempts a Google Sheets append.
 
 Multer:
 
 - Disk destination: `server/uploads/`
 - Preserves the original extension with a unique generated filename.
 - Accepts JPEG, PNG, and PDF MIME types.
-- Limits each uploaded file to 5 MB.
-- The current manual route accepts the `complaintImage` field (up to 20 files).
+- The current routes accept the `complaintImage` field (up to 20 files).
 
 #### `server/types/complaint.ts`
 
@@ -268,6 +283,13 @@ Multer:
 - Reads and writes `server/data/complaints.json`.
 - Generates sequential IDs such as `MCL-BB-0001`.
 - Ensures the uploads directory exists before saving.
+
+#### `server/services/googleSheetsService.ts`
+
+- Reads `GOOGLE_SHEETS_WEB_APP_URL` from `server/.env`.
+- POSTs the saved complaint as JSON to the configured Google Apps Script web app.
+- Requires a successful HTTP response and `{ success: true }` JSON response.
+- The complaint route logs sync failures but keeps the local registration successful.
 
 #### `server/data/complaints.json`
 
@@ -325,6 +347,7 @@ MCL-BB/
 │       │   │   ├── ConfirmationScreen.tsx
 │       │   │   ├── ManualComplaintForm.tsx
 │       │   │   ├── NewComplaintScreen.tsx
+│   │   │   ├── ExternalUploadSuccessScreen.tsx
 │       │   │   ├── ReviewScreen.tsx
 │       │   │   ├── UploadScreen.tsx
 │       │   │   └── [other complaint UI]
@@ -351,6 +374,7 @@ MCL-BB/
     ├── routes/complaintRoutes.ts
     ├── services/
     │   ├── complaintStorage.ts
+    │   ├── googleSheetsService.ts
     │   ├── locationMapping.ts
     │   └── officerMapping.ts
     ├── types/complaint.ts
@@ -363,8 +387,8 @@ MCL-BB/
 
 | Feature | Current state |
 |---|---|
-| External-source processing | No `POST /api/complaints/process-source`; OCR/LLM extraction is not implemented |
-| Review workflow | `ReviewScreen.tsx`/`UploadScreen.tsx` exist, but the unified external upload is not wired to a processing response and review/confirm flow |
+| External-source processing | Basic `POST /api/complaints/source-upload` file storage is implemented; no OCR/LLM extraction endpoint exists |
+| Review workflow | `ReviewScreen.tsx`/`UploadScreen.tsx` exist, but external uploads do not yet produce an extracted draft or enter a review/confirm flow |
 | Document registration | `registrationSource: "document"` exists in types, but no document submission path persists such complaints yet |
 | Supporting documents | Sidebar is a placeholder; only complaint images are currently saved |
 | Complaint editing | Detail-page Edit button is not wired |
@@ -382,12 +406,14 @@ MCL-BB/
 
 ## 7. Architecture decisions to preserve
 
-### Block-first, Zone derived
+### Zone derived on the server
 
-Zone must not become an independent editable selector. If block data changes, update both:
+The server must derive Zone from the submitted Block. If block data changes, update both:
 
 - `Frontend/src/data/locationData.ts`
 - `server/services/locationMapping.ts`
+
+The current frontend uses the selected Zone to filter the Block dropdown, but the client-sent Zone is not authoritative.
 
 ### Preserve `registrationSource`
 
@@ -414,10 +440,10 @@ The confirmation UI is currently a prototype. Do not report notification deliver
 ## 8. Recommended next work, with target files
 
 1. **Implement source processing**
-   - `server/routes/complaintRoutes.ts`: add `POST /api/complaints/process-source`.
+   - `server/routes/complaintRoutes.ts`: add an OCR/LLM processing endpoint alongside the existing `POST /api/complaints/source-upload`.
    - Add a processing service under `server/services/` for OCR/LLM integration.
    - Initially return a clearly marked mock extracted draft if the real provider is not available.
-   - Validate source type/file size and preserve uploaded source metadata.
+   - Validate source type/size and preserve uploaded source metadata.
 
 2. **Build the operator review flow**
    - `Frontend/src/features/complaints/ReviewScreen.tsx`: display and edit extracted fields.
@@ -426,8 +452,8 @@ The confirmation UI is currently a prototype. Do not report notification deliver
    - Confirm registration through the same complaint API with `registrationSource: "document"`.
 
 3. **Wire the external source section**
-   - `Frontend/src/pages/ComplaintFormPage.tsx`: add a Process document action, request state, errors, and navigation to review.
-   - Do not submit source files silently; surface processing failures to the operator.
+   - `Frontend/src/pages/ComplaintFormPage.tsx`: replace or extend the current upload-only action with processing, request state, errors, and navigation to review.
+   - Do not treat the current upload-success screen as complaint registration; source files are only stored.
 
 4. **Make complaint detail fully server-backed**
    - `Frontend/src/features/complaints/ComplaintDetailPage.tsx`: use a shared complaint type, handle 404/error states, show all attachment types safely, and remove remaining mock-only values.
@@ -461,6 +487,7 @@ The confirmation UI is currently a prototype. Do not report notification deliver
 - The frontend and server both have TypeScript build scripts.
 - Frontend linting is available through `npm run lint`.
 - There are no dedicated automated test suites in the current package scripts.
+- Google Sheets sync requires `GOOGLE_SHEETS_WEB_APP_URL` in `server/.env`; local complaint registration remains available if the sync fails.
 - When changing the complaint API, validate at minimum:
   - manual request without image is rejected;
   - invalid Block is rejected;
@@ -468,3 +495,5 @@ The confirmation UI is currently a prototype. Do not report notification deliver
   - BI and ATP are mapped correctly;
   - list/detail endpoints return saved complaints;
   - uploaded images can be previewed from `/uploads`.
+  - external JPG/PNG/PDF upload returns the expected file count and creates files in `server/uploads/`;
+  - a missing Google Sheets URL is logged as a sync failure without changing the successful complaint response.

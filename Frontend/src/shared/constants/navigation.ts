@@ -34,6 +34,8 @@ export const formatPageTitle = (route: string): string => {
       return "Upload complaint document";
     case "/complaints/new/preview":
       return "Review extracted data";
+    case "/complaints/new/extracted":
+      return "Extracted complaint information";
     case "/complaints":
     case "/complaints/mine":
     case "/complaints/pending":

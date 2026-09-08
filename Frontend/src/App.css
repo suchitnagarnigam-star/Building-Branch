@@ -593,6 +593,10 @@ textarea {
 }
 
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: var(--accent);
   color: #fff;
   padding: 0 16px;
@@ -602,6 +606,21 @@ textarea {
 
 .primary-button:hover {
   background: #1d4ed8;
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.button-spinner {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
 }
 
 .secondary-button {
@@ -885,6 +904,19 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
+.source-upload-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.source-preview-modal__document {
+  width: min(80vw, 800px);
+  height: min(70vh, 650px);
+  border: 0;
+  background: #fff;
+}
+
 .login-wrap {
   width: 100%;
   height: 100vh;
@@ -1055,6 +1087,23 @@ textarea {
 
 .success-text {
   color: var(--success);
+}
+
+.external-source-result-card {
+  width: min(760px, 100%);
+}
+
+.external-source-result-card__intro,
+.external-source-result-card__empty {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.external-source-result {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
 }
 
 .confirmation-actions {

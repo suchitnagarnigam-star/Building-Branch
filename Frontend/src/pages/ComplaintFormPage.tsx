@@ -2,7 +2,12 @@ import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { ComplaintFormData } from "../types/complaint";
 import { locationData, zoneForBlock } from "../data/locationData";
-import { submitComplaint } from "../services/complaintApi";
+import {
+  submitComplaint,
+  processExternalSource,
+  extractComplaintFromSource,
+  writeExtractedComplaint,
+} from "../services/complaintApi";
 import Icon from "../shared/components/Icon";
 
 type ComplaintFormPageProps = {
@@ -24,7 +29,6 @@ type SourceType = "news" | "email" | "other";
 // ── Accepted formats ─────────────────────────────────────────────────────────
 const IMAGE_TYPES   = ["image/jpeg", "image/png"];
 const SOURCE_TYPES  = ["image/jpeg", "image/png", "application/pdf"];
-const MAX_FILE_SIZE = 5 * 104 * 1024; // 5 MB
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -47,6 +51,8 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
   const [formData, setFormData] = useState<ComplaintFormData>(initialFormData);
   const [errors, setErrors]     = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingSource, setIsProcessingSource] = useState(false);
 
   // ── Mandatory complaint image (manual entry) ──────────────────────────────
   const [complaintImages, setComplaintImages]     = useState<UploadedFile[]>([]);
@@ -58,9 +64,58 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
   // ── External source upload (OR section) ──────────────────────────────────
   const [sourceType, setSourceType]               = useState<SourceType>("news");
   const [sourceFiles, setSourceFiles]             = useState<UploadedFile[]>([]);
+  const [previewSourceFile, setPreviewSourceFile] = useState<UploadedFile | null>(null);
   const [sourceFileError, setSourceFileError]     = useState("");
   const [isSourceDragOver, setIsSourceDragOver]   = useState(false);
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
+  const [isExtractingComplaint, setIsExtractingComplaint] = useState(false);
+
+  const [ocrResult, setOcrResult] = useState<{
+  images: {
+    img_index: number;
+    filename: string;
+    file_type: string;
+    ocr_md: string;
+    ocr_pages: number;
+  }[];
+  combinedOcr: string;
+} | null>(null);
+
+
+const handleExtractComplaint = async () => {
+  if (!ocrResult?.combinedOcr) {
+    setSourceFileError(
+      "Please process the document with OCR first.",
+    );
+    return;
+  }
+
+  setSourceFileError("");
+  setIsExtractingComplaint(true);
+
+  try {
+    const result = await extractComplaintFromSource(
+      ocrResult.combinedOcr,
+      sourceType,
+    );
+
+    writeExtractedComplaint(result.complaint);
+    navigate?.("/complaints/new/extracted");
+  } catch (error) {
+    console.error(
+      "Complaint extraction failed:",
+      error,
+    );
+
+    setSourceFileError(
+      error instanceof Error
+        ? error.message
+        : "Unable to extract complaint information.",
+    );
+  } finally {
+    setIsExtractingComplaint(false);
+  }
+};
 
   // ── Form field handlers ───────────────────────────────────────────────────
 
@@ -94,10 +149,6 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
     for (const file of incoming) {
       if (!IMAGE_TYPES.includes(file.type)) {
         setImageError("Only JPG and PNG images are accepted.");
-        return;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        setImageError(`${file.name} exceeds the 5 MB limit.`);
         return;
       }
     }
@@ -139,15 +190,13 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
   const processSourceFiles = (fileList: FileList) => {
     setSourceFileError("");
+    setOcrResult(null);
+
     const incoming = Array.from(fileList);
 
     for (const file of incoming) {
       if (!SOURCE_TYPES.includes(file.type)) {
         setSourceFileError("Only JPG, PNG, and PDF files are accepted.");
-        return;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        setSourceFileError(`${file.name} exceeds the 5 MB limit.`);
         return;
       }
     }
@@ -156,7 +205,7 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
       file,
       name: file.name,
       size: file.size,
-      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+      preview: URL.createObjectURL(file),
     }));
 
     setSourceFiles((prev) => [...prev, ...next]);
@@ -174,10 +223,13 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
   };
 
   const removeSourceFile = (index: number) => {
+    setOcrResult(null);
+
     setSourceFiles((prev) => {
       const copy = [...prev];
       const removed = copy.splice(index, 1)[0];
       if (removed.preview) URL.revokeObjectURL(removed.preview);
+      if (previewSourceFile === removed) setPreviewSourceFile(null);
       return copy;
     });
   };
@@ -209,6 +261,8 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
     setErrors(validatedErrors);
     if (Object.keys(validatedErrors).length > 0) return;
 
+    setIsSubmitting(true);
+
     try {
       const response = await submitComplaint(formData, complaintImages.map((image) => image.file));
       const complaintId = response?.complaintId ?? response?.complaint?.complaintId;
@@ -230,7 +284,48 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
     } catch (error) {
       console.error("Complaint submission failed:", error);
       setSubmitError("Unable to submit the complaint right now. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+  
+  const handleProcessDocument = async () => {
+  setSourceFileError("");
+  setSubmitError("");
+
+  if (sourceFiles.length === 0) {
+    setSourceFileError(
+      "Please attach at least one source image or PDF before processing.",
+    );
+    return;
+  }
+
+  setIsProcessingSource(true);
+
+  try {
+    const result = await processExternalSource(
+      sourceFiles.map((file) => file.file),
+    );
+
+    console.log("OCR result:", result);
+    console.log("Combined OCR:", result.combinedOcr);
+
+    setOcrResult({
+      images: result.images,
+      combinedOcr: result.combinedOcr,
+    });
+
+  } catch (error) {
+    console.error("External source OCR failed:", error);
+
+    setSourceFileError(
+      error instanceof Error
+        ? error.message
+        : "Unable to process the source document right now.",
+    );
+  } finally {
+    setIsProcessingSource(false);
+  }
   };
 
   // ── Derived state ─────────────────────────────────────────────────────────
@@ -365,7 +460,7 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
             <div className="field">
               <span>
                 Complaint Images <span className="field__required">*</span>
-                <span className="field__hint"> — JPG / PNG, max 5 MB each</span>
+                <span className="field__hint"> — JPG / PNG</span>
               </span>
 
               <div
@@ -431,8 +526,15 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
             )}
 
             <div className="sticky-actions" style={{ borderTop: "none", paddingTop: 0, marginTop: 8 }}>
-              <button type="submit" className="primary-button" style={{ minWidth: 180 }}>
-                Submit Complaint
+              <button
+                type="submit"
+                className="primary-button"
+                style={{ minWidth: 180 }}
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+              >
+                {isSubmitting && <span className="button-spinner" aria-hidden="true" />}
+                <span>Submit Complaint</span>
               </button>
             </div>
 
@@ -481,7 +583,7 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
               >
                 <span className="upload-dropzone__icon"><Icon name="upload" /></span>
                 <strong>Drop {sourceDropLabel} here or click to browse</strong>
-                <small>JPG, PNG, PDF · max 5 MB</small>
+                <small>JPG, PNG, PDF</small>
               </div>
 
               <input
@@ -501,11 +603,18 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
                 <ul className="upload-file-list" style={{ marginTop: 4 }}>
                   {sourceFiles.map((f, index) => (
                     <li key={`src-${f.name}-${index}`} className="upload-file-item">
-                      {f.preview ? (
-                        <img src={f.preview} alt={f.name} className="upload-file-item__thumb" />
-                      ) : (
-                        <span className="upload-file-item__icon"><Icon name="file" /></span>
-                      )}
+                      <button
+                        type="button"
+                        className="image-preview-button"
+                        onClick={() => setPreviewSourceFile(f)}
+                        aria-label={`Preview ${f.name}`}
+                      >
+                        {f.file.type.startsWith("image/") ? (
+                          <img src={f.preview!} alt={f.name} className="upload-file-item__thumb" />
+                        ) : (
+                          <span className="upload-file-item__icon"><Icon name="file" /></span>
+                        )}
+                      </button>
                       <div className="upload-file-item__meta">
                         <span className="upload-file-item__name">{f.name}</span>
                         <span className="upload-file-item__size">{formatBytes(f.size)}</span>
@@ -526,6 +635,83 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
               {sourceFiles.length === 0 && (
                 <p className="upload-empty-hint">No source document attached yet.</p>
               )}
+
+              {ocrResult && (
+                 <div className="ocr-result-section">
+                   <div className="ocr-result-section__header">
+                     <div>
+                       <strong>OCR Processing Complete</strong>
+
+                       <p>
+                         Text has been successfully extracted from the uploaded
+                         document.
+                       </p>
+                     </div>
+
+                     <span className="ocr-result-section__status">
+                       ✓ Completed
+                     </span>
+                   </div>
+
+                   <div className="ocr-result-section__content">
+                     {ocrResult.images.map((image) => (
+                       <div
+                         key={`${image.img_index}-${image.filename}`}
+                         className="ocr-page"
+                       >
+                         <div className="ocr-page__header">
+                           <strong>
+                             Page {image.img_index}
+                           </strong>
+               
+                           <span>
+                             {image.filename}
+                           </span>
+                         </div>
+
+                         <div className="ocr-page__text">
+                           {image.ocr_md ? (
+                             image.ocr_md
+                           ) : (
+                             <span className="ocr-page__empty">
+                               No text could be extracted from this file.
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                   ))}
+                 </div>
+               </div>
+              )}
+
+              <div className="source-upload-actions">
+                {!ocrResult && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleProcessDocument}
+                    disabled={isProcessingSource}
+                    aria-busy={isProcessingSource}
+                  >
+                    {isProcessingSource && <span className="button-spinner" aria-hidden="true" />}
+                    <span>{isProcessingSource ? "Processing..." : "Process Document"}</span>
+                  </button>
+                )}
+
+                {ocrResult && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleExtractComplaint}
+                    disabled={isExtractingComplaint}
+                    aria-busy={isExtractingComplaint}
+                  >
+                    {isExtractingComplaint && <span className="button-spinner" aria-hidden="true" />}
+                    <span>{isExtractingComplaint ? "Extracting..." : "Extract Complaint Info"}</span>
+                  </button>
+                )}
+
+              </div>
             </div>
 
           </form>
@@ -540,6 +726,25 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
             </button>
             <img src={previewImage.preview!} alt={previewImage.name} className="image-preview-modal__image" />
             <span className="image-preview-modal__name">{previewImage.name}</span>
+          </div>
+        </div>
+      )}
+      {previewSourceFile && (
+        <div className="image-preview-modal" role="dialog" aria-modal="true" aria-label="Source preview" onClick={() => setPreviewSourceFile(null)}>
+          <div className="image-preview-modal__content" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="image-preview-modal__close" onClick={() => setPreviewSourceFile(null)} aria-label="Close source preview">
+              <Icon name="close" />
+            </button>
+            {previewSourceFile.file.type.startsWith("image/") ? (
+              <img src={previewSourceFile.preview!} alt={previewSourceFile.name} className="image-preview-modal__image" />
+            ) : (
+              <iframe
+                src={previewSourceFile.preview!}
+                title={previewSourceFile.name}
+                className="source-preview-modal__document"
+              />
+            )}
+            <span className="image-preview-modal__name">{previewSourceFile.name}</span>
           </div>
         </div>
       )}
