@@ -51,7 +51,12 @@ function App() {
       return <NewComplaintScreen navigate={navigate} setSelectedComplaintId={setSelectedComplaintId} />;
     }
     if (route === "/complaints/new/extracted") {
-      return <ExtractedComplaintPage navigate={navigate} />;
+      return (
+        <ExtractedComplaintPage
+          navigate={navigate}
+          setSelectedComplaintId={setSelectedComplaintId}
+        />
+      );
     }
     if (route.startsWith("/complaints/new")) {
       return <ComplaintFormPage navigate={navigate} setSelectedComplaintId={setSelectedComplaintId} />;

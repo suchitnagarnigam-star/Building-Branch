@@ -7,12 +7,16 @@ import {
   processExternalSource,
   extractComplaintFromSource,
   writeExtractedComplaint,
+  writePendingExternalFiles,
 } from "../services/complaintApi";
 import Icon from "../shared/components/Icon";
 
 type ComplaintFormPageProps = {
   navigate?: (route: string) => void;
   setSelectedComplaintId?: (id: string) => void;
+  initialFormData?: ComplaintFormData;
+  initialSourceFiles?: File[];
+  isDocumentReview?: boolean;
 };
 
 type FormErrors = Partial<Record<keyof ComplaintFormData | "complaintImage", string>>;
@@ -47,8 +51,16 @@ const initialFormData: ComplaintFormData = {
   description: "",
 };
 
-function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPageProps = {}) {
-  const [formData, setFormData] = useState<ComplaintFormData>(initialFormData);
+function ComplaintFormPage({
+  navigate,
+  setSelectedComplaintId,
+  initialFormData: prefilledFormData,
+  initialSourceFiles = [],
+  isDocumentReview = false,
+}: ComplaintFormPageProps = {}) {
+  const [formData, setFormData] = useState<ComplaintFormData>(
+    prefilledFormData ?? initialFormData,
+  );
   const [errors, setErrors]     = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,59 +75,19 @@ function ComplaintFormPage({ navigate, setSelectedComplaintId }: ComplaintFormPa
 
   // ── External source upload (OR section) ──────────────────────────────────
   const [sourceType, setSourceType]               = useState<SourceType>("news");
-  const [sourceFiles, setSourceFiles]             = useState<UploadedFile[]>([]);
+  const [sourceFiles, setSourceFiles]             = useState<UploadedFile[]>(
+    () => initialSourceFiles.map((file) => ({
+      file,
+      name: file.name,
+      size: file.size,
+      preview: null,
+    })),
+  );
   const [previewSourceFile, setPreviewSourceFile] = useState<UploadedFile | null>(null);
   const [sourceFileError, setSourceFileError]     = useState("");
   const [isSourceDragOver, setIsSourceDragOver]   = useState(false);
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
-  const [isExtractingComplaint, setIsExtractingComplaint] = useState(false);
-
-  const [ocrResult, setOcrResult] = useState<{
-  images: {
-    img_index: number;
-    filename: string;
-    file_type: string;
-    ocr_md: string;
-    ocr_pages: number;
-  }[];
-  combinedOcr: string;
-} | null>(null);
-
-
-const handleExtractComplaint = async () => {
-  if (!ocrResult?.combinedOcr) {
-    setSourceFileError(
-      "Please process the document with OCR first.",
-    );
-    return;
-  }
-
-  setSourceFileError("");
-  setIsExtractingComplaint(true);
-
-  try {
-    const result = await extractComplaintFromSource(
-      ocrResult.combinedOcr,
-      sourceType,
-    );
-
-    writeExtractedComplaint(result.complaint);
-    navigate?.("/complaints/new/extracted");
-  } catch (error) {
-    console.error(
-      "Complaint extraction failed:",
-      error,
-    );
-
-    setSourceFileError(
-      error instanceof Error
-        ? error.message
-        : "Unable to extract complaint information.",
-    );
-  } finally {
-    setIsExtractingComplaint(false);
-  }
-};
+  const [isDocumentProcessed, setIsDocumentProcessed] = useState(false);
 
   // ── Form field handlers ───────────────────────────────────────────────────
 
@@ -190,7 +162,7 @@ const handleExtractComplaint = async () => {
 
   const processSourceFiles = (fileList: FileList) => {
     setSourceFileError("");
-    setOcrResult(null);
+    setIsDocumentProcessed(false);
 
     const incoming = Array.from(fileList);
 
@@ -223,7 +195,7 @@ const handleExtractComplaint = async () => {
   };
 
   const removeSourceFile = (index: number) => {
-    setOcrResult(null);
+    setIsDocumentProcessed(false);
 
     setSourceFiles((prev) => {
       const copy = [...prev];
@@ -248,7 +220,9 @@ const handleExtractComplaint = async () => {
     if (!formData.address.trim()) next.address = "Address is required";
     if (!formData.title.trim())   next.title   = "Complaint title is required";
     if (!formData.description.trim()) next.description = "Complaint description is required";
-    if (complaintImages.length === 0) next.complaintImage = "Please upload at least one complaint image before submitting";
+    if (sourceFiles.length === 0 && complaintImages.length === 0) {
+      next.complaintImage = "Please upload at least one complaint image before submitting";
+    }
     return next;
   };
 
@@ -264,7 +238,15 @@ const handleExtractComplaint = async () => {
     setIsSubmitting(true);
 
     try {
-      const response = await submitComplaint(formData, complaintImages.map((image) => image.file));
+      const registrationSource = sourceFiles.length > 0 ? "document" : "manual";
+      const filesToSubmit = sourceFiles.length > 0
+        ? sourceFiles.map((file) => file.file)
+        : complaintImages.map((image) => image.file);
+      const response = await submitComplaint(
+        formData,
+        filesToSubmit,
+        registrationSource,
+      );
       const complaintId = response?.complaintId ?? response?.complaint?.complaintId;
 
       if (!complaintId) throw new Error("Complaint registration response did not include an ID.");
@@ -307,16 +289,19 @@ const handleExtractComplaint = async () => {
       sourceFiles.map((file) => file.file),
     );
 
-    console.log("OCR result:", result);
-    console.log("Combined OCR:", result.combinedOcr);
+    const extracted = await extractComplaintFromSource(
+      result.combinedOcr,
+      sourceType,
+    );
 
-    setOcrResult({
-      images: result.images,
-      combinedOcr: result.combinedOcr,
+    writeExtractedComplaint({
+      ...extracted.complaint,
+      zone: zoneForBlock(extracted.complaint.block) || extracted.complaint.zone,
     });
-
+    writePendingExternalFiles(sourceFiles.map((file) => file.file));
+    navigate?.("/complaints/new/extracted");
   } catch (error) {
-    console.error("External source OCR failed:", error);
+    console.error("External source processing failed:", error);
 
     setSourceFileError(
       error instanceof Error
@@ -457,7 +442,7 @@ const handleExtractComplaint = async () => {
             </div>
 
             {/* ── Mandatory complaint image ── */}
-            <div className="field">
+            {!isDocumentReview && <div className="field">
               <span>
                 Complaint Images <span className="field__required">*</span>
                 <span className="field__hint"> — JPG / PNG</span>
@@ -519,7 +504,7 @@ const handleExtractComplaint = async () => {
               {errors.complaintImage && !imageError && (
                 <small className="error-text">{errors.complaintImage}</small>
               )}
-            </div>
+            </div>}
 
             {submitError && (
               <div className="error-text" style={{ marginBottom: 4 }}>{submitError}</div>
@@ -538,8 +523,7 @@ const handleExtractComplaint = async () => {
               </button>
             </div>
 
-            {/* ── OR divider ── */}
-            <div className="source-upload-divider">
+            {!isDocumentReview && <><div className="source-upload-divider">
               <span className="source-upload-divider__line" />
               <span className="source-upload-divider__label">OR</span>
               <span className="source-upload-divider__line" />
@@ -636,83 +620,22 @@ const handleExtractComplaint = async () => {
                 <p className="upload-empty-hint">No source document attached yet.</p>
               )}
 
-              {ocrResult && (
-                 <div className="ocr-result-section">
-                   <div className="ocr-result-section__header">
-                     <div>
-                       <strong>OCR Processing Complete</strong>
-
-                       <p>
-                         Text has been successfully extracted from the uploaded
-                         document.
-                       </p>
-                     </div>
-
-                     <span className="ocr-result-section__status">
-                       ✓ Completed
-                     </span>
-                   </div>
-
-                   <div className="ocr-result-section__content">
-                     {ocrResult.images.map((image) => (
-                       <div
-                         key={`${image.img_index}-${image.filename}`}
-                         className="ocr-page"
-                       >
-                         <div className="ocr-page__header">
-                           <strong>
-                             Page {image.img_index}
-                           </strong>
-               
-                           <span>
-                             {image.filename}
-                           </span>
-                         </div>
-
-                         <div className="ocr-page__text">
-                           {image.ocr_md ? (
-                             image.ocr_md
-                           ) : (
-                             <span className="ocr-page__empty">
-                               No text could be extracted from this file.
-                             </span>
-                           )}
-                         </div>
-                       </div>
-                   ))}
-                 </div>
-               </div>
-              )}
-
               <div className="source-upload-actions">
-                {!ocrResult && (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={handleProcessDocument}
-                    disabled={isProcessingSource}
-                    aria-busy={isProcessingSource}
-                  >
-                    {isProcessingSource && <span className="button-spinner" aria-hidden="true" />}
-                    <span>{isProcessingSource ? "Processing..." : "Process Document"}</span>
-                  </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={handleProcessDocument}
+                  disabled={isProcessingSource}
+                  aria-busy={isProcessingSource}
+                >
+                  {isProcessingSource && <span className="button-spinner" aria-hidden="true" />}
+                  <span>{isProcessingSource ? "Processing..." : "Process Document"}</span>
+                </button>
+                {isDocumentProcessed && (
+                  <span className="ocr-result-section__status">✓ Fields prefilled</span>
                 )}
-
-                {ocrResult && (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={handleExtractComplaint}
-                    disabled={isExtractingComplaint}
-                    aria-busy={isExtractingComplaint}
-                  >
-                    {isExtractingComplaint && <span className="button-spinner" aria-hidden="true" />}
-                    <span>{isExtractingComplaint ? "Extracting..." : "Extract Complaint Info"}</span>
-                  </button>
-                )}
-
               </div>
-            </div>
+            </div></>}
 
           </form>
         </div>

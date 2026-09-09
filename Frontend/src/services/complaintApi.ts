@@ -4,6 +4,7 @@ const API_URL     = "http://localhost:5000/api/complaints";
 const SOURCE_UPLOAD_URL = "http://localhost:5000/api/complaints/source-upload";
 export const EXTERNAL_SOURCE_RESULT_KEY = "mcl-external-source-result";
 export const EXTRACTED_COMPLAINT_RESULT_KEY = "mcl-extracted-complaint-result";
+let pendingExternalFiles: File[] = [];
 const STORAGE_KEY = "mcl-complaints";
 const LATEST_KEY  = "mcl-latest-complaint";
 
@@ -149,6 +150,12 @@ export const writeExtractedComplaint = (complaint: ExtractedComplaint): void => 
     );
   }
 };
+
+export const writePendingExternalFiles = (files: File[]): void => {
+  pendingExternalFiles = files;
+};
+
+export const readPendingExternalFiles = (): File[] => pendingExternalFiles;
 
 export const readExtractedComplaint = (): ExtractedComplaint | null => {
   if (typeof window === "undefined") return null;
