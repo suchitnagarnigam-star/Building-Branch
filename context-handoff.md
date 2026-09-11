@@ -13,9 +13,10 @@ The current codebase supports:
 - Separate external-document review page
 - Editing extracted fields before submission
 - PostgreSQL complaint persistence
-- Uploaded attachment persistence in `server/uploads/`
-- BI and ATP assignment
-- Complaint list, detail, confirmation, pending, analytics, officers, and settings screens
+- Google Drive file storage integration (`createComplaintDriveFolder`, `uploadComplaintFiles`) with temporary local cleanup
+- BI Field Inspection & Violation Report (`FieldInspectionPage.tsx`)
+- BI and ATP assignment mapping
+- Complaint list, detail, confirmation, pending, analytics, officers, field inspection, and settings screens
 - Fixed application sidebar on desktop and fixed bottom navigation on mobile
 
 The complaint lifecycle actions after registration, such as resolution submission and approval, are still mostly UI placeholders.
@@ -41,6 +42,7 @@ Location: `server/`
 - Complaint routes in `routes/complaintRoutes.ts`
 - PostgreSQL connection in `db/database.ts`
 - Complaint persistence in `services/complaintStorage.ts`
+- Drive service integration in `services/driveService.ts`
 - OCR integration in `services/ocrService.ts`
 - Claude extraction in `services/claudeService.ts`
 - Location mapping in `services/locationMapping.ts`
@@ -80,12 +82,12 @@ Required backend configuration includes:
 The operator:
 
 1. Enters citizen information.
-2. Selects Zone and Block.
+2. Selects Block (Zone is automatically derived from the selected Block).
 3. Enters optional Ward, address, title, and description.
 4. Uploads one or more JPG/PNG complaint images.
 5. Submits the form.
 
-`submitComplaint()` sends multipart form data to `POST /api/complaints`. The backend validates required fields, derives Zone from Block, maps BI and ATP, saves the complaint to PostgreSQL, stores attachment metadata, optionally syncs Google Sheets, and returns a complaint ID.
+`submitComplaint()` sends multipart form data to `POST /api/complaints`. The backend validates required fields, derives Zone from Block, maps BI and ATP, creates a Google Drive folder for the complaint, uploads the evidence files to Google Drive, saves complaint metadata to PostgreSQL, cleans up temporary local files, optionally syncs Google Sheets, and returns a complaint ID.
 
 ### External document flow
 
@@ -101,7 +103,7 @@ The external-source section is on the same initial registration page, but its re
 8. The app navigates to `/complaints/new/extracted`.
 9. `ExtractedComplaintPage` renders `ComplaintFormPage` with the extracted values and source files prefilled.
 10. The operator edits fields if needed and submits.
-11. The same `POST /api/complaints` endpoint is used with `registrationSource: "document"` and the source files attached.
+11. The same `POST /api/complaints` endpoint is used with `registrationSource: "document"` and the source files attached and stored to Google Drive.
 
 The extraction step does not register a complaint by itself. Registration happens only after operator review and submit.
 
@@ -116,6 +118,7 @@ Important routes:
 - `/complaints/new` → unified manual/external form
 - `/complaints/new/extracted` → extracted external-document review form
 - `/complaints/confirm/:complaintId` → registration confirmation
+- `/field-inspection` → BI field inspection & violation reporting form
 
 ### `Frontend/src/pages/ComplaintFormPage.tsx`
 
@@ -125,6 +128,18 @@ The shared complaint form used by both workflows.
 - Document-review mode receives `initialFormData`, `initialSourceFiles`, and `isDocumentReview`.
 - In document-review mode, the external upload controls are hidden and the source files are submitted with the edited extracted fields.
 - The form validation and submit behavior are shared between manual and document registration.
+
+### `Frontend/src/pages/FieldInspectionPage.tsx`
+
+The BI Field Inspection & Violation Report page.
+
+- Supports complaint-based or field-visit report sources.
+- Fetches BI officers dynamically from `GET /api/officers/roster`.
+- Filters available blocks based on the selected BI officer's assigned territory.
+- Auto-maps Zone and supervising ATP based on block.
+- Captures device GPS coordinates (Latitude, Longitude, Accuracy) via Geolocation API.
+- Collects building classification, violator details, and geotagged evidence photos.
+- Includes Section 270(1) PMC Act 1976 statutory notice details and notice photo upload.
 
 ### `Frontend/src/features/complaints/ExtractedComplaintPage.tsx`
 
@@ -152,6 +167,7 @@ Contains the application shell and page styles. The sidebar is fixed to the view
 Routes:
 
 - `GET /api/officers`
+- `GET /api/officers/roster`
 - `GET /api/complaints`
 - `GET /api/complaints/:complaintId`
 - `POST /api/complaints/source-upload`
@@ -160,6 +176,13 @@ Routes:
 - `POST /api/complaints`
 
 `process-source` and `extract-source` only prepare and return data. They do not create a complaint.
+
+### `server/services/driveService.ts`
+
+Handles Google Drive integration:
+
+- `createComplaintDriveFolder(complaintId)`: Creates a dedicated Drive folder per complaint.
+- `uploadComplaintFiles(complaintId, category, files)`: Uploads evidence and source files directly to the complaint's Google Drive folder.
 
 ### `server/services/ocrService.ts`
 
@@ -189,7 +212,7 @@ The prompt instructs Claude not to invent unavailable facts and to translate non
 
 ### `server/services/complaintStorage.ts`
 
-Reads and writes complaints in PostgreSQL. Complaint records include registration source, fields, attachments, BI/ATP assignments, status, and timestamp.
+Reads and writes complaints in PostgreSQL. Complaint records include registration source, fields, attachments, driveFolderUrl, BI/ATP assignments, status, and timestamp.
 
 ### `server/services/locationMapping.ts`
 
@@ -197,9 +220,9 @@ Server-authoritative Block → Zone mapping. The server rejects unrecognized blo
 
 ## Data and uploads
 
-- Uploaded files are saved under `server/uploads/`.
-- Complaint attachment metadata is persisted in PostgreSQL.
-- `server/data/officers.json` contains the current officer roster used by the mapping service.
+- Uploaded files are temporarily staged under `server/uploads/` during request handling, then uploaded to Google Drive and deleted locally.
+- Complaint attachment metadata and Drive folder URLs are persisted in PostgreSQL.
+- `server/data/officers.json` contains the current officer roster used by the mapping service and roster API.
 - `server/data/complaints.json` is legacy/sample data and is not the primary persistence path.
 - Do not commit production credentials or sensitive complaint data.
 

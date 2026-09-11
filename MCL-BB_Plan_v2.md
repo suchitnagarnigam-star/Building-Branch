@@ -117,7 +117,7 @@ handling
 -   PostgreSQL via `pg`
 -   Mistral OCR
 -   Anthropic Claude structured extraction
--   `server/uploads/`
+-   Google Drive API integration (`driveService.ts`) & temporary `server/uploads/` staging
 -   Google Sheets integration
 -   PWA: Web Push, service worker, manifest and basic caching
 

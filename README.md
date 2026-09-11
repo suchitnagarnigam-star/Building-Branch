@@ -8,7 +8,8 @@ MCL-BB is an internal complaint-management application for the Municipal Corpora
 - Backend: Node.js, Express 5, TypeScript
 - Database: PostgreSQL through `pg`
 - Development runtime: `tsx`
-- File storage: uploaded documents and images in `server/uploads/`
+- File storage: Google Drive API (per-complaint folders & file uploads; temporary staging in `server/uploads/`)
+- Integrations: Google Sheets sync, Google Drive service
 - OCR: Mistral OCR
 - Complaint extraction: Anthropic Claude structured JSON output
 
@@ -40,9 +41,9 @@ The backend requires the configured PostgreSQL connection and service environmen
 
 1. Open **New complaint**.
 2. Enter citizen, location, and complaint details.
-3. Select a Zone and filtered Block, then upload at least one JPG/PNG complaint image.
+3. Select a Block (Zone is automatically derived from the selected Block), then upload at least one JPG/PNG complaint image.
 4. Submit the complaint.
-5. The backend validates the fields, derives Zone from Block, maps the responsible BI and ATP, stores the complaint and attachments, and opens the confirmation page.
+5. The backend validates the fields, derives Zone from Block, maps the responsible BI and ATP, creates a Google Drive folder for the complaint, uploads the evidence files, stores complaint & attachment metadata in PostgreSQL, and opens the confirmation page.
 
 ### External document registration
 
@@ -52,7 +53,7 @@ The backend requires the configured PostgreSQL connection and service environmen
 4. The backend saves the upload, runs OCR, combines the OCR text, and sends it to Claude for structured complaint extraction.
 5. The app navigates to a separate review page using the same form layout as manual registration.
 6. The extracted fields are prefilled and remain editable.
-7. **Submit Complaint** uses the same multipart submission endpoint as manual registration, attaches the original source files, and records `registrationSource` as `document`.
+7. **Submit Complaint** uses the same multipart submission endpoint as manual registration, uploads the original source files to Google Drive, and records `registrationSource` as `document`.
 
 Processing endpoints:
 
@@ -66,6 +67,7 @@ Processing endpoints:
 - `/complaints/new`
 - `/complaints/new/extracted`
 - `/complaints/confirm/:complaintId`
+- `/field-inspection`
 - `/complaints`
 - `/complaints/mine`
 - `/complaints/pending`
@@ -78,6 +80,7 @@ Processing endpoints:
 - `GET /api/complaints`
 - `GET /api/complaints/:complaintId`
 - `GET /api/officers`
+- `GET /api/officers/roster`
 - `POST /api/complaints/source-upload`
 - `POST /api/complaints/process-source`
 - `POST /api/complaints/extract-source`
