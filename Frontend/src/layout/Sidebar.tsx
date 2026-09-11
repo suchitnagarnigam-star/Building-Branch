@@ -5,23 +5,15 @@ import type { Role } from "../shared/types";
 type SidebarProps = {
   route: string;
   userRole: Role;
+  userName: string;
   navigate: (route: string) => void;
 };
 
-function Sidebar({ route, userRole, navigate }: SidebarProps) {
+function Sidebar({ route, userRole, userName, navigate }: SidebarProps) {
   const visibleNavItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
 
   return (
     <aside className="sidebar">
-      <div className="sidebar__brand">
-        <div className="brand-logo-wrap">
-          <img src="/mcl-logo.png" alt="MCL logo" className="brand-logo" />
-        </div>
-        <div>
-          <div className="brand-name">MCL-BB</div>
-          <div className="brand-subtitle">Complaint Management</div>
-        </div>
-      </div>
 
       <nav className="sidebar__nav">
         {visibleNavItems.map(({ label, route: itemRoute, icon }) => (
@@ -41,7 +33,7 @@ function Sidebar({ route, userRole, navigate }: SidebarProps) {
         <div className="user-pill">
           <div className="user-pill__avatar">AM</div>
           <div>
-            <div className="user-pill__name">Arjun Mehta</div>
+            <div className="user-pill__name">{userName}</div>
             <div className="user-pill__role">{userRole}</div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { mkdir } from "node:fs/promises";
+import { mkdir, unlink } from "node:fs/promises";
 import express, { Router } from "express";
 import multer from "multer";
 
@@ -11,6 +11,7 @@ import { getOfficers } from "../services/officerMapping.js";
 import { appendComplaintToGoogleSheet } from "../services/googleSheetsService";
 import { processFileWithOCR } from "../services/ocrService";
 import { extractComplaintFromOCR } from "../services/claudeService";
+import {createComplaintDriveFolder, uploadComplaintFiles} from "../services/driveService";
 
 const router = Router();
 const moduleDirectory = __dirname;
@@ -47,7 +48,10 @@ const upload = multer({
 });
 
 const handleUpload = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  upload.fields([{ name: "complaintImage", maxCount: 20 }])(req, res, (error) => {
+  upload.fields([
+    {name: "sourceImage", maxCount: 20},
+    { name: "complaintImage", maxCount: 20 }
+  ])(req, res, (error) => {
     if (error) {
       res.status(400).json({
         success: false,
@@ -59,17 +63,40 @@ const handleUpload = (req: express.Request, res: express.Response, next: express
   });
 };
 
+const deleteTemporaryFiles = async (
+  files: Express.Multer.File[],
+): Promise<void> => {
+  await Promise.all(
+    files.map(async (file) => {
+      try {
+        await unlink(file.path);
+
+        console.log(
+          `[Upload] Deleted temporary file: ${file.filename}`,
+        );
+      } catch (error) {
+        console.warn(
+          `[Upload] Could not delete temporary file: ${file.path}`,
+          error,
+        );
+      }
+    }),
+  );
+};
+
 router.get("/officers", async (_req, res) => {
   try {
     const [allOfficers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
-    const bis = allOfficers.filter((officer) => {
+    const officers = _req.query.includeAtp === "true"
+      ? allOfficers
+      : allOfficers.filter((officer) => {
       const designation = officer.designation.trim().toUpperCase();
       return designation === "BI" || designation.endsWith("-BI");
     });
 
       res.json({
       success: true,
-      officers: bis.map((officer) => ({
+      officers: officers.map((officer) => ({
         ...officer,
         zone: `Zone ${officer.zone}`,
         activeComplaints: complaints.filter(
@@ -81,6 +108,25 @@ router.get("/officers", async (_req, res) => {
   } catch (error) {
     console.error("Error loading officers:", error);
     res.status(500).json({ success: false, message: "Unable to load officers." });
+  }
+});
+
+router.get("/officers/roster", async (_req, res) => {
+  try {
+    const [officers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
+    res.json({
+      success: true,
+      officers: officers.map((officer) => ({
+        ...officer,
+        zone: `Zone ${officer.zone}`,
+        activeComplaints: complaints.filter(
+          (complaint) => complaint.assignedOfficerId === officer.officerId,
+        ).length,
+      })),
+    });
+  } catch (error) {
+    console.error("Error loading officer roster:", error);
+    res.status(500).json({ success: false, message: "Unable to load officer roster." });
   }
 });
 
@@ -115,7 +161,7 @@ router.post(
   handleUpload,
   (req, res) => {
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
-    const uploadedFiles = files?.["complaintImage"] ?? [];
+    const uploadedFiles = files?.["sourceImage"] ?? [];
 
     if (uploadedFiles.length === 0) {
       res.status(400).json({ success: false, message: "Please upload at least one image or PDF." });
@@ -146,7 +192,7 @@ router.post(
       | Record<string, Express.Multer.File[]>
       | undefined;
 
-    const uploadedFiles = files?.["complaintImage"] ?? [];
+    const uploadedFiles = files?.["sourceImage"] ?? [];
 
     if (uploadedFiles.length === 0) {
       res.status(400).json({
@@ -349,12 +395,13 @@ router.post(
         }
       }
 
-      // Validate mandatory complaint image for manual entry
+      // Manual entry requires complaint evidence; external source evidence is optional.
       const registrationSource = (body.registrationSource ?? "manual") as ComplaintRequest["registrationSource"];
-      const imageFiles = files?.["complaintImage"] ?? [];
+      const complaintImages = files?.["complaintImage"] ?? [];
+      const sourceImages = files?.["sourceImage"] ?? [];
 
-      if (registrationSource === "manual" && imageFiles.length === 0) {
-        res.status(400).json({ success: false, message: "A complaint image is required for manual entry." });
+      if (registrationSource === "manual" && complaintImages.length === 0) {
+        res.status(400).json({ success: false, message: "A complaint evidence image is required for manual entry." });
         return;
       }
 
@@ -368,19 +415,82 @@ router.post(
       }
 
       // Build attachment metadata
-      const attachments: AttachmentMeta[] = [];
-      attachments.push(...imageFiles.map((imageFile) => ({
-        fileName: imageFile.originalname,
-        fileType: imageFile.mimetype,
-        filePath: imageFile.path,
-      })));
-
       // Officer mapping
       const bi = await findResponsibleOfficer(derivedZone, block, "BI");
       const atp = await findResponsibleOfficer(derivedZone, block, "ATP");
 
       // Generate ID and persist
       const complaintId = await generateComplaintId();
+
+      console.log(
+        `[Drive] Creating folder for complaint ${complaintId}...`,
+      );
+
+      const driveFolder = await createComplaintDriveFolder(
+        complaintId,
+      );
+
+      console.log(
+        `[Drive] Folder ready: ${driveFolder.folderUrl}`,
+      );
+
+
+      /*
+       * Upload external source files.
+       *
+       * sourceImage → source_1, source_2, ...
+       */
+      if (sourceImages.length > 0) {
+        console.log(
+          `[Drive] Uploading ${sourceImages.length} source file(s)...`,
+        );
+
+        await uploadComplaintFiles(
+          complaintId,
+          "source",
+          sourceImages,
+        );
+      }
+
+
+      /*
+       * Upload complaint/preliminary evidence.
+       *
+       * complaintImage → pre_1, pre_2, ...
+       */
+      if (complaintImages.length > 0) {
+        console.log(
+          `[Drive] Uploading ${complaintImages.length} pre file(s)...`,
+        );
+      
+        await uploadComplaintFiles(
+          complaintId,
+          "pre",
+          complaintImages,
+        );
+      }
+
+
+      /*
+       * We no longer use local server storage as permanent
+       * complaint storage.
+       *
+       * Keep only lightweight metadata in PostgreSQL.
+       */
+      const attachments : AttachmentMeta[] = [
+        ...sourceImages.map((file, index) => ({
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          category: "source" as const,
+          index: index + 1,
+        })),
+        ...complaintImages.map((file, index) => ({
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          category: "pre" as const,
+          index: index + 1,
+        })),
+      ];
 
       const complaint = {
         complaintId,
@@ -394,6 +504,7 @@ router.post(
         title:                body.title.trim(),
         description:          body.description.trim(),
         attachments,
+        driveFolderUrl:       driveFolder.folderUrl,
         assignedOfficerId:    bi?.officerId    ?? null,
         assignedOfficerName:  bi?.name         ?? null,
         assignedOfficerMobile: bi?.mobile      ?? null,
@@ -405,6 +516,11 @@ router.post(
       };
 
       await saveComplaint(complaint);
+
+      await deleteTemporaryFiles([
+        ...sourceImages,
+        ...complaintImages,
+      ])
 
       try{
         await appendComplaintToGoogleSheet(complaint);

@@ -2,17 +2,18 @@ import { useState } from "react";
 import type { Role } from "../../shared/types";
 
 type LoginScreenProps = {
-  onLogin: () => void;
+  onLogin: (userName: string) => void;
   onRoleChange: (nextRole: Role) => void;
 };
 
 function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
   const [role, setRole] = useState<Role>("Admin");
+  const [userName, setUserName] = useState("Arjun Mehta");
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onRoleChange(role);
-    onLogin();
+    onLogin(userName.trim() || "Arjun Mehta");
   };
 
   return (
@@ -29,7 +30,11 @@ function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
         <form onSubmit={handleSubmit} className="login-form">
           <label className="field">
             <span>Username</span>
-            <input type="text" defaultValue="arjun.mehta" />
+            <input
+              type="text"
+              value={userName}
+              onChange={(event) => setUserName(event.target.value)}
+            />
           </label>
 
           <label className="field">

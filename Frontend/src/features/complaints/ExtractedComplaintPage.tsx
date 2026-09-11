@@ -15,6 +15,7 @@ function ExtractedComplaintPage({
   setSelectedComplaintId,
 }: ExtractedComplaintPageProps) {
   const extractedComplaint = readExtractedComplaint();
+  const pendingFiles = readPendingExternalFiles();
 
   if (!extractedComplaint) {
     return (
@@ -39,7 +40,7 @@ function ExtractedComplaintPage({
       navigate={navigate}
       setSelectedComplaintId={setSelectedComplaintId}
       initialFormData={extractedComplaint as ComplaintFormData}
-      initialSourceFiles={readPendingExternalFiles()}
+      initialSourceFiles={pendingFiles}
       isDocumentReview
     />
   );

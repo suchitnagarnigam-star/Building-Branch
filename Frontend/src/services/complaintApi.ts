@@ -32,7 +32,7 @@ export const getStoredComplaints = (): Complaint[] => readStored();
 
 export const uploadExternalSource = async (files: File[]) => {
   const body = new FormData();
-  files.forEach((file) => body.append("complaintImage", file, file.name));
+  files.forEach((file) => body.append("sourceImage", file, file.name));
 
   const response = await fetch(SOURCE_UPLOAD_URL, { method: "POST", body });
   const result = await response.json().catch(() => ({}));
@@ -44,16 +44,18 @@ export const uploadExternalSource = async (files: File[]) => {
   return result;
 };
 
-// ── Submit complaint (manual, with mandatory complaint image) ────────────────
+// ── Submit complaint (manual, with optional complaint evidence images) ───────
 
 export const submitComplaint = async (
   data: ComplaintFormData,
   complaintImages: File[],
   registrationSource: "manual" | "document" = "manual",
+  sourceFiles: File[] = [],
 ) => {
   try {
     // Send as multipart/form-data so the server receives both JSON fields and the image
     const body = new FormData();
+
     body.append("registrationSource", registrationSource);
     body.append("citizenName",   data.citizenName);
     body.append("phoneNumber",   data.phoneNumber);
@@ -63,7 +65,8 @@ export const submitComplaint = async (
     body.append("address",       data.address);
     body.append("title",         data.title);
     body.append("description",   data.description);
-    complaintImages.forEach((image) => body.append("complaintImage", image, image.name));
+    sourceFiles.forEach((file) => {body.append("sourceImage", file)});
+    complaintImages.forEach((file) => {body.append("complaintImage", file)});
 
     const response = await fetch(API_URL, { method: "POST", body });
     const result = await response.json().catch(() => ({}));
@@ -220,7 +223,7 @@ export async function processExternalSource(
 
   for (const file of files) {
     formData.append(
-      "complaintImage",
+      "sourceImage",
       file,
     );
   }

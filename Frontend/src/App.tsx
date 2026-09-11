@@ -11,6 +11,7 @@ import ComplaintDetailPage from "./features/complaints/ComplaintDetailPage";
 import ComplaintFormPage from "./pages/ComplaintFormPage";
 import ConfirmationScreen from "./features/complaints/ConfirmationScreen";
 import AnalyticsPage from "./features/analytics/AnalyticsPage";
+import FieldInspectionPage from "./pages/FieldInspectionPage";
 import OfficersPage from "./features/officers/OfficersPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import NewComplaintScreen from "./features/complaints/NewComplaintScreen";
@@ -25,6 +26,7 @@ function App() {
   const { route, navigate } = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [userRole, setUserRole] = useState<Role>("Admin");
+  const [userName, setUserName] = useState("Arjun Mehta");
   const [selectedComplaintId, setSelectedComplaintId] = useState("MCL-BB-0042");
 
   const activeComplaint = useMemo(
@@ -38,7 +40,8 @@ function App() {
     if (isLogin) {
       return (
         <LoginScreen
-          onLogin={() => {
+          onLogin={(name) => {
+            setUserName(name);
             setIsAuthenticated(true);
             navigate("/dashboard");
           }}
@@ -95,6 +98,9 @@ function App() {
       );
     }
     if (route === "/analytics") return <AnalyticsPage />;
+    if (route === "/field-inspection") {
+      return <FieldInspectionPage navigate={navigate} />;
+    }
     if (route === "/officers") return <OfficersPage />;
     if (route === "/settings") return <SettingsPage />;
 
@@ -103,15 +109,26 @@ function App() {
 
   return (
     <div className="app-shell">
-      {!isLogin && <Sidebar route={route} userRole={userRole} navigate={navigate} />}
-
-      <div className={isLogin ? "app-content app-content--full" : "app-content"}>
-        {!isLogin && <Topbar route={route} />}
-
-        <main className={isLogin ? "page-shell page-shell--login" : "page-shell"}>
-          {renderPage()}
-        </main>
-      </div>
+      {isLogin ? (
+        <div className="app-content app-content--full">
+          <main className="page-shell page-shell--login">{renderPage()}</main>
+        </div>
+      ) : (
+        <>
+          <Topbar />
+          <div className="app-workspace">
+            <Sidebar
+              route={route}
+              userRole={userRole}
+              userName={userName}
+              navigate={navigate}
+            />
+            <div className="app-content">
+              <main className="page-shell">{renderPage()}</main>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

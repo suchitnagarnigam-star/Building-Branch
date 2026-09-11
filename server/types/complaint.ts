@@ -35,6 +35,8 @@ export interface Complaint {
 
   attachments: AttachmentMeta[];
 
+  driveFolderUrl?: string | null;
+
   assignedOfficerId: string | null;
   assignedOfficerName: string | null;
   assignedOfficerMobile: string | null;
@@ -49,5 +51,6 @@ export interface Complaint {
 export interface AttachmentMeta {
   fileName: string;
   fileType: string;
-  filePath: string;
+  category: "source" | "pre" | "res";
+  index: number;
 }

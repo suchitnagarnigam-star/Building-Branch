@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { ComplaintFormData } from "../types/complaint";
 import { locationData, zoneForBlock } from "../data/locationData";
@@ -66,7 +66,7 @@ function ComplaintFormPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingSource, setIsProcessingSource] = useState(false);
 
-  // ── Mandatory complaint image (manual entry) ──────────────────────────────
+  // ── Complaint image evidence ─────────────────────────────────────────────
   const [complaintImages, setComplaintImages]     = useState<UploadedFile[]>([]);
   const [previewImage, setPreviewImage]           = useState<UploadedFile | null>(null);
   const [imageError, setImageError]               = useState("");
@@ -74,7 +74,7 @@ function ComplaintFormPage({
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   // ── External source upload (OR section) ──────────────────────────────────
-  const [sourceType, setSourceType]               = useState<SourceType>("news");
+  const [sourceType]                              = useState<SourceType>("news");
   const [sourceFiles, setSourceFiles]             = useState<UploadedFile[]>(
     () => initialSourceFiles.map((file) => ({
       file,
@@ -88,6 +88,23 @@ function ComplaintFormPage({
   const [isSourceDragOver, setIsSourceDragOver]   = useState(false);
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
   const [isDocumentProcessed, setIsDocumentProcessed] = useState(false);
+
+  useEffect(() => {
+    if (initialSourceFiles.length === 0) return;
+
+    const previewUrls = initialSourceFiles
+      .filter((file) => file.type.startsWith("image/") || file.type === "application/pdf")
+      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+
+    setSourceFiles((current) => current.map((item) => ({
+      ...item,
+      preview: previewUrls.find((entry) => entry.file === item.file)?.preview ?? null,
+    })));
+
+    return () => {
+      previewUrls.forEach(({ preview }) => URL.revokeObjectURL(preview));
+    };
+  }, [initialSourceFiles]);
 
   // ── Form field handlers ───────────────────────────────────────────────────
 
@@ -210,7 +227,7 @@ function ComplaintFormPage({
 
   const validateForm = (): FormErrors => {
     const next: FormErrors = {};
-    if (!formData.citizenName.trim()) next.citizenName = "Citizen name is required";
+    if (!formData.citizenName.trim()) next.citizenName = "Name/Source is required";
     if (!formData.phoneNumber.trim()) {
       next.phoneNumber = "Phone number is required";
     } else if (!/^(\+91)?[6-9]\d{9}$/.test(formData.phoneNumber.trim())) {
@@ -220,8 +237,8 @@ function ComplaintFormPage({
     if (!formData.address.trim()) next.address = "Address is required";
     if (!formData.title.trim())   next.title   = "Complaint title is required";
     if (!formData.description.trim()) next.description = "Complaint description is required";
-    if (sourceFiles.length === 0 && complaintImages.length === 0) {
-      next.complaintImage = "Please upload at least one complaint image before submitting";
+    if (!isDocumentReview && complaintImages.length === 0) {
+      next.complaintImage = "Please upload at least one complaint evidence image";
     }
     return next;
   };
@@ -239,13 +256,12 @@ function ComplaintFormPage({
 
     try {
       const registrationSource = sourceFiles.length > 0 ? "document" : "manual";
-      const filesToSubmit = sourceFiles.length > 0
-        ? sourceFiles.map((file) => file.file)
-        : complaintImages.map((image) => image.file);
+     
       const response = await submitComplaint(
         formData,
-        filesToSubmit,
+        complaintImages.map((img) => img.file),
         registrationSource,
+        sourceFiles.map((file) => file.file),
       );
       const complaintId = response?.complaintId ?? response?.complaint?.complaintId;
 
@@ -328,12 +344,23 @@ function ComplaintFormPage({
 
   return (
     <div className="form-page">
-      <div className="complaint-form-layout">
+      {isDocumentReview && (
+        <div className="complaint-form-back">
+          <button
+            type="button"
+            className="back-link"
+            onClick={() => navigate?.("/complaints/new")}
+          >
+            <Icon name="arrow" /> Back
+          </button>
+        </div>
+      )}
+      <div className={`complaint-form-layout${isDocumentReview ? " complaint-form-layout--extracted" : ""}`}>
 
         {/* ── Left: manual entry form ── */}
         <div className="page-card complaint-form-card">
           <div className="page-card__header">
-            <h2 style={{ marginBottom: 0 }}>Register a Complaint</h2>
+            <h1 style={{ marginBottom: 0, paddingBottom: "1rem" }}>Register a Complaint</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="complaint-form" noValidate>
@@ -341,7 +368,7 @@ function ComplaintFormPage({
             {/* Citizen info */}
             <div className="field-grid field-grid--2">
               <div className="field">
-                <span>Citizen Name <span className="field__required">*</span></span>
+                <span>Name/Source <span className="field__required">*</span></span>
                 <input
                   name="citizenName"
                   type="text"
@@ -441,10 +468,13 @@ function ComplaintFormPage({
               {errors.description && <small className="error-text">{errors.description}</small>}
             </div>
 
-            {/* ── Mandatory complaint image ── */}
-            {!isDocumentReview && <div className="field">
+            {/* ── Complaint image evidence ── */}
+            <div className="field">
               <span>
-                Complaint Images <span className="field__required">*</span>
+                Complaint Evidence{" "}
+                <span className={isDocumentReview ? "field__optional" : "field__required"}>
+                  {isDocumentReview ? "(optional)" : "*"}
+                </span>
                 <span className="field__hint"> — JPG / PNG</span>
               </span>
 
@@ -456,11 +486,11 @@ function ComplaintFormPage({
                   onClick={() => imageInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  aria-label="Upload complaint images"
+                  aria-label="Upload complaint evidence images"
                   onKeyDown={(e) => e.key === "Enter" && imageInputRef.current?.click()}
                 >
                   <span className="upload-dropzone__icon"><Icon name="upload" /></span>
-                  <strong>Add complaint images</strong>
+                  <strong>Add evidence images</strong>
                   <small>JPG / PNG · select multiple</small>
                 </div>
               {complaintImages.length > 0 && (
@@ -504,7 +534,7 @@ function ComplaintFormPage({
               {errors.complaintImage && !imageError && (
                 <small className="error-text">{errors.complaintImage}</small>
               )}
-            </div>}
+            </div>
 
             {submitError && (
               <div className="error-text" style={{ marginBottom: 4 }}>{submitError}</div>
@@ -523,37 +553,19 @@ function ComplaintFormPage({
               </button>
             </div>
 
-            {!isDocumentReview && <><div className="source-upload-divider">
-              <span className="source-upload-divider__line" />
-              <span className="source-upload-divider__label">OR</span>
-              <span className="source-upload-divider__line" />
-            </div>
+          </form>
+        </div>
 
-            {/* ── External source upload ── */}
+        {!isDocumentReview && (
+          <div className="page-card complaint-upload-card">
+            <h2 className="panel__header">Register from External Source</h2>
             <div className="source-upload-section">
               <div className="source-upload-section__header">
-                <span className="source-upload-section__title">Register from External Source</span>
                 <p className="source-upload-section__hint">
                   Upload a news article, email screenshot, PDF, or other external document.
-                  The source type is stored with the record.
                 </p>
               </div>
 
-              {/* Source type tabs */}
-              <div className="source-type-tabs" role="group" aria-label="Source type">
-                {(["news", "email", "other"] as SourceType[]).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`source-type-tab${sourceType === type ? " source-type-tab--active" : ""}`}
-                    onClick={() => setSourceType(type)}
-                  >
-                    {type === "news" ? "News" : type === "email" ? "Email" : "Other"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Drop zone */}
               <div
                 className={`upload-dropzone source-upload-dropzone${isSourceDragOver ? " upload-dropzone--active" : ""}`}
                 onDrop={handleSourceDrop}
@@ -583,7 +595,7 @@ function ComplaintFormPage({
                 <p className="error-text" style={{ marginTop: 4 }}>{sourceFileError}</p>
               )}
 
-              {sourceFiles.length > 0 && (
+              {sourceFiles.length > 0 ? (
                 <ul className="upload-file-list" style={{ marginTop: 4 }}>
                   {sourceFiles.map((f, index) => (
                     <li key={`src-${f.name}-${index}`} className="upload-file-item">
@@ -614,9 +626,7 @@ function ComplaintFormPage({
                     </li>
                   ))}
                 </ul>
-              )}
-
-              {sourceFiles.length === 0 && (
+              ) : (
                 <p className="upload-empty-hint">No source document attached yet.</p>
               )}
 
@@ -635,10 +645,35 @@ function ComplaintFormPage({
                   <span className="ocr-result-section__status">✓ Fields prefilled</span>
                 )}
               </div>
-            </div></>}
+            </div>
+          </div>
+        )}
 
-          </form>
-        </div>
+        {isDocumentReview && (
+          <div className="page-card complaint-source-preview-card">
+            <h3 className="complaint-upload-card__title">Source files used for extraction</h3>
+            <p className="complaint-upload-card__hint">
+              Review the uploaded image or document while checking the extracted fields.
+            </p>
+            <div className="complaint-source-preview-list">
+              {sourceFiles.map((file, index) => (
+                <button
+                  type="button"
+                  className="complaint-source-preview"
+                  key={`${file.name}-${index}`}
+                  onClick={() => setPreviewSourceFile(file)}
+                >
+                  {file.file.type.startsWith("image/") && file.preview ? (
+                    <img src={file.preview} alt={file.name} className="complaint-source-preview__image" />
+                  ) : (
+                    <span className="complaint-source-preview__file"><Icon name="file" /></span>
+                  )}
+                  <span className="complaint-source-preview__name">{file.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
       {previewImage && (

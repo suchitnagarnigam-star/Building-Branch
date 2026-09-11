@@ -152,12 +152,24 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           <p>{complaint.description}</p>
           <div className="attachment-grid">
             {(storedComplaint?.attachments ?? []).map((attachment) => (
-              <img
-                key={attachment.filePath}
-                className="attachment-preview"
-                src={`http://localhost:5000/uploads/${encodeURIComponent(attachment.filePath.split(/[\\/]/).pop() ?? "")}`}
-                alt={attachment.fileName}
-              />
+              (() => {
+                const pathParts = attachment.filePath.split(/[\\/]/);
+                const uploadsIndex = pathParts.lastIndexOf("uploads");
+                const relativePath = pathParts.slice(
+                  uploadsIndex >= 0 ? uploadsIndex + 1 : -1,
+                );
+
+                return (
+                  <img
+                    key={attachment.filePath}
+                    className="attachment-preview"
+                    src={`http://localhost:5000/uploads/${relativePath
+                      .map(encodeURIComponent)
+                      .join("/")}`}
+                    alt={attachment.fileName}
+                  />
+                );
+              })()
             ))}
           </div>
         </div>

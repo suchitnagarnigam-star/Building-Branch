@@ -3,6 +3,7 @@ import type { Role, Status } from "../types";
 export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Role[] }[] = [
   { label: "Dashboard", route: "/dashboard", icon: "dashboard", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "New complaint", route: "/complaints/new", icon: "new", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  {label: "Field Inspection", route: "/field-inspection", icon: "new", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"]},
   { label: "All complaints", route: "/complaints", icon: "list", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "My complaints", route: "/complaints/mine", icon: "user", roles: ["Officer", "ATP", "MTP"] },
   { label: "Pending approval", route: "/complaints/pending", icon: "clock", roles: ["ATP", "MTP", "JC", "C"] },
@@ -12,13 +13,13 @@ export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Rol
 ];
 
 export const statusConfig: Record<Status, { tone: string; text: string }> = {
-  Registered: { tone: "neutral", text: "#6B7280" },
-  Assigned: { tone: "blue", text: "#2563EB" },
+  "Registered": { tone: "neutral", text: "#6B7280" },
+  "Assigned": { tone: "blue", text: "#2563EB" },
   "In progress": { tone: "amber", text: "#D97706" },
   "Resolution submitted": { tone: "purple", text: "#7C3AED" },
   "Pending approval": { tone: "amber", text: "#D97706" },
   "Approved / Closed": { tone: "green", text: "#16A34A" },
-  Rejected: { tone: "red", text: "#DC2626" },
+  "Rejected": { tone: "red", text: "#DC2626" },
   "Rework required": { tone: "red", text: "#DC2626" },
 };
 
@@ -42,6 +43,8 @@ export const formatPageTitle = (route: string): string => {
       return "Complaints";
     case "/analytics":
       return "Analytics";
+    case "/field-inspection":
+      return "Field Inspection";  
     case "/officers":
       return "Officers";
     case "/settings":

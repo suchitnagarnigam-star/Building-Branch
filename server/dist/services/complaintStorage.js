@@ -24,7 +24,8 @@ const getComplaints = async () => {
       assigned_atp_name AS "assignedAtpName",
       assigned_atp_mobile AS "assignedAtpMobile",
       status,
-      created_at AS "createdAt"
+      created_at AS "createdAt",
+      drive_folder_url AS "driveFolderUrl"
     FROM complaints
     ORDER BY created_at DESC
   `);
@@ -62,11 +63,12 @@ const saveComplaint = async (complaint) => {
         assigned_atp_name,
         assigned_atp_mobile,
         status,
-        created_at
+        created_at,
+        drive_folder_url
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11::jsonb, $12, $13, $14, $15, $16, $17, $18, $19
+        $11::jsonb, $12, $13, $14, $15, $16, $17, $18, $19, $20
       )
     `, [
         complaint.complaintId,
@@ -88,6 +90,7 @@ const saveComplaint = async (complaint) => {
         complaint.assignedAtpMobile,
         complaint.status,
         complaint.createdAt,
+        complaint.driveFolderUrl ?? null,
     ]);
 };
 exports.saveComplaint = saveComplaint;
