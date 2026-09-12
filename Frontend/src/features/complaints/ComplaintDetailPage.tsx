@@ -3,10 +3,25 @@ import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { AppComplaint } from "../../shared/types";
 
+type DriveFile = {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+};
+
 type ComplaintDetailPageProps = {
   complaint: AppComplaint;
   complaintId: string;
   navigate: (path: string) => void;
+};
+
+type StoredAttachment = {
+  fileName: string;
+  filePath?: string;
+  fileType: string;
+  category?: "source" | "pre" | "res";
+  index?: number;
 };
 
 type StoredComplaint = {
@@ -24,7 +39,8 @@ type StoredComplaint = {
   assignedAtpName: string | null;
   createdAt: string;
   status: string;
-  attachments?: Array<{ fileName: string; filePath: string; fileType: string }>;
+  attachments?: StoredAttachment[];
+  driveFolderUrl?: string | null;
 };
 
 const TIMELINE_STAGES = [
@@ -60,21 +76,82 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const [storedComplaint, setStoredComplaint] = useState<StoredComplaint | null>(
     () => readLocalComplaint(complaintId),
   );
+  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
+  const [driveFilesLoading, setDriveFilesLoading] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    fetch(`http://localhost:5000/api/complaints/${encodeURIComponent(complaintId)}`)
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || "Unable to load complaint.");
-        return result.complaint as StoredComplaint;
-      })
-      .then((result) => {
-        if (active) setStoredComplaint(result);
-      })
-      .catch((error: unknown) => console.error("Complaint detail loading failed:", error));
-    return () => { active = false; };
-  }, [complaintId]);
+  let active = true;
+
+  const loadComplaint = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/complaints/${encodeURIComponent(
+          complaintId,
+        )}`,
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Unable to load complaint.",
+        );
+      }
+
+      if (active) {
+        setStoredComplaint(result.complaint as StoredComplaint);
+      }
+    } catch (error) {
+      console.error("Complaint detail loading failed:", error);
+    }
+  };
+
+  loadComplaint();
+
+  return () => {
+    active = false;
+  };
+}, [complaintId]);
+
+useEffect(() => {
+  let active = true;
+
+  const loadDriveFiles = async () => {
+    setDriveFilesLoading(true);
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/complaints/${encodeURIComponent(
+          complaintId,
+        )}/files`,
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Unable to load complaint files.",
+        );
+      }
+
+      if (active) {
+        setDriveFiles(result.files ?? []);
+      }
+    } catch (error) {
+      console.error("Error loading Drive files:", error);
+    } finally {
+      if (active) {
+        setDriveFilesLoading(false);
+      }
+    }
+  };
+
+  loadDriveFiles();
+
+  return () => {
+    active = false;
+  };
+}, [complaintId]);
 
   const complaint = storedComplaint
     ? {
@@ -150,14 +227,18 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
         <div className="panel detail-panel">
           <h3>Complaint details</h3>
           <p>{complaint.description}</p>
+          
           <div className="attachment-grid">
-            {(storedComplaint?.attachments ?? []).map((attachment) => (
-              (() => {
+            {(storedComplaint?.attachments ?? []).map(
+              (attachment, index) => {
+
+              // OLD LOCAL FILE
+              if (attachment.filePath){
                 const pathParts = attachment.filePath.split(/[\\/]/);
                 const uploadsIndex = pathParts.lastIndexOf("uploads");
                 const relativePath = pathParts.slice(
                   uploadsIndex >= 0 ? uploadsIndex + 1 : -1,
-                );
+                );  
 
                 return (
                   <img
@@ -169,8 +250,53 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
                     alt={attachment.fileName}
                   />
                 );
-              })()
-            ))}
+              }
+
+              //NEW GOOGLE DRIVE FILE
+               const prefix = `${complaintId}_${attachment.category}_${attachment.index}`;
+
+               console.log("[Drive Match]",{
+                  complaintId,
+                  attachment,
+                  expectedPrefix: prefix,
+                  driveFiles,
+               });
+
+               const driveFile = driveFiles.find((file) =>
+                file.fileName.startsWith(prefix)
+               );
+              
+              if (driveFile) {
+                return (
+                  <img
+                    key={driveFile.fileId}
+                    className="attachment-preview"
+                    src={`http://localhost:5000/api/complaints/${encodeURIComponent(
+                      complaintId
+                    )}/files/${encodeURIComponent(
+                      driveFile.fileId
+                    )}`}
+                    alt={attachment.fileName}
+                  />
+                );
+              }
+
+              //FILE NOT FOUND
+              return (
+                <div
+                  key={`${attachment.fileName}-${index}`}
+                  className="attachment-preview"
+                >
+                  <strong>{attachment.fileName}</strong>
+
+                  <div>
+                    {driveFilesLoading 
+                    ? "Loading image..." 
+                    : "File Unavailable"}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

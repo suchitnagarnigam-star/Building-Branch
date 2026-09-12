@@ -2,6 +2,7 @@ import path from "node:path";
 import { mkdir, unlink } from "node:fs/promises";
 import express, { Router } from "express";
 import multer from "multer";
+import {Buffer} from "node:buffer";
 
 import type { ComplaintRequest, AttachmentMeta } from "../types/complaint";
 import { findResponsibleOfficer } from "../services/officerMapping";
@@ -11,7 +12,7 @@ import { getOfficers } from "../services/officerMapping.js";
 import { appendComplaintToGoogleSheet } from "../services/googleSheetsService";
 import { processFileWithOCR } from "../services/ocrService";
 import { extractComplaintFromOCR } from "../services/claudeService";
-import {createComplaintDriveFolder, uploadComplaintFiles} from "../services/driveService";
+import {createComplaintDriveFolder, uploadComplaintFiles, listComplaintDriveFiles, getComplaintDriveFile} from "../services/driveService";
 
 const router = Router();
 const moduleDirectory = __dirname;
@@ -154,6 +155,75 @@ router.get("/complaints/:complaintId", async (req, res) => {
     res.status(500).json({ success: false, message: "Unable to load complaint." });
   }
 });
+
+router.get("/complaints/:complaintId/files", async (req, res) => {
+  try {
+    const complaintId = req.params.complaintId;
+
+    const files = await listComplaintDriveFiles(complaintId);
+
+    res.json({
+      success: true,
+      files,
+    });
+  } catch (error) {
+    console.error(
+      "[Drive] Failed to list complaint files:",
+      error,
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to load complaint files.",
+    });
+  }
+});
+
+router.get(
+  "/complaints/:complaintId/files/:fileId",
+  async (req, res) => {
+    try {
+      const result = await getComplaintDriveFile(
+        req.params.fileId,
+      );
+
+      if (!result.success || !result.data) {
+        res.status(404).json({
+          success: false,
+          message: result.message || "File not found.",
+        });
+        return;
+      }
+
+      const fileBuffer = Buffer.from(
+        result.data,
+        "base64",
+      );
+
+      res.setHeader(
+        "Content-Type",
+        result.mimeType || "application/octet-stream",
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${result.fileName || "attachment"}"`,
+      );
+
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error(
+        "[Drive] Failed to retrieve complaint file:",
+        error,
+      );
+
+      res.status(500).json({
+        success: false,
+        message: "Unable to load complaint file.",
+      });
+    }
+  },
+);
 
 // ── POST /api/complaints ──────────────────────────────────────────────────────
 router.post(

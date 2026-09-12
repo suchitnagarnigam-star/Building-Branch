@@ -160,3 +160,47 @@ export const uploadComplaintFiles = async (
 
   return uploaded;
 };
+
+// Google Drive retrieval
+export type DriveFile = {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+};
+
+type DriveListFilesResponse = {
+  success: boolean;
+  complaintId?: string;
+  files?: DriveFile[];
+  message?: string;
+};
+
+type DriveGetFileResponse = {
+  success: boolean;
+  fileId?: string;
+  fileName?: string;
+  mimeType?: string;
+  data?: string;
+  message?: string;
+};
+
+export const listComplaintDriveFiles = async (
+  complaintId: string,
+): Promise<DriveFile[]> => {
+  const result = await callDriveService({
+    action: "listFiles",
+    complaintId,
+  }) as DriveListFilesResponse;
+
+  return result.files ?? [];
+};
+
+export const getComplaintDriveFile = async (
+  fileId: string,
+): Promise<DriveGetFileResponse> => {
+  return await callDriveService({
+    action: "getFile",
+    fileId,
+  }) as DriveGetFileResponse;
+};
