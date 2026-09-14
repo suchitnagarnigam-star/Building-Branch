@@ -23,7 +23,10 @@ type Coordinates = {
   capturedAt: string;
 };
 
-const OFFICERS_API_URL = "http://localhost:5000/api/officers/roster";
+const getOfficersRosterUrl = () => {
+  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+  return `${base}/officers/roster`;
+};
 
 const normalise = (value: string) =>
   value.replace(/^zone\s*/i, "").replace(/^block\s*/i, "").trim().toUpperCase();
@@ -60,7 +63,7 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
 
   useEffect(() => {
     let active = true;
-    fetch(OFFICERS_API_URL)
+    fetch(getOfficersRosterUrl())
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || "Unable to load officers.");

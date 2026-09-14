@@ -11,7 +11,10 @@ type Officer = {
   activeComplaints: number;
 };
 
-const API_URL = "http://localhost:5000/api/officers";
+const getApiUrl = () => {
+  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+  return `${base}/officers`;
+};
 
 function OfficersPage() {
   const [officers, setOfficers] = useState<Officer[]>([]);
@@ -20,7 +23,7 @@ function OfficersPage() {
 
   useEffect(() => {
     let active = true;
-    fetch(API_URL)
+    fetch(getApiUrl())
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || "Unable to load officers.");

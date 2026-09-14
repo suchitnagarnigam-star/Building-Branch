@@ -42,7 +42,8 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   useEffect(() => {
     let active = true;
-    fetch("http://localhost:5000/api/complaints")
+    const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+    fetch(`${apiUrl}/complaints`)
       .then(async (response) => {
         const result = await response.json() as { complaints?: ComplaintRecord[]; message?: string };
         if (!response.ok) throw new Error(result.message || "Unable to load complaints.");

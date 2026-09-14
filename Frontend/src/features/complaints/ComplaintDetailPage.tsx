@@ -78,80 +78,96 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   );
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
   const [driveFilesLoading, setDriveFilesLoading] = useState(false);
+  const [loading, setLoading] = useState(!storedComplaint);
+  const [error, setError] = useState("");
+
+  const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
 
   useEffect(() => {
-  let active = true;
+    let active = true;
 
-  const loadComplaint = async () => {
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/complaints/${encodeURIComponent(
-          complaintId,
-        )}`,
-      );
+    const loadComplaint = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/complaints/${encodeURIComponent(complaintId)}`);
+        const result = (await response.json()) as { complaint?: StoredComplaint; message?: string };
 
-      const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || "Unable to load complaint.");
+        }
 
-      if (!response.ok) {
-        throw new Error(
-          result.message || "Unable to load complaint.",
-        );
+        if (active) {
+          setStoredComplaint(result.complaint as StoredComplaint);
+          setError("");
+        }
+      } catch (err: unknown) {
+        if (active && !storedComplaint) {
+          setError(err instanceof Error ? err.message : "Unable to load complaint details.");
+        }
+      } finally {
+        if (active) setLoading(false);
       }
+    };
 
-      if (active) {
-        setStoredComplaint(result.complaint as StoredComplaint);
+    loadComplaint();
+
+    return () => {
+      active = false;
+    };
+  }, [complaintId, apiUrl]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDriveFiles = async () => {
+      setDriveFilesLoading(true);
+
+      try {
+        const response = await fetch(`${apiUrl}/complaints/${encodeURIComponent(complaintId)}/files`);
+        const result = (await response.json()) as { files?: DriveFile[]; message?: string };
+
+        if (!response.ok) {
+          throw new Error(result.message || "Unable to load complaint files.");
+        }
+
+        if (active) {
+          setDriveFiles(result.files ?? []);
+        }
+      } catch (err: unknown) {
+        console.error("Error loading Drive files:", err);
+      } finally {
+        if (active) {
+          setDriveFilesLoading(false);
+        }
       }
-    } catch (error) {
-      console.error("Complaint detail loading failed:", error);
-    }
-  };
+    };
 
-  loadComplaint();
+    loadDriveFiles();
 
-  return () => {
-    active = false;
-  };
-}, [complaintId]);
+    return () => {
+      active = false;
+    };
+  }, [complaintId, apiUrl]);
 
-useEffect(() => {
-  let active = true;
-
-  const loadDriveFiles = async () => {
-    setDriveFilesLoading(true);
-
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/complaints/${encodeURIComponent(
-          complaintId,
-        )}/files`,
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message || "Unable to load complaint files.",
-        );
-      }
-
-      if (active) {
-        setDriveFiles(result.files ?? []);
-      }
-    } catch (error) {
-      console.error("Error loading Drive files:", error);
-    } finally {
-      if (active) {
-        setDriveFilesLoading(false);
-      }
-    }
-  };
-
-  loadDriveFiles();
-
-  return () => {
-    active = false;
-  };
-}, [complaintId]);
+  if (!loading && error && !storedComplaint) {
+    return (
+      <div className="detail-page">
+        <div className="detail-main">
+          <button className="back-link" type="button" onClick={() => navigate("/complaints")}>
+            <Icon name="arrow" /> All complaints
+          </button>
+          <div className="panel detail-panel" style={{ textAlign: "center", padding: "48px 24px" }}>
+            <div style={{ fontSize: "18px", fontWeight: 600, color: "var(--danger)", marginBottom: "8px" }}>
+              Unable to load complaint ({complaintId})
+            </div>
+            <p style={{ color: "var(--muted)", marginBottom: "24px" }}>{error}</p>
+            <button className="primary-button" type="button" onClick={() => navigate("/complaints")}>
+              Return to Complaints List
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const complaint = storedComplaint
     ? {
@@ -173,14 +189,14 @@ useEffect(() => {
     : {
         ...fallbackComplaint,
         id: complaintId,
-        title: "Loading complaint...",
+        title: loading ? "Loading complaint..." : "Complaint details unavailable",
         citizen: "—",
         phone: "—",
         zone: "—",
         block: "—",
         ward: "—",
         address: "—",
-        description: "Loading complaint details...",
+        description: loading ? "Loading complaint details from server..." : "No complaint data returned.",
         assignedOfficer: "—",
         atp: "—",
         timeline: [],

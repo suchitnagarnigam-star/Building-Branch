@@ -1,7 +1,8 @@
 import type { Complaint, ComplaintFormData } from "../types/complaint.js";
 
-const API_URL     = "http://localhost:5000/api/complaints";
-const SOURCE_UPLOAD_URL = "http://localhost:5000/api/complaints/source-upload";
+const BASE_API_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+const API_URL           = `${BASE_API_URL}/complaints`;
+const SOURCE_UPLOAD_URL = `${BASE_API_URL}/complaints/source-upload`;
 export const EXTERNAL_SOURCE_RESULT_KEY = "mcl-external-source-result";
 export const EXTRACTED_COMPLAINT_RESULT_KEY = "mcl-extracted-complaint-result";
 let pendingExternalFiles: File[] = [];
@@ -178,7 +179,7 @@ export async function extractComplaintFromSource(
   sourceType: "news" | "email" | "other",
 ): Promise<ExtractSourceResponse> {
   const response = await fetch(
-    "http://localhost:5000/api/complaints/extract-source",
+    `${BASE_API_URL}/complaints/extract-source`,
     {
       method: "POST",
 
@@ -229,7 +230,7 @@ export async function processExternalSource(
   }
 
   const response = await fetch(
-    "http://localhost:5000/api/complaints/process-source",
+    `${BASE_API_URL}/complaints/process-source`,
     {
       method: "POST",
       body: formData,
