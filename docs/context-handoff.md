@@ -1,6 +1,6 @@
 # MCL-BB Context Handoff
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-14
 
 ## Current status
 
@@ -13,13 +13,20 @@ The current codebase supports:
 - Separate external-document review page
 - Editing extracted fields before submission
 - PostgreSQL complaint persistence
-- Google Drive file storage integration (`createComplaintDriveFolder`, `uploadComplaintFiles`) with temporary local cleanup
-- BI Field Inspection & Violation Report (`FieldInspectionPage.tsx`)
-- BI and ATP assignment mapping
+- Google Drive complaint folder creation, file upload, listing, and retrieval
+- Complaint detail page hydration from backend plus Drive attachment previews
+- BI Field Inspection & Violation Report form with BI/ATP mapping logic
 - Complaint list, detail, confirmation, pending, analytics, officers, field inspection, and settings screens
 - Fixed application sidebar on desktop and fixed bottom navigation on mobile
 
-The complaint lifecycle actions after registration, such as resolution submission and approval, are still mostly UI placeholders.
+Recently completed work in the current branch includes:
+
+- Drive-backed complaint detail loading via `GET /api/complaints/:complaintId` and `GET /api/complaints/:complaintId/files`
+- File preview/download support for complaint attachments stored in Google Drive
+- BI field inspection UI refinements and roster-based assignment mapping
+- Integration of Google Drive file retrieval into the complaint detail experience
+
+The remaining gaps are concentrated in workflow actions beyond initial registration: complaint status transition APIs, field-inspection submission persistence, and final lifecycle actions such as resolution submission and approval remain incomplete or placeholder-based.
 
 ## Architecture
 
@@ -104,6 +111,7 @@ The external-source section is on the same initial registration page, but its re
 9. `ExtractedComplaintPage` renders `ComplaintFormPage` with the extracted values and source files prefilled.
 10. The operator edits fields if needed and submits.
 11. The same `POST /api/complaints` endpoint is used with `registrationSource: "document"` and the source files attached and stored to Google Drive.
+12. The complaint detail screen and attachment tabs then load the saved complaint and its Drive files from the backend.
 
 The extraction step does not register a complaint by itself. Registration happens only after operator review and submit.
 
@@ -145,6 +153,14 @@ The BI Field Inspection & Violation Report page.
 
 Reads the extracted complaint from session storage and renders the shared `ComplaintFormPage` in document-review mode.
 
+### `Frontend/src/features/complaints/ComplaintDetailPage.tsx`
+
+Hydrates the complaint detail view from live backend data and also fetches Drive-backed attachments:
+
+- `GET /api/complaints/:complaintId` loads complaint metadata and status
+- `GET /api/complaints/:complaintId/files` loads Google Drive file metadata
+- file cards render previews for locally stored attachments and Drive-hosted evidence when available
+
 ### `Frontend/src/services/complaintApi.ts`
 
 Provides:
@@ -183,6 +199,8 @@ Handles Google Drive integration:
 
 - `createComplaintDriveFolder(complaintId)`: Creates a dedicated Drive folder per complaint.
 - `uploadComplaintFiles(complaintId, category, files)`: Uploads evidence and source files directly to the complaint's Google Drive folder.
+- `listComplaintDriveFiles(complaintId)`: Lists files attached to a complaint for the detail page.
+- `getComplaintDriveFile(fileId)`: Retrieves Drive file contents so the frontend can preview/download them.
 
 ### `server/services/ocrService.ts`
 
