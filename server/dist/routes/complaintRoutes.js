@@ -681,34 +681,29 @@ router.post("/inspections", handleInspectionUpload, async (req, res) => {
  * NOTICE VALIDATION
  * ------------------------------------------------------
  *
- * Notice is optional.
- *
- * If any notice field is supplied, all three
- * notice fields must be supplied together.
- *
- * A notice currently requires a case because
- * notices.case_id is NOT NULL.
+ * A Section 270 notice is mandatory when a violation
+ * is found. All three notice fields are required.
  */
         const hasNoticeData = Boolean(body.noticeNumber?.trim() ||
             body.noticeDate?.trim() ||
             noticePhotos.length > 0);
-        if (hasNoticeData) {
+        if (inspectionOutcome === "violation_found") {
             if (!body.noticeNumber?.trim() ||
                 !body.noticeDate?.trim() ||
                 noticePhotos.length === 0) {
                 res.status(400).json({
                     success: false,
-                    message: "Notice number, notice date and notice photo are all required when recording a notice.",
+                    message: "Notice number, notice date and notice photo are required when a violation is found.",
                 });
                 return;
             }
-            if (inspectionOutcome !== "violation_found") {
-                res.status(400).json({
-                    success: false,
-                    message: "A Section 270 notice can only be recorded when violation is found.",
-                });
-                return;
-            }
+        }
+        else if (hasNoticeData) {
+            res.status(400).json({
+                success: false,
+                message: "A Section 270 notice can only be recorded when violation is found.",
+            });
+            return;
         }
         /*
          * ------------------------------------------------------
@@ -873,6 +868,7 @@ router.post("/inspections", handleInspectionUpload, async (req, res) => {
               $10,
               $11,
               $12,
+              $13,
               'Submitted',
               NOW()
             )
@@ -976,8 +972,8 @@ router.post("/inspections", handleInspectionUpload, async (req, res) => {
    * - notice photo exists
    * - inspection is case-based
    */
-        if (hasNoticeData && caseId) {
-            const uploadedNotice = await (0, driveService_1.uploadInspectionNoticeFile)("case", caseId, visitId, noticePhotos[0]);
+        if (hasNoticeData) {
+            const uploadedNotice = await (0, driveService_1.uploadInspectionNoticeFile)(parentType, parentId, visitId, noticePhotos[0]);
             await database_1.pool.query(`
       INSERT INTO notices (
         case_id,

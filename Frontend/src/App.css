@@ -670,6 +670,113 @@ textarea {
   min-height: 36px;
 }
 
+.field-inspection-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 8px 0 20px;
+}
+
+.field-inspection-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compact-form .inspection-card,
+.compact-form .notice-section {
+  padding: 12px 14px;
+}
+
+.compact-form .inspection-card__header {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.compact-form .inspection-card__number {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  font-size: 11px;
+}
+
+.compact-form .inspection-card h2 {
+  font-size: 15px;
+}
+
+.compact-form .inspection-grid {
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compact-form .form-field {
+  gap: 6px;
+}
+
+.compact-form .form-field label {
+  font-size: 12px;
+}
+
+.compact-form .choice-grid--inline {
+  gap: 8px;
+  margin: 0;
+}
+
+.compact-form .choice-card--compact {
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+.compact-form .choice-card--compact small {
+  display: none;
+}
+
+.compact-form .building-type-grid {
+  gap: 8px;
+}
+
+.compact-form .building-type {
+  padding: 8px 10px;
+}
+
+.compact-form .photo-dropzone {
+  min-height: 110px;
+  padding: 12px;
+}
+
+.compact-form .photo-dropzone__actions {
+  margin-top: 6px;
+}
+
+.compact-form .notice-section__header {
+  padding: 12px 14px;
+}
+
+.compact-form .notice-section__body {
+  padding: 0 14px 14px;
+}
+
+.compact-form .sticky-actions {
+  margin-top: 12px;
+  padding-top: 14px;
+}
+
+.compact-form .field-error {
+  font-size: 11px;
+}
+
+.compact-form .field-success {
+  color: var(--success);
+  font-size: 11px;
+}
+
+.compact-form input[readonly],
+.compact-form select:disabled,
+.compact-form .derived-field {
+  background: #f1f5f9;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 .primary-button,
 .secondary-button,
 .inline-toggle,
@@ -2403,6 +2510,47 @@ textarea {
 .inspection-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 5px 0 0; }
 .inspection-actions .primary-button { min-height: 42px; }
 .inspection-actions .primary-button svg { width: 16px; height: 16px; transform: rotate(180deg); }
+
+/* Keep the complete inspection workflow inside one compact visual panel. */
+.compact-form {
+  gap: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.compact-form .inspection-card,
+.compact-form .notice-section {
+  padding: 12px 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.compact-form .inspection-card + .inspection-card,
+.compact-form .inspection-card + .notice-section,
+.compact-form .notice-section + .inspection-card {
+  border-top: 1px solid var(--border);
+}
+
+.compact-form .inspection-card__header {
+  margin-bottom: 10px;
+}
+
+.compact-form .inspection-card__header:not(:first-child) {
+  margin-top: 14px;
+}
+
+.compact-form .notice-section__header {
+  padding: 10px 0;
+}
+
+.compact-form .notice-section__body {
+  padding: 0 0 4px;
+}
 
 @media (max-width: 720px) {
   .field-inspection-page__intro { flex-direction: column; }

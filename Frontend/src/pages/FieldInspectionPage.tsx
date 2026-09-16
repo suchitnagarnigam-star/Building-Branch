@@ -24,9 +24,21 @@ type Coordinates = {
 };
 
 type InspectionOutcome = "no_violation" | "violation_found" | "";
+type ComplaintLookup = {
+  complaintId: string;
+  assignedOfficerId: string | null;
+  assignedOfficerName: string | null;
+  assignedAtpId?: string | null;
+  assignedAtpName?: string | null;
+  block: string;
+  zone: string;
+  ward?: string;
+  address: string;
+};
 
 const OFFICERS_API_URL = "http://localhost:5000/api/officers/roster";
 const INSPECTIONS_API_URL = "http://localhost:5000/api/inspections";
+const COMPLAINTS_API_URL = "http://localhost:5000/api/complaints";
 
 const normalise = (value: string) =>
   value.replace(/^zone\s*/i, "").replace(/^block\s*/i, "").trim().toUpperCase();
@@ -40,6 +52,9 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
   const [sourceOfReport, setSourceOfReport] = useState<"complaint" | "field_visit">("complaint");
   const [inspectionOutcome, setInspectionOutcome] = useState<"no_violation"|"violation_found"|"">("");
   const [complaintId, setComplaintId] = useState("");
+  const [complaintLookup, setComplaintLookup] = useState<ComplaintLookup | null>(null);
+  const [complaintLoading, setComplaintLoading] = useState(false);
+  const [complaintError, setComplaintError] = useState("");
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [officersLoading, setOfficersLoading] = useState(true);
   const [officersError, setOfficersError] = useState("");
@@ -64,7 +79,8 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoCameraInputRef = useRef<HTMLInputElement>(null);
+  const photoUploadInputRef = useRef<HTMLInputElement>(null);
   const noticeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -89,6 +105,54 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (sourceOfReport !== "complaint") {
+      setComplaintLookup(null);
+      setComplaintError("");
+      return;
+    }
+
+    const id = complaintId.trim();
+    if (!id) {
+      setComplaintLookup(null);
+      setComplaintError("");
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setComplaintLoading(true);
+      setComplaintError("");
+      try {
+        const response = await fetch(`${COMPLAINTS_API_URL}/${encodeURIComponent(id)}`, {
+          signal: controller.signal,
+        });
+        const result = await response.json() as { success?: boolean; complaint?: ComplaintLookup; message?: string };
+        if (!response.ok || !result.success || !result.complaint) {
+          throw new Error(result.message || "Complaint not found.");
+        }
+
+        const complaint = result.complaint;
+        setComplaintLookup(complaint);
+        setReportingOfficer(complaint.assignedOfficerId ?? "");
+        setBlock(complaint.block);
+        setWard(complaint.ward ?? "");
+        setLocation(complaint.address);
+      } catch (reason: unknown) {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setComplaintLookup(null);
+        setComplaintError(reason instanceof Error ? reason.message : "Unable to load complaint.");
+      } finally {
+        if (!controller.signal.aborted) setComplaintLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [complaintId, sourceOfReport]);
+
   const zone = useMemo(() => zoneForBlock(block), [block]);
   const selectedReportingOfficer = useMemo(
     () => officers.find((officer) => officer.officerId === reportingOfficer),
@@ -102,13 +166,40 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
   const supervisingAtp = useMemo(() => {
     const selectedBlock = normalise(block);
     if (!selectedBlock) return undefined;
-    return officers.find(
+    const mappedAtp = officers.find(
       (officer) =>
         officer.designation.trim().toUpperCase() === "ATP" &&
         normalise(officer.zone) === normalise(zone) &&
         officer.blocks.some((officerBlock) => normalise(officerBlock) === selectedBlock),
     );
-  }, [block, officers, zone]);
+    if (mappedAtp) return mappedAtp;
+    if (complaintLookup?.assignedAtpName) {
+      return {
+        officerId: complaintLookup.assignedAtpId ?? "complaint-atp",
+        name: complaintLookup.assignedAtpName,
+        mobile: "",
+        designation: "ATP",
+        zone: complaintLookup.zone,
+        blocks: [complaintLookup.block],
+      };
+    }
+    return undefined;
+  }, [block, complaintLookup, officers, zone]);
+  const isComplaintMode = sourceOfReport === "complaint";
+
+  const handleSourceChange = (value: "complaint" | "field_visit") => {
+    setSourceOfReport(value);
+    setSubmitError("");
+    if (value === "field_visit") {
+      setComplaintId("");
+      setComplaintLookup(null);
+      setComplaintError("");
+      setReportingOfficer("");
+      setBlock("");
+      setWard("");
+      setLocation("");
+    }
+  };
 
   const captureLocation = () => {
     setLocationError("");
@@ -254,38 +345,16 @@ const submitInspection = async (
     return;
   };
 
-  /*
-   * Notice is optional and is only meaningful 
-   * if viaolation found.
-   *
-   * But if the operator starts entering notice
-   * information, all three fields are required.
-   */
-  const hasNoticeData =
-    Boolean(
-      noticeNumber.trim() ||
-      noticeDate ||
-      noticePhoto,
+  if (inspectionOutcome === "violation_found" && (
+    !noticeNumber.trim() ||
+    !noticeDate ||
+    !noticePhoto
+  )) {
+    setSubmitError(
+      "Notice number, notice date and notice photo are required when a violation is found.",
     );
-
-  if (hasNoticeData) {
-    if (inspectionOutcome !== "violation_found") {
-      setSubmitError(
-        "If you provide a Section 270 notice, notice number, date and notice photo are all required.",
-      );
-      return;
-    }
-
-    if (
-      !noticeNumber.trim() ||
-      !noticeDate ||
-      !noticePhoto
-    ) {
-      setSubmitError(
-        "If you provide a Section 270 notice, notice number, date and notice photo are all required.",
-      );
-      return;
-    }
+    setNoticeOpen(true);
+    return;
   }
 
   try {
@@ -391,7 +460,7 @@ const submitInspection = async (
     });
 
     // only send notice when it is complete and valid.
-    if(hasNoticeData && noticePhoto) {
+    if (inspectionOutcome === "violation_found" && noticePhoto) {
       formData.append(
         "noticeNumber",
         noticeNumber.trim(),
@@ -440,64 +509,48 @@ const submitInspection = async (
 
   return (
     <div className="field-inspection-page">
-      <div className="field-inspection-page__intro">
-        <div>
-          <p className="eyebrow">FIELD OPERATIONS / NEW RECORD</p>
-          <h1>Building Field Inspection &amp; Violation Report</h1>
-          <p>Record inspection details, violation information and supporting evidence in one secure report.</p>
-        </div>
-        <span className="field-inspection-page__status"><span /> Draft inspection</span>
-      </div>
-
-      <form className="field-inspection-form" onSubmit={submitInspection}>
+      <form className="field-inspection-form compact-form" onSubmit={submitInspection}>
         <section className="inspection-card">
           <div className="inspection-card__header">
             <span className="inspection-card__number">01</span>
-            <div><h2>Report Information</h2><p>Identify the source and officer responsible for this inspection.</p></div>
+            <h2>Report Information</h2>
           </div>
           <div className="inspection-grid">
             <div className="form-field form-field--full">
               <label>Source of Report <span>*</span></label>
-              <div className="choice-grid choice-grid--inline">
-                {([["complaint", "Complaint Based", "Inspection linked to a registered complaint"], ["field_visit", "Field Visit", "Inspection initiated in the field"]] as const).map(([value, label, hint]) => (
+              <div className="choice-grid choice-grid--inline compact-choice-grid">
+                {(["complaint", "field_visit"] as const).map((value) => (
                   <label className={`choice-card choice-card--compact ${sourceOfReport === value ? "choice-card--selected" : ""}`} key={value}>
-                    <input type="radio" name="sourceOfReport" value={value} checked={sourceOfReport === value} onChange={() => setSourceOfReport(value)} />
-                    <span><strong>{label}</strong><small>{hint}</small></span>
+                    <input type="radio" name="sourceOfReport" value={value} checked={sourceOfReport === value} onChange={() => handleSourceChange(value)} />
+                    <span><strong>{value === "complaint" ? "Complaint Based" : "Field Visit"}</strong></span>
                   </label>
                 ))}
               </div>
             </div>
             <div className="form-field">
               <label htmlFor="reportingOfficer">Reporting Officer <span>*</span></label>
-              <select id="reportingOfficer" required value={reportingOfficer} onChange={(event) => { setReportingOfficer(event.target.value); setBlock(""); }} disabled={officersLoading || Boolean(officersError)}>
-                <option value="">{officersLoading ? "Loading officers..." : "Select reporting officer"}</option>
-                {officers.filter(isBiOfficer).map((officer) => <option key={officer.officerId} value={officer.officerId}>{officer.name} · {officer.designation}</option>)}
+              <select id="reportingOfficer" required value={reportingOfficer} onChange={(event) => { setReportingOfficer(event.target.value); setBlock(""); }} disabled={isComplaintMode || officersLoading || Boolean(officersError)}>
+                <option value="">{officersLoading ? "Loading officers..." : "Select officer"}</option>
+                {officers.filter(isBiOfficer).map((officer) => <option key={officer.officerId} value={officer.officerId}>{officer.name}</option>)}
               </select>
-              {officersError ? <small className="field-error">{officersError}</small> : <small>Only BI officers from the current roster can conduct field inspections.</small>}
+              {officersError && <small className="field-error">{officersError}</small>}
             </div>
 
             {sourceOfReport === "complaint" && (
               <div className="form-field">
-                <label htmlFor="complaintId">
-                  Complaint ID <span>*</span>
-                </label>
-
+                <label htmlFor="complaintId">Complaint ID <span>*</span></label>
                 <input
                   id="complaintId"
                   required={sourceOfReport === "complaint"}
                   value={complaintId}
-                  onChange={(event) =>
-                    setComplaintId(event.target.value)
-                  }
-                  placeholder="Enter 14-digit complaint ID"
+                  onChange={(event) => setComplaintId(event.target.value)}
+                  placeholder="Enter complaint ID"
                   inputMode="numeric"
                   maxLength={14}
                 />
-
-                <small>
-                  Enter the registered complaint ID that this
-                  inspection is associated with.
-                </small>
+                {complaintLoading && <small>Loading complaint details...</small>}
+                {complaintError && <small className="field-error">{complaintError}</small>}
+                {complaintLookup && <small className="field-success">Complaint details loaded.</small>}
               </div>
             )}
 
@@ -505,132 +558,68 @@ const submitInspection = async (
               <label>Supervising ATP</label>
               <div className={`atp-card ${!supervisingAtp ? "atp-card--empty" : ""}`}>
                 <Icon name="user" />
-                {supervisingAtp ? <div><strong>{supervisingAtp.name}</strong><span>{supervisingAtp.designation} ·  {supervisingAtp.zone}</span></div> : <div><strong>{block ? "No supervising ATP mapped" : "Select a block to map ATP"}</strong><span>{block ? "No ATP is assigned to the selected block." : "Choose a reporting officer, then select a block."}</span></div>}
+                {supervisingAtp ? <div><strong>{supervisingAtp.name}</strong><span>{supervisingAtp.designation}</span></div> : <div><strong>{block ? "No ATP mapped" : "Select a block"}</strong></div>}
               </div>
             </div>
           </div>
         </section>
 
         <section className="inspection-card">
-          <div className="inspection-card__header"><span className="inspection-card__number">02</span><div><h2>Location &amp; Jurisdiction</h2><p>Use the mapped block to determine the responsible zone.</p></div></div>
+          <div className="inspection-card__header"><span className="inspection-card__number">02</span><h2>Location</h2></div>
           <div className="inspection-grid">
-            <div className="form-field"><label htmlFor="block">Block <span>*</span></label><select id="block" required value={block} onChange={(event) => setBlock(event.target.value)} disabled={!selectedReportingOfficer}><option value="">{selectedReportingOfficer ? "Select assigned block" : "Select reporting officer first"}</option>{availableBlocks.map((entry) => <option value={entry.block} key={entry.block}>{entry.block}</option>)}</select><small>{selectedReportingOfficer ? "Only blocks assigned to the selected BI officer are shown." : "Block options will appear after selecting a BI officer."}</small></div>
-            <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{zone || "Auto-mapped from block"}</div><small>Automatically derived from the selected block.</small></div>
-            <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Enter ward" /></div>
-            <div className="form-field form-field--wide"><label htmlFor="location">Location / Landmark <span>*</span></label><input id="location" required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter exact location, property address or nearby landmark" /></div>
-            <div className="form-field form-field--full"><label>GPS Location <span>*</span></label><div className={`location-capture ${coordinates ? "location-capture--success" : ""}`}><div className="location-capture__icon"><Icon name="map" /></div><div className="location-capture__content"><strong>{coordinates ? "Location captured" : "GPS location not captured"}</strong>{coordinates ? <span>Lat {coordinates.latitude.toFixed(5)} · Long {coordinates.longitude.toFixed(5)} · Accuracy ±{Math.round(coordinates.accuracy)} m</span> : <span>Capture the device location at the inspection site.</span>}</div><button type="button" className="secondary-button" onClick={captureLocation} disabled={locationLoading}>{locationLoading ? "Capturing..." : coordinates ? "Recapture" : "Capture Current Location"}</button></div>{locationError && <small className="field-error">{locationError}</small>}</div>
+            <div className="form-field"><label htmlFor="block">Block <span>*</span></label>            <select id="block" required value={block} onChange={(event) => setBlock(event.target.value)} disabled={isComplaintMode || !selectedReportingOfficer}><option value="">{selectedReportingOfficer ? "Select block" : "Select officer first"}</option>{availableBlocks.map((entry) => <option value={entry.block} key={entry.block}>{entry.block}</option>)}</select></div>
+            <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{complaintLookup?.zone || zone || "Auto"}</div></div>
+            <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" readOnly={isComplaintMode} value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Ward" /></div>
+            <div className="form-field form-field--wide"><label htmlFor="location">Address / Landmark <span>*</span></label><input id="location" readOnly={isComplaintMode} required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter location" /></div>
+            <div className="form-field form-field--full"><label>GPS Location <span>*</span></label><div className={`location-capture ${coordinates ? "location-capture--success" : ""}`}><div className="location-capture__icon"><Icon name="map" /></div><div className="location-capture__content"><strong>{coordinates ? "Location captured" : "GPS not captured"}</strong>{coordinates ? <span>Lat {coordinates.latitude.toFixed(5)} · Long {coordinates.longitude.toFixed(5)}</span> : <span>Capture site location</span>}</div><button type="button" className="secondary-button" onClick={captureLocation} disabled={locationLoading}>{locationLoading ? "Capturing..." : coordinates ? "Recapture" : "Capture Location"}</button></div>{locationError && <small className="field-error">{locationError}</small>}</div>
           </div>
         </section>
 
         <section className="inspection-card">
+          <div className="inspection-card__header"><span className="inspection-card__number">03</span><h2>Inspection Outcome</h2></div>
           <div className="form-field form-field--full">
-  <label>
-    Inspection Outcome <span>*</span>
-  </label>
+            <div className="choice-grid choice-grid--inline compact-choice-grid">
+              <label className={`choice-card choice-card--compact ${inspectionOutcome === "no_violation" ? "choice-card--selected" : ""}`}>
+                <input type="radio" name="inspectionOutcome" value="no_violation" checked={inspectionOutcome === "no_violation"} onChange={() => handleOutcomeChange("no_violation")} />
+                <span><strong>No Violation</strong></span>
+              </label>
+              <label className={`choice-card choice-card--compact ${inspectionOutcome === "violation_found" ? "choice-card--selected" : ""}`}>
+                <input type="radio" name="inspectionOutcome" value="violation_found" checked={inspectionOutcome === "violation_found"} onChange={() => handleOutcomeChange("violation_found")} />
+                <span><strong>Violation Found</strong></span>
+              </label>
+            </div>
+          </div>
 
-  <div className="choice-grid choice-grid--inline">
-    <label
-      className={`choice-card choice-card--compact ${
-        inspectionOutcome === "no_violation"
-          ? "choice-card--selected"
-          : ""
-      }`}
-    >
-      <input
-        type="radio"
-        name="inspectionOutcome"
-        value="no_violation"
-        checked={inspectionOutcome === "no_violation"}
-        onChange={() => handleOutcomeChange("no_violation")}
-      />
-      <span>
-        <strong>No Violation Found</strong>
-        <small>Site inspected and no violation was found.</small>
-      </span>
-    </label>
-
-    <label
-      className={`choice-card choice-card--compact ${
-        inspectionOutcome === "violation_found"
-          ? "choice-card--selected"
-          : ""
-      }`}
-    >
-      <input
-        type="radio"
-        name="inspectionOutcome"
-        value="violation_found"
-        checked={inspectionOutcome === "violation_found"}
-        onChange={() => handleOutcomeChange("violation_found")}
-      />
-      <span>
-        <strong>Violation Found</strong>
-        <small>Violation found during the site inspection.</small>
-      </span>
-    </label>
-  </div>
-</div>
-          <div className="inspection-card__header"><span className="inspection-card__number">03</span><div><h2>Building &amp; Violator Details</h2><p>Record the building classification and details observed during inspection.</p></div></div>
+          <div className="inspection-card__header compact-header"><span className="inspection-card__number">04</span><h2>Details</h2></div>
           <div className="inspection-grid">
             <div className="form-field form-field--full"><label>Building Type <span>*</span></label><div className="building-type-grid">{["Residential", "Commercial", "Industrial", "Other"].map((type) => <label className={`building-type ${buildingType === type ? "building-type--selected" : ""}`} key={type}><input type="radio" name="buildingType" value={type} required checked={buildingType === type} onChange={(event) => setBuildingType(event.target.value)} /><span>{type}</span></label>)}</div></div>
             {buildingType === "Other" && <div className="form-field form-field--full"><label htmlFor="otherBuildingType">Specify Building Type <span>*</span></label><input id="otherBuildingType" required value={otherBuildingType} onChange={(event) => setOtherBuildingType(event.target.value)} placeholder="Enter building type" /></div>}
-            <div className="form-field"><label htmlFor="violatorName">Violator Name <span>*</span></label><input id="violatorName" required value={violatorName} onChange={(event) => setViolatorName(event.target.value)} placeholder="Enter violator name" /></div>
-            <div className="form-field"><label htmlFor="mobileNumber">Mobile Number <em>Optional</em></label><input id="mobileNumber" type="tel" value={mobileNumber} onChange={(event) => setMobileNumber(event.target.value)} placeholder="Enter mobile number" /></div>
-            <div className="form-field form-field--full"><label htmlFor="description">Brief Description / Construction Details <span>*</span></label><textarea id="description" required rows={5} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the construction activity, violation or other relevant details" /></div>
+            <div className="form-field"><label htmlFor="violatorName">Violator Name <span>*</span></label><input id="violatorName" required value={violatorName} onChange={(event) => setViolatorName(event.target.value)} placeholder="Enter name" /></div>
+            <div className="form-field"><label htmlFor="mobileNumber">Mobile Number <em>Optional</em></label><input id="mobileNumber" type="tel" value={mobileNumber} onChange={(event) => setMobileNumber(event.target.value)} placeholder="Enter number" /></div>
+            <div className="form-field form-field--full"><label htmlFor="description">Description <span>*</span></label><textarea id="description" required rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the violation" /></div>
           </div>
         </section>
 
         <section className="inspection-card">
-          <div className="inspection-card__header"><span className="inspection-card__number">04</span><div><h2>Location Evidence</h2><p>Add clear photographs supporting the inspection and violation report.</p></div></div>
-          <div className="form-field"><label>Geotagged Photos <span>*</span></label><div className="photo-dropzone"><Icon name="upload" /><strong>Add inspection photos</strong><span>Capture a photo or upload from your device</span><div className="photo-dropzone__actions"><button type="button" className="secondary-button" onClick={() => photoInputRef.current?.click()}>Capture Photo</button><button type="button" className="secondary-button" onClick={() => photoInputRef.current?.click()}>Upload Photo</button></div><input ref={photoInputRef} type="file" accept="image/*" multiple capture="environment" hidden onChange={addPhotos} /></div>{photos.length > 0 && <div className="photo-list">{photos.map((photo, index) => <div className="photo-item" key={`${photo.name}-${photo.lastModified}-${index}`}><img src={URL.createObjectURL(photo)} alt="" /><span>{photo.name}</span><button type="button" aria-label={`Remove ${photo.name}`} onClick={() => setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Icon name="close" /></button></div>)}</div>}<small>Location coordinates captured above will be associated with this evidence at submission.</small></div>
+          <div className="inspection-card__header"><span className="inspection-card__number">05</span><h2>Evidence</h2></div>
+          <div className="form-field"><label>Photos <span>*</span></label><div className="photo-dropzone"><Icon name="upload" /><strong>Add photos</strong><div className="photo-dropzone__actions"><button type="button" className="secondary-button" onClick={() => photoCameraInputRef.current?.click()}>Capture</button><button type="button" className="secondary-button" onClick={() => photoUploadInputRef.current?.click()}>Upload</button></div><input ref={photoCameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={addPhotos} /><input ref={photoUploadInputRef} type="file" accept="image/*" multiple hidden onChange={addPhotos} /></div>{photos.length > 0 && <div className="photo-list">{photos.map((photo, index) => <div className="photo-item" key={`${photo.name}-${photo.lastModified}-${index}`}><img src={URL.createObjectURL(photo)} alt="" /><span>{photo.name}</span><button type="button" aria-label={`Remove ${photo.name}`} onClick={() => setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Icon name="close" /></button></div>)}</div>}</div>
         </section>
 
         {inspectionOutcome === "violation_found" && (
-        <section className="notice-section">
-          <button type="button" className="notice-section__header" onClick={() => setNoticeOpen((current) => !current)} aria-expanded={noticeOpen}><span className="notice-section__icon"><Icon name="alert" /></span><span><strong>NOTICE UNDER SECTION 270(1)</strong>
-          <small>PMC ACT, 1976 · Optional - complete only if a notice has been issued.</small></span><span className="notice-section__toggle">{noticeOpen ? "−" : "+"}</span></button>
-          {noticeOpen && <div className="notice-section__body"><p>Enter the statutory notice details and attach a clear photograph of the served notice.</p><div className="inspection-grid"><div className="form-field">
-            <label htmlFor="noticeNumber">
-              Notice Number 
-              <em>Optional</em></label>
-              <input id="noticeNumber" value={noticeNumber} onChange={
-                (event) => setNoticeNumber(event.target.value)}
-                placeholder="Enter notice number" />
-                </div>
-                
-                <div className="form-field">
-                  <label htmlFor="noticeDate">
-                    Date of Notice 
-                    <em>Optional</em>
-                  </label>
-                  <input id="noticeDate" type="date" value={noticeDate} onChange={
-                    (event) => setNoticeDate(event.target.value)} />
-                </div>
-                
-                <div className="form-field form-field--full">
-                  <label>Photo of Notice 
-                    <em>Optional</em>
-                  </label>
-                  <div className="notice-upload">
-                    <Icon name="upload" />
-                    <span>{noticePhoto ? noticePhoto.name :
-                     "Upload or capture the notice photograph"}
-                    </span>
-                    <button type="button" className="secondary-button" onClick=
-                    {() => 
-                       noticeInputRef.current?.click()
-                      }>{noticePhoto ? "Replace Photo" : "Choose Photo"}
-                      </button>
-                      <input ref={noticeInputRef} 
-                      type="file" accept="image/*" 
-                      capture="environment" hidden onChange={(event) => 
-                      setNoticePhoto(event.target.files?.[0] ?? null)} />
-                </div>
-                </div>
-                </div>
+          <section className="notice-section">
+            <button type="button" className="notice-section__header" onClick={() => setNoticeOpen((current) => !current)} aria-expanded={noticeOpen}>
+              <span className="notice-section__icon"><Icon name="alert" /></span>
+              <span><strong>Notice 270(1)</strong></span>
+              <span className="notice-section__toggle">{noticeOpen ? "−" : "+"}</span>
+            </button>
+            {noticeOpen && <div className="notice-section__body">
+              <div className="inspection-grid">
+                <div className="form-field"><label htmlFor="noticeNumber">Notice Number <span>*</span></label><input id="noticeNumber" required value={noticeNumber} onChange={(event) => setNoticeNumber(event.target.value)} placeholder="Number" /></div>
+                <div className="form-field"><label htmlFor="noticeDate">Date <span>*</span></label><input id="noticeDate" required type="date" value={noticeDate} onChange={(event) => setNoticeDate(event.target.value)} /></div>
+                <div className="form-field form-field--full"><label>Notice Photo <span>*</span></label><div className="notice-upload"><Icon name="upload" /><span>{noticePhoto ? noticePhoto.name : "Upload photo"}</span><button type="button" className="secondary-button" onClick={() => noticeInputRef.current?.click()}>{noticePhoto ? "Replace" : "Choose"}</button><input ref={noticeInputRef} required={!noticePhoto} type="file" accept="image/*" capture="environment" hidden onChange={(event) => setNoticePhoto(event.target.files?.[0] ?? null)} /></div></div>
               </div>
-          }
-        </section>
+            </div>}
+          </section>
         )}
 
        <div className="inspection-actions">

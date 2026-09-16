@@ -1003,13 +1003,8 @@ router.post(
  * NOTICE VALIDATION
  * ------------------------------------------------------
  *
- * Notice is optional.
- *
- * If any notice field is supplied, all three
- * notice fields must be supplied together.
- *
- * A notice currently requires a case because
- * notices.case_id is NOT NULL.
+ * A Section 270 notice is mandatory when a violation
+ * is found. All three notice fields are required.
  */
 const hasNoticeData = Boolean(
   body.noticeNumber?.trim() ||
@@ -1017,7 +1012,7 @@ const hasNoticeData = Boolean(
   noticePhotos.length > 0,
 );
 
-if (hasNoticeData) {
+if (inspectionOutcome === "violation_found") {
   if (
     !body.noticeNumber?.trim() ||
     !body.noticeDate?.trim() ||
@@ -1026,19 +1021,17 @@ if (hasNoticeData) {
     res.status(400).json({
       success: false,
       message:
-        "Notice number, notice date and notice photo are all required when recording a notice.",
+        "Notice number, notice date and notice photo are required when a violation is found.",
     });
     return;
   }
-
-  if (inspectionOutcome !== "violation_found") {
-    res.status(400).json({
-      success: false,
-      message:
-        "A Section 270 notice can only be recorded when violation is found.",
-    });
-    return;
-  } 
+} else if (hasNoticeData) {
+  res.status(400).json({
+    success: false,
+    message:
+      "A Section 270 notice can only be recorded when violation is found.",
+  });
+  return;
 }
 
 
@@ -1400,11 +1393,11 @@ if (hasNoticeData) {
  * - notice photo exists
  * - inspection is case-based
  */
-if (hasNoticeData && caseId) {
+if (hasNoticeData) {
   const uploadedNotice =
     await uploadInspectionNoticeFile(
-      "case",
-      caseId,
+      parentType,
+      parentId,
       visitId,
       noticePhotos[0],
     );
