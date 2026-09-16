@@ -30,6 +30,11 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <path d="M4 6h.01M4 12h.01M4 18h.01" />
     </svg>
   ),
+  folder: (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
   user: (className) => (
     <svg {...commonProps} className={className}>
       <circle cx="12" cy="8" r="3.5" />
@@ -128,6 +133,12 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <path d="m5 13 4 4L19 3" />
     </svg>
   ),
+  "check-circle": (className) => (
+    <svg {...commonProps} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  ),
   close: (className) => (
     <svg {...commonProps} className={className}>
       <path d="m6 6 12 12M18 6 6 18" />
@@ -157,6 +168,23 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <path d="M16 17l5-5-5-5" />
       <path d="M21 12H9" />
+    </svg>
+  ),
+  calendar: (className) => (
+    <svg {...commonProps} className={className}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  ),
+  pin: (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  ),
+  "arrow-right": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m9 18 6-6-6-6" />
     </svg>
   ),
 };
