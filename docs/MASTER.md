@@ -1253,7 +1253,103 @@ Technically, the prototype should demonstrate:
 
 ---
 
-# Final Guiding Principle
+# 41. Operational API Endpoints & Inspection Data Flow
+
+## 41.1 Primary API Endpoints
+
+### 1. `POST /api/inspections`
+Handles submission of BI field visits for both complaint-driven investigations and proactive field visits.
+- **Input**: Multipart form data containing:
+  - `sourceOfReport`: `"complaint"` | `"field_visit"`
+  - `inspectionOutcome`: `"no_violation"` | `"violation_found"`
+  - `reportingOfficer`: Officer ID (BI designation mandatory; block assignment verified)
+  - `block`: Target Block (Server derives Zone automatically)
+  - `location`: Property address / location
+  - `buildingType`: Building classification (`"Commercial"`, `"Residential"`, `"Industrial"`, `"Other"`)
+  - `otherBuildingType`: Custom classification if buildingType is `"Other"`
+  - `violatorName`: Name of violator
+  - `mobileNumber`: Contact number (optional)
+  - `description`: Written field inspection report
+  - `latitude`, `longitude`, `accuracy`: Geotagged coordinates captured on device
+  - `complaintId`: Required if `sourceOfReport === "complaint"`
+  - `noticeNumber`, `noticeDate`: Section 270 notice metadata (when issued)
+  - `inspectionPhotos`: Mandatory inspection evidence image files (stored in Google Drive)
+  - `noticePhoto`: Optional Section 270 notice image file (stored in Google Drive)
+
+### 2. `GET /api/complaints/:complaintId/files`
+Fetches Google Drive file references associated with a complaint folder (categorized into source documents, preliminary evidence, and resolution photos).
+
+### 3. `GET /api/officers/roster`
+Returns the officer roster mapping Building Inspectors (BIs) and Assistant Town Planners (ATPs) to their respective assigned Zones and Blocks.
+
+---
+
+## 41.2 Table-by-Table Database Population
+
+```mermaid
+erDiagram
+    COMPLAINTS ||--o{ CASE_COMPLAINTS : "linked to"
+    CASES ||--o{ CASE_COMPLAINTS : "contains"
+    COMPLAINTS ||--o{ FIELD_VISITS : "has visits"
+    CASES ||--o{ FIELD_VISITS : "has visits"
+    FIELD_VISITS ||--o{ VISIT_EVIDENCE : "has evidence"
+    CASES ||--o{ NOTICES : "has notices"
+
+    COMPLAINTS {
+        string complaint_id PK
+        string registration_source
+        string block
+        string zone
+        string assigned_bi_id
+        string assigned_atp_id
+        string status
+    }
+    CASES {
+        string case_id PK
+        string source_type
+        string primary_complaint_id FK
+        string current_status
+        string assigned_bi_id
+        string assigned_atp_id
+    }
+    FIELD_VISITS {
+        uuid visit_id PK
+        string complaint_id FK
+        string case_id FK
+        string bi_id
+        string visit_type
+        string inspection_outcome
+        string visit_status
+    }
+    VISIT_EVIDENCE {
+        uuid id PK
+        uuid visit_id FK
+        string drive_file_id
+        decimal latitude
+        decimal longitude
+    }
+    NOTICES {
+        uuid id PK
+        string case_id FK
+        string notice_type
+        string notice_number
+    }
+```
+
+### Table Population Logic
+
+| Table | Populated When | Key Fields / Logic |
+|---|---|---|
+| `complaints` | Complaint intake | Stores complaint details, derived Zone, mapped BI & ATP, attachments, Google Drive URL. |
+| `cases` | `inspectionOutcome = 'violation_found'` | Creates enforcement case row. `source_type` = `'complaint'` or `'proactive_bi'`. Stores location, coordinates, building identity, assigned officers, `current_status = 'Open'`. |
+| `case_complaints` | Complaint-driven violation found | Links `case_id` to `complaint_id` with `relationship_type = 'primary'`. |
+| `field_visits` | Every submitted inspection | Creates exactly one row (`visit_type = 'complaint_visit'` or `'proactive_inspection'`). Links `complaint_id` and `case_id` where applicable. |
+| `visit_evidence` | Every inspection photograph | Uploads photos to Google Drive inspection subfolder and inserts metadata rows referencing `visit_id`. |
+| `notices` | Section 270 notice details complete | Uploads notice photo to Google Drive and inserts notice row (`notice_type = '270'`, `case_id`, metadata JSON). |
+
+---
+
+## Final Guiding Principle
 
 MCL Building Branch should not become a collection of unrelated features.
 
@@ -1280,3 +1376,4 @@ If it does not improve one of these, it should not take priority during the curr
 **Current prototype target:** Approximately 1–1.5 weeks.
 
 **Workflow source:** Clarified project discussion. Legal details explicitly marked for future official verification.
+

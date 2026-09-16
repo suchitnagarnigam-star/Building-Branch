@@ -1,22 +1,22 @@
 # MCL-BB — Comprehensive Codebase Analysis & Priority Roadmap
 
-**Date:** 2026-09-14  
+**Date:** 2026-09-16  
 **Project:** Municipal Corporation Ludhiana Building Branch (MCL-BB)  
-**Repository Path:** `D:\Projects\MCL\MCL-BB`
+**Repository Path:** `/mnt/Data/1YUVRAJ/program/MCL/building branch`
 
 ---
 
 ## 1. Executive Summary
 
-MCL-BB is an internal municipal operations and complaint management platform for the Building Branch of Municipal Corporation Ludhiana. The application supports dual-intake complaint registration (manual entry and external document OCR/AI processing), BI officer assignment, location mapping (Block to Zone), Google Drive file storage and retrieval, Google Sheets synchronization, and BI field inspection reporting.
+MCL-BB is an internal municipal operations and complaint management platform for the Building Branch of Municipal Corporation Ludhiana. The application supports dual-intake complaint registration (manual entry and external document OCR/AI processing), BI officer assignment, location mapping (Block to Zone), Google Drive file storage and retrieval, Google Sheets synchronization, and BI field inspection persistence (`POST /api/inspections`).
 
-The codebase has moved beyond a pure prototype: the branch now includes working complaint detail hydration from the backend, Google Drive attachment listing and retrieval, and a more complete BI field inspection UI with roster-driven zone and ATP mapping.
+The codebase includes working complaint detail hydration from PostgreSQL, Google Drive attachment listing and retrieval, officer roster API (`GET /api/officers/roster`), and connected BI field inspections supporting both complaint-driven visits and proactive field visits.
 
-The main remaining gaps are still concentrated in workflow completeness rather than basic feature plumbing:
-1. Complaint lifecycle transition APIs remain incomplete (`Registered` → `Assigned` → `In Progress` → `Resolved` / `Closed`).
-2. The BI field inspection form is implemented as a UI draft but does not yet persist inspection records to the backend.
-3. Some older dashboard/detail flows still rely on static or fallback data patterns even though the complaint detail screen was upgraded to live backend data.
-4. Hardcoded API URLs (`http://localhost:5000`) are still present across several frontend modules.
+The primary focus items moving forward include:
+1. Refining status transition enforcement (`Registered` → `Assigned` → `In Progress` → `Resolved` / `Closed`).
+2. Optional Section 270 notice workflow expansion.
+3. Centralising API base URLs (`VITE_API_BASE_URL`) cleanly across all frontend pages.
+4. Implementing operational database analytics to replace remaining mock counters.
 
 ---
 

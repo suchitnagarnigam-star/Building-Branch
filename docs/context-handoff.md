@@ -1,6 +1,6 @@
 # MCL-BB Context Handoff
 
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-16
 
 ## Current status
 
@@ -15,18 +15,18 @@ The current codebase supports:
 - PostgreSQL complaint persistence
 - Google Drive complaint folder creation, file upload, listing, and retrieval
 - Complaint detail page hydration from backend plus Drive attachment previews
-- BI Field Inspection & Violation Report form with BI/ATP mapping logic
+- Connected BI Field Inspection workflow (`POST /api/inspections`) supporting both complaint-driven visits and proactive field visits
+- Case creation, evidence persistence (`visit_evidence`), and Section 270 notice recording
+- Roster-driven zone and officer assignment mapping (`GET /api/officers/roster`)
 - Complaint list, detail, confirmation, pending, analytics, officers, field inspection, and settings screens
 - Fixed application sidebar on desktop and fixed bottom navigation on mobile
 
-Recently completed work in the current branch includes:
+Recently completed work in the current branch (`uv-dev`) includes:
 
-- Drive-backed complaint detail loading via `GET /api/complaints/:complaintId` and `GET /api/complaints/:complaintId/files`
-- File preview/download support for complaint attachments stored in Google Drive
-- BI field inspection UI refinements and roster-based assignment mapping
-- Integration of Google Drive file retrieval into the complaint detail experience
-
-The remaining gaps are concentrated in workflow actions beyond initial registration: complaint status transition APIs, field-inspection submission persistence, and final lifecycle actions such as resolution submission and approval remain incomplete or placeholder-based.
+- Merged and reconciled `ad-dev` inspection workflow updates
+- Connected `POST /api/inspections` for field visit persistence, case creation, and notice uploads
+- Centralised API base URL handling across `FieldInspectionPage.tsx` and `ComplaintDetailPage.tsx`
+- Preserved master specification in `docs/MASTER.md` and cleaned up legacy duplicate documents
 
 ## Architecture
 
