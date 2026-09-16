@@ -1,20 +1,22 @@
 # MCL-BB — Comprehensive Codebase Analysis & Priority Roadmap
 
-**Date:** 2026-09-11  
+**Date:** 2026-09-14  
 **Project:** Municipal Corporation Ludhiana Building Branch (MCL-BB)  
-**Repository Path:** `/mnt/Data/1YUVRAJ/program/MCL/building branch`
+**Repository Path:** `D:\Projects\MCL\MCL-BB`
 
 ---
 
 ## 1. Executive Summary
 
-MCL-BB is an internal municipal operations and complaint management platform for the Building Branch of Municipal Corporation Ludhiana. The application supports dual-intake complaint registration (manual entry and external document OCR/AI processing), BI officer assignment, location mapping (Block to Zone), Google Drive file storage, Google Sheets synchronization, and BI field inspection reporting.
+MCL-BB is an internal municipal operations and complaint management platform for the Building Branch of Municipal Corporation Ludhiana. The application supports dual-intake complaint registration (manual entry and external document OCR/AI processing), BI officer assignment, location mapping (Block to Zone), Google Drive file storage and retrieval, Google Sheets synchronization, and BI field inspection reporting.
 
-While the foundation is well-structured with React 19, Vite, Express, PostgreSQL, Google Drive API, and AI integrations, **several critical gaps exist**:
-1. Extensive reliance on static dummy data (`mockData.ts`) across key frontend screens (`DashboardPage`, `ComplaintDetailPage`, `App.tsx`).
-2. Disconnected frontend and backend workflows (e.g. `FieldInspectionPage.tsx` lacks a corresponding backend submit API).
-3. Hardcoded API URLs (`http://localhost:5000`) scattered across multiple source files.
-4. Absence of workflow state transition APIs (changing complaint status from `Registered` to `Assigned`, `In Progress`, `Resolved`, or `Closed`).
+The codebase has moved beyond a pure prototype: the branch now includes working complaint detail hydration from the backend, Google Drive attachment listing and retrieval, and a more complete BI field inspection UI with roster-driven zone and ATP mapping.
+
+The main remaining gaps are still concentrated in workflow completeness rather than basic feature plumbing:
+1. Complaint lifecycle transition APIs remain incomplete (`Registered` → `Assigned` → `In Progress` → `Resolved` / `Closed`).
+2. The BI field inspection form is implemented as a UI draft but does not yet persist inspection records to the backend.
+3. Some older dashboard/detail flows still rely on static or fallback data patterns even though the complaint detail screen was upgraded to live backend data.
+4. Hardcoded API URLs (`http://localhost:5000`) are still present across several frontend modules.
 
 ---
 
@@ -104,12 +106,14 @@ building branch/
 3. Operator attaches at least 1 evidence image.
 4. Form dispatches `POST /api/complaints`.
 5. Backend creates a Google Drive folder (`createComplaintDriveFolder`), uploads files (`uploadComplaintFiles`), saves metadata to PostgreSQL, appends to Google Sheets, and deletes temporary local files.
+6. Complaint detail pages can then fetch the saved metadata and Drive attachment list from the backend.
 
 ### Path B: External Document Processing (OCR + AI)
 1. Operator uploads PDF/Images in "Register from External Source".
 2. Frontend calls `POST /api/complaints/process-source` -> Mistral OCR runs on each page.
 3. Frontend calls `POST /api/complaints/extract-source` -> Claude returns structured complaint fields.
 4. Frontend redirects to `/complaints/new/extracted` prefilling `ComplaintFormPage.tsx` for operator verification before final registration.
+5. After registration, the complaint detail view loads the saved record and any Drive attachments for review.
 
 ### Path C: BI Field Inspection & Violation Report
 1. BI Officer accesses `/field-inspection`.
@@ -117,7 +121,7 @@ building branch/
 3. Auto-maps Block, Zone, and Supervising ATP.
 4. Captures device GPS coordinates (`navigator.geolocation`).
 5. Captures photos, building type, violator details, and Section 270(1) PMC Act 1976 notice details.
-6. **Current Status**: Form UI is fully rendered, but `submitInspection` only executes `event.preventDefault()`. No backend submission endpoint exists.
+6. **Current Status**: The full form UI and mapping logic exist, but `submitInspection` still only prevents default submission; no backend persistence endpoint exists yet.
 
 ---
 
