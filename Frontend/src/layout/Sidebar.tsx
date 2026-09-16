@@ -12,9 +12,25 @@ type SidebarProps = {
 function Sidebar({ route, userRole, userName, navigate }: SidebarProps) {
   const visibleNavItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
 
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <aside className="sidebar">
+      {/* User profile section */}
+      <div className="sidebar__profile">
+        <div className="sidebar__avatar">{initials}</div>
+        <div className="sidebar__profile-text">
+          <div className="sidebar__user-name">{userName}</div>
+          <div className="sidebar__user-role">Building Branch (Staff)</div>
+        </div>
+      </div>
 
+      {/* Main navigation */}
       <nav className="sidebar__nav">
         {visibleNavItems.map(({ label, route: itemRoute, icon }) => (
           <button
@@ -29,17 +45,24 @@ function Sidebar({ route, userRole, userName, navigate }: SidebarProps) {
         ))}
       </nav>
 
+      {/* Footer section */}
       <div className="sidebar__footer">
-        <div className="user-pill">
-          <div className="user-pill__avatar">AM</div>
-          <div>
-            <div className="user-pill__name">{userName}</div>
-            <div className="user-pill__role">{userRole}</div>
-          </div>
+        <div className="sidebar__tagline">
+          A Cleaner<br />
+          Safer<br />
+          Greater Ludhiana
         </div>
-        <button className="logout-button" type="button">
+        <button
+          className="nav-item"
+          type="button"
+          onClick={() => navigate("/settings")}
+        >
+          <span className="nav-item__icon"><Icon name="settings" /></span>
+          <span>Settings</span>
+        </button>
+        <button className="nav-item" type="button">
           <span className="nav-item__icon"><Icon name="logout" /></span>
-          Logout
+          <span>Logout</span>
         </button>
       </div>
     </aside>
