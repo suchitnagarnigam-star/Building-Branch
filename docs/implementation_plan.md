@@ -1,13 +1,10 @@
-# MCL-BB — Comprehensive Implementation Plan v2
+# MCL-BB — Master Implementation & Execution Plan
 
 **Last updated:** 2026-09-14  
-Supersedes: `implementation_plan.md` (aligned with `MCL-BB_Plan_v3.md`)
+**Master Product Specification:** [`MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md)
 
-Align the codebase with the updated product direction: two separate BI
-workflows (complaint update vs. field visit), a correct DB schema, a
-proper status state machine, and a BI performance analytics foundation.
-Eliminates mock data, centralises API config, and establishes clear
-verification checkpoints throughout.
+Align the codebase with the master product direction: two separate BI workflows (complaint resolution update vs. proactive field visit), PostgreSQL DB schema, status state machine, Section 270/269 notice workflow, delay flagging, and real operational data analytics.
+Eliminates mock data, centralises API config, and establishes clear verification checkpoints throughout.
 
 ---
 

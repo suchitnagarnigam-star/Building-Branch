@@ -33,7 +33,74 @@ npm run dev
 
 The backend runs at `http://localhost:5000`.
 
-The backend requires the configured PostgreSQL connection and service environment variables, including `MISTRAL_API_KEY` and `ANTHROPIC_API_KEY`. Google Sheets synchronization also requires `GOOGLE_SHEETS_WEB_APP_URL` when that integration is enabled.
+## Complete Master Workflow
+
+For a detailed product and architectural reference, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md).
+
+```mermaid
+flowchart TD
+    A[Complaint Received] --> B{Source}
+    B -->|Manual| C[Manual Entry]
+    B -->|Email/Post/Document| D[Document Upload]
+    D --> E[OCR/AI Extraction]
+    E --> F[Officer Review]
+    C --> G[Validate Complaint]
+    F --> G
+    G --> H[Identify Zone/Ward/Area]
+    H --> I[Map BI and ATP]
+    I --> J[Create Complaint]
+    J --> K[Notify BI and ATP]
+
+    K --> L[BI Field Visit]
+    L --> M[Evidence Image]
+    M --> N[BI Report]
+    N --> O{Validation}
+    O -->|Invalid| P[Reject]
+    P --> M
+    O -->|Valid| Q[BI Update]
+    Q --> R[ATP Review]
+
+    R --> S{Decision}
+    S -->|No Action| T[Close Complaint]
+    S -->|Existing Case| U[Link Existing Case]
+    S -->|New Violation| V[Create Enforcement Case]
+
+    W[Proactive BI Violation] --> V
+
+    V --> X{Section 270?}
+    X -->|No| Y[Continue Case]
+    X -->|Yes| Z[Issue 270]
+    Z --> AA[Record Details + Document]
+    AA --> AB[Start 3-Day Period]
+
+    AB --> AC{Action Taken?}
+    AC -->|Yes| AD[Authorized Review]
+    AD --> AE[Close/Update]
+    AC -->|No| AF{Expired?}
+    AF -->|No| AB
+    AF -->|Yes| AG[Notify BI and ATP]
+    AG --> AH[BI Reinspection]
+
+    AH --> AI[New Evidence + Report]
+    AI --> AJ[Section 269 Serious Stage]
+    AJ --> AK{Classification}
+    AK -->|Compoundable| AL[Compensation/Correction]
+    AK -->|Non-compoundable| AM[Serious Enforcement]
+    AK -->|Demolition| AN[Demolition]
+    AL --> AO[Senior Visibility]
+    AM --> AO
+    AN --> AO
+
+    AO --> AP[Authorized Action]
+    AP --> AQ[Status History]
+    AQ --> AR[Monitor Time + Severity]
+    AR --> AS[Calculate Score]
+    AS --> AT{3 Week Threshold?}
+    AT -->|No| AU[Normal Analytics]
+    AT -->|Yes| AV[Delayed Flag]
+    AV --> AW[Rank Flagged Cases]
+    AW --> AX[Analytics + Higher Notifications]
+```
 
 ## Complaint registration workflows
 
