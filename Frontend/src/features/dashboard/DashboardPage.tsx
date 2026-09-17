@@ -40,10 +40,10 @@ const DEMO_ZONE_DATA = [
 ];
 
 const DEMO_STATUS_DATA = [
-  { name: "Registered", value: 312, color: "#2563EB" },
-  { name: "Assigned", value: 298, color: "#EA580C" },
-  { name: "In Progress", value: 412, color: "#D97706" },
-  { name: "Resolved", value: 226, color: "#16A34A" },
+  { name: "Registered", value: 312, color: "#3b82f6" },
+  { name: "Assigned", value: 298, color: "#c25e40" },
+  { name: "In Progress", value: 412, color: "#d97706" },
+  { name: "Resolved", value: 226, color: "#10b981" },
 ];
 
 const DEMO_PIPELINE = [
@@ -221,7 +221,12 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                 <XAxis dataKey="zone" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12, fill: "#1c1c1e", fontWeight: 600 }} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12, fill: "#1c1c1e", fontWeight: 600 }}>
+                  {zoneData.map((_entry, index) => {
+                    const colors = ["#3b82f6", "#c26d53", "#10b981", "#64748b"];
+                    return <Cell key={`zone-cell-${index}`} fill={colors[index % colors.length]} />;
+                  })}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

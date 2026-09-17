@@ -69,6 +69,30 @@ function Topbar() {
             <div className="topbar__brand-subtitle">Building Permission &amp; Enforcement Operations</div>
           </div>
         </div>
+        <div className="topbar__right-logos">
+          <div className="topbar__swachh-bharat">
+            <span className="swachh-glasses">👓</span>
+            <span className="swachh-text">
+              <strong>ਸਵੱਛ ਭਾਰਤ</strong>
+              <small>ਇਕ ਕਦਮ ਸਵੱਛਤਾ ਵਲ</small>
+            </span>
+          </div>
+          <div className="topbar__digital-india">
+            <span className="digital-icon">🇮🇳</span>
+            <span className="digital-text">
+              <strong>Digital India</strong>
+              <small>Power To Empower</small>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Dark Blue Sub-header strip */}
+      <div className="topbar__sub-strip">
+        <span className="topbar__sub-strip-left">
+          <span className="status-dot-green">●</span> MCL BUILDING BRANCH
+        </span>
+        <span className="topbar__sub-strip-right">Official Portal for Internal Administration &nbsp; v2.1</span>
       </div>
     </header>
   );

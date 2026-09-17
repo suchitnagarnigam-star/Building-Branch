@@ -6,14 +6,14 @@
 }
 
 .app-workspace {
-  min-height: calc(100vh - 121px);
+  min-height: calc(100vh - 153px);
   display: block;
   flex: 1;
 }
 
 .sidebar {
   position: fixed;
-  top: 121px;
+  top: 153px;
   left: 0;
   bottom: 0;
   z-index: 20;
@@ -22,8 +22,9 @@
   min-width: 180px;
   height: auto;
   min-height: 0;
-  background: linear-gradient(110deg, #102c47, #0d243b);
-  color: #e2e8f0;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  color: #334155;
   display: flex;
   flex-direction: column;
   padding: 0 14px 12px;
@@ -65,10 +66,62 @@
   font-size: 12px;
 }
 
+.sidebar__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 8px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.sidebar__avatar-wrap {
+  position: relative;
+}
+
+.sidebar__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex: none;
+}
+
+.sidebar__status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+}
+
+.sidebar__profile-text {
+  min-width: 0;
+}
+
+.sidebar__user-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sidebar__user-role {
+  color: #64748b;
+  font-size: 12px;
+}
+
 .sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .nav-item {
@@ -78,26 +131,27 @@
   width: 100%;
   border: none;
   background: transparent;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #475569;
   text-align: left;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .nav-item--active {
   position: relative;
-  background: rgba(37, 99, 235, 0.2);
-  color: #fff;
-  box-shadow: inset 3px 0 0 var(--accent);
+  background: #e0f2fe;
+  color: #0284c7;
+  font-weight: 600;
+  box-shadow: none;
 }
 
 .nav-item__icon {
@@ -121,55 +175,31 @@
   height: 16px;
 }
 
-.sidebar__profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 10px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 12px;
+.sidebar__illustration {
+  padding: 8px 8px 0;
+  opacity: 0.65;
+  text-align: center;
 }
 
-.sidebar__avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #d4a017;
-  color: #1a1a2e;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 14px;
-  flex: none;
-}
-
-.sidebar__profile-text {
-  min-width: 0;
-}
-
-.sidebar__user-name {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.sidebar__user-role {
-  color: #94a3b8;
-  font-size: 12px;
+.sidebar__building-svg {
+  width: 100%;
+  height: auto;
+  max-height: 80px;
 }
 
 .sidebar__footer {
   margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .sidebar__tagline {
-  padding: 12px 12px 16px;
-  font-size: 13px;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.5);
+  padding: 8px 12px 10px;
+  font-size: 12px;
+  font-style: normal;
+  color: #94a3b8;
   line-height: 1.4;
+  font-weight: 500;
 }
 
 .user-pill {
@@ -244,10 +274,10 @@
   top: 0;
   z-index: 30;
   color: #e2e8f0;
-  background: #0c2035;
+  background: #061527;
   border-top: 3px solid transparent;
   border-image: linear-gradient(90deg, #e87500 0 33.33%, #ffffff 33.33% 66.66%, #138808 66.66% 100%) 1;
-  box-shadow: 0 2px 8px rgba(2, 12, 24, 0.2);
+  box-shadow: 0 2px 8px rgba(2, 12, 24, 0.15);
 }
 
 /* Row 1: Government bar */
@@ -255,10 +285,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 22px;
-  background: #0a1929;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #061527;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 11px;
 }
 
@@ -270,19 +300,20 @@
 }
 
 .topbar__gov-punjabi {
-  color: #cbd5e1;
-  padding: 0 10px;
+  color: #e2e8f0;
+  padding: 0 8px;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .topbar__gov-eng {
-  color: #94a3b8;
-  padding: 0 10px;
+  color: #cbd5e1;
+  padding: 0 8px;
   white-space: nowrap;
 }
 
 .topbar__gov-separator {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.25);
   padding: 0 2px;
 }
 
@@ -290,7 +321,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #94a3b8;
+  color: #cbd5e1;
   padding: 0 8px;
   white-space: nowrap;
 }
@@ -306,17 +337,18 @@
 }
 
 .topbar__font-btn {
-  padding: 2px 7px;
+  padding: 1px 6px;
   border-radius: 3px;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 11px;
   cursor: pointer;
-  transition: background 0.2s;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
 }
 
 .topbar__font-btn:hover,
 .topbar__font-btn--active {
-  background: rgba(255, 255, 255, 0.08);
+  background: #2563eb;
   color: #fff;
 }
 
@@ -324,9 +356,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #cbd5e1;
+  color: #10b981;
   padding: 0 8px;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .topbar__admin-icon {
@@ -335,27 +368,29 @@
 
 .topbar__logout-btn {
   margin-left: 8px;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 4px;
-  background: rgba(220, 38, 38, 0.15);
-  color: #fda4af;
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
   font-size: 11px;
   cursor: pointer;
+  border: none;
   transition: background 0.2s;
 }
 
 .topbar__logout-btn:hover {
-  background: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.4);
 }
 
-/* Row 2: Main header */
+/* Row 2: White Main header */
 .topbar__main-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 76px;
+  min-height: 84px;
   padding: 10px 22px;
-  background: linear-gradient(110deg, #102c47, #0d243b);
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .topbar__brand-group {
@@ -365,46 +400,106 @@
 }
 
 .topbar__logo-wrap {
-  width: 72px;
-  height: 72px;
+  width: 62px;
+  height: 62px;
   display: grid;
   place-items: center;
   flex: none;
   border-radius: 50%;
-  border: 1.5px solid rgba(43, 164, 133, 0.55);
-  background: rgba(4, 20, 35, 0.65);
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
 }
 
 .topbar__logo {
-  width: 62px;
-  height: 62px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
 }
 
 .topbar__brand-eng {
-  color: #f8fafc;
-  font-size: 15px;
-  font-weight: 600;
+  color: #c0392b;
+  font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.04em;
 }
 
 .topbar__brand-punjabi {
-  color: #cbd5e1;
-  font-size: 13px;
-  margin-top: 1px;
+  color: #1e293b;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .topbar__brand-title {
-  color: #f8fafc;
-  font-size: 22px;
-  font-weight: 700;
-  margin-top: 4px;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .topbar__brand-subtitle {
-  color: #8ba7c2;
+  color: #64748b;
   font-size: 12px;
-  margin-top: 2px;
+}
+
+.topbar__right-logos {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.topbar__swachh-bharat,
+.topbar__digital-india {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.swachh-glasses,
+.digital-icon {
+  font-size: 28px;
+}
+
+.swachh-text,
+.digital-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.swachh-text strong,
+.digital-text strong {
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.swachh-text small,
+.digital-text small {
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* Row 3: Dark Blue Sub-header strip */
+.topbar__sub-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 22px;
+  background: #081d33;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: 0.03em;
+}
+
+.status-dot-green {
+  color: #10b981;
+  margin-right: 4px;
+}
+
+.topbar__sub-strip-right {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 
