@@ -17,6 +17,7 @@ import SettingsPage from "./features/settings/SettingsPage";
 import NewComplaintScreen from "./features/complaints/NewComplaintScreen";
 import ExternalUploadSuccessScreen from "./features/complaints/ExternalUploadSuccessScreen";
 import ExtractedComplaintPage from "./features/complaints/ExtractedComplaintPage";
+import ComingSoonPage from "./shared/components/ComingSoonPage";
 
 import { useRouter } from "./shared/hooks/useRouter";
 import { complaints } from "./shared/constants/mockData";
@@ -26,7 +27,7 @@ function App() {
   const { route, navigate } = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [userRole, setUserRole] = useState<Role>("Admin");
-  const [userName, setUserName] = useState("Arjun Mehta");
+  const [userName, setUserName] = useState("Yuvraj Singh");
   const [selectedComplaintId, setSelectedComplaintId] = useState("MCL-BB-0042");
 
   const activeComplaint = useMemo(
@@ -103,6 +104,10 @@ function App() {
     }
     if (route === "/officers") return <OfficersPage />;
     if (route === "/settings") return <SettingsPage />;
+    if (route === "/cases") return <ComingSoonPage title="Cases" />;
+    if (route === "/notices") return <ComingSoonPage title="Notices" />;
+    if (route === "/gis-map") return <ComingSoonPage title="GIS / Map" />;
+    if (route === "/reports") return <ComingSoonPage title="Reports" />;
 
     return <DashboardPage navigate={navigate} setSelectedComplaintId={setSelectedComplaintId} />;
   };

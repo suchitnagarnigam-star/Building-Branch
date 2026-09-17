@@ -112,15 +112,11 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
 
   useEffect(() => {
     if (sourceOfReport !== "complaint") {
-      setComplaintLookup(null);
-      setComplaintError("");
       return;
     }
 
     const id = complaintId.trim();
     if (!id) {
-      setComplaintLookup(null);
-      setComplaintError("");
       return;
     }
 
@@ -562,7 +558,14 @@ const submitInspection = async (
                   id="complaintId"
                   required={sourceOfReport === "complaint"}
                   value={complaintId}
-                  onChange={(event) => setComplaintId(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setComplaintId(value);
+                    if (!value.trim()) {
+                      setComplaintLookup(null);
+                      setComplaintError("");
+                    }
+                  }}
                   placeholder="Enter complaint ID"
                   inputMode="numeric"
                   maxLength={14}

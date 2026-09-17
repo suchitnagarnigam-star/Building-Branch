@@ -8,40 +8,73 @@ function Topbar() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const formattedDateTime = new Intl.DateTimeFormat("en-IN", {
+  const formattedDate = new Intl.DateTimeFormat("en-IN", {
     weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric",
+  }).format(currentTime);
+
+  const formattedTime = new Intl.DateTimeFormat("en-IN", {
     hour: "numeric",
     minute: "2-digit",
-    second: "2-digit",
     hour12: true,
   }).format(currentTime);
 
   return (
     <header className="topbar">
-      <div className="topbar__utility">
-        <div className="topbar__government">
-          <strong>Punjab Government</strong>
-          <span>Government of Punjab</span>
-          <strong>Municipal Corporation Ludhiana</strong>
-          <span>Civic Works Division</span>
+      {/* Row 1: Government utility bar */}
+      <div className="topbar__gov-bar">
+        <div className="topbar__gov-left">
+          <span className="topbar__gov-punjabi">ਪੰਜਾਬ ਸਰਕਾਰ</span>
+          <span className="topbar__gov-separator">|</span>
+          <span className="topbar__gov-eng">GOVERNMENT OF PUNJAB</span>
+          <span className="topbar__gov-separator">|</span>
+          <span className="topbar__gov-punjabi">ਨਗਰ ਨਿਗਮ ਲੁਧਿਆਣਾ</span>
+          <span className="topbar__gov-separator">|</span>
+          <span className="topbar__gov-eng">Municipal Corporation Ludhiana</span>
         </div>
-        <time dateTime={currentTime.toISOString()}>{formattedDateTime}</time>
+        <div className="topbar__gov-right">
+          <span className="topbar__gov-datetime">
+            <span className="topbar__gov-icon">📅</span>
+            <time dateTime={currentTime.toISOString()}>
+              {formattedDate} &nbsp; {formattedTime}
+            </time>
+          </span>
+          <span className="topbar__gov-separator">|</span>
+          <span className="topbar__font-controls">
+            <button type="button" className="topbar__font-btn">A-</button>
+            <button type="button" className="topbar__font-btn topbar__font-btn--active">A</button>
+            <button type="button" className="topbar__font-btn">A+</button>
+          </span>
+          <span className="topbar__gov-separator">|</span>
+          <span className="topbar__admin-badge">
+            <span className="topbar__admin-icon">👤</span>
+            Building Branch Admin
+          </span>
+          <button type="button" className="topbar__logout-btn">Logout</button>
+        </div>
       </div>
 
-      <div className="topbar__main">
-        <div className="topbar__brand">
-          <div className="mcl-mark">
-            <img src="/mcl-logo.png" alt="MCL logo" className="mcl-mark__logo" />
+      {/* Row 2: Main header with logo and branding */}
+      <div className="topbar__main-header">
+        <div className="topbar__brand-group">
+          <div className="topbar__logo-wrap">
+            <img src="/mcl-logo.png" alt="MCL Logo" className="topbar__logo" />
           </div>
-          <div>
-            <div className="topbar__eyebrow">Commissioner's Control Desk</div>
-            <div className="topbar__title">Building Branch Monitoring System</div>
-            <div className="topbar__subtitle">B&amp;R Department · Municipal Corporation Ludhiana</div>
+          <div className="topbar__brand-text">
+            <div className="topbar__brand-eng">MUNICIPAL CORPORATION LUDHIANA</div>
+            <div className="topbar__brand-punjabi">ਨਗਰ ਨਿਗਮ ਲੁਧਿਆਣਾ</div>
+            <div className="topbar__brand-title">Building Branch</div>
+            <div className="topbar__brand-subtitle">Building Permission &amp; Enforcement Operations</div>
           </div>
         </div>
+      </div>
+
+      {/* Row 3: Blue sub-header strip */}
+      <div className="topbar__sub-strip">
+        <span className="topbar__sub-strip-left">MCL BUILDING BRANCH</span>
+        <span className="topbar__sub-strip-right">Official Portal for Internal Administration &nbsp; v2.1</span>
       </div>
     </header>
   );

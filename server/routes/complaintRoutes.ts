@@ -178,6 +178,25 @@ router.get("/officers", async (_req, res) => {
   }
 });
 
+router.get("/officers/roster", async (_req, res) => {
+  try {
+    const [officers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
+    res.json({
+      success: true,
+      officers: officers.map((officer) => ({
+        ...officer,
+        zone: `Zone ${officer.zone}`,
+        activeComplaints: complaints.filter(
+          (complaint) => complaint.assignedOfficerId === officer.officerId,
+        ).length,
+      })),
+    });
+  } catch (error) {
+    console.error("Error loading officer roster:", error);
+    res.status(500).json({ success: false, message: "Unable to load officer roster." });
+  }
+});
+
 router.get("/officers/:officerId", async (req, res) => {
   try {
     const officerId = req.params.officerId.trim();
@@ -219,25 +238,6 @@ router.get("/officers/:officerId", async (req, res) => {
       success: false,
       message: "Unable to load officer details.",
     });
-  }
-});
-
-router.get("/officers/roster", async (_req, res) => {
-  try {
-    const [officers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
-    res.json({
-      success: true,
-      officers: officers.map((officer) => ({
-        ...officer,
-        zone: `Zone ${officer.zone}`,
-        activeComplaints: complaints.filter(
-          (complaint) => complaint.assignedOfficerId === officer.officerId,
-        ).length,
-      })),
-    });
-  } catch (error) {
-    console.error("Error loading officer roster:", error);
-    res.status(500).json({ success: false, message: "Unable to load officer roster." });
   }
 });
 

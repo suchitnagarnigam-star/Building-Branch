@@ -2,19 +2,18 @@ import type { Role, Status } from "../types";
 
 export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Role[] }[] = [
   { label: "Dashboard", route: "/dashboard", icon: "dashboard", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
-  { label: "New complaint", route: "/complaints/new", icon: "new", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
-  {label: "Field Inspection", route: "/field-inspection", icon: "new", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"]},
-  { label: "All complaints", route: "/complaints", icon: "list", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
-  { label: "My complaints", route: "/complaints/mine", icon: "user", roles: ["Officer", "ATP", "MTP"] },
-  { label: "Pending approval", route: "/complaints/pending", icon: "clock", roles: ["ATP", "MTP", "JC", "C"] },
-  { label: "Analytics", route: "/analytics", icon: "chart", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Complaints", route: "/complaints", icon: "list", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Cases", route: "/cases", icon: "folder", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Field Inspections", route: "/field-inspection", icon: "search", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Notices", route: "/notices", icon: "file", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Officers", route: "/officers", icon: "users", roles: ["Admin", "ATP", "MTP", "JC", "C"] },
-  { label: "Settings", route: "/settings", icon: "settings", roles: ["Admin"] },
+  { label: "GIS / Map", route: "/gis-map", icon: "map", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Reports", route: "/reports", icon: "chart", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
 ];
 
 export const statusConfig: Record<Status, { tone: string; text: string }> = {
-  "Registered": { tone: "neutral", text: "#6B7280" },
-  "Assigned": { tone: "blue", text: "#2563EB" },
+  "Registered": { tone: "blue", text: "#2563EB" },
+  "Assigned": { tone: "orange", text: "#EA580C" },
   "In progress": { tone: "amber", text: "#D97706" },
   "Resolution submitted": { tone: "purple", text: "#7C3AED" },
   "Pending approval": { tone: "amber", text: "#D97706" },
@@ -44,11 +43,19 @@ export const formatPageTitle = (route: string): string => {
     case "/analytics":
       return "Analytics";
     case "/field-inspection":
-      return "Field Inspection";  
+      return "Field Inspections";
     case "/officers":
       return "Officers";
     case "/settings":
       return "Settings";
+    case "/cases":
+      return "Cases";
+    case "/notices":
+      return "Notices";
+    case "/gis-map":
+      return "GIS / Map";
+    case "/reports":
+      return "Reports";
     case "/login":
       return "Login";
     default:

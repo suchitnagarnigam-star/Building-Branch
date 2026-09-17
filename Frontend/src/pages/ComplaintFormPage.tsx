@@ -96,12 +96,15 @@ function ComplaintFormPage({
       .filter((file) => file.type.startsWith("image/") || file.type === "application/pdf")
       .map((file) => ({ file, preview: URL.createObjectURL(file) }));
 
-    setSourceFiles((current) => current.map((item) => ({
-      ...item,
-      preview: previewUrls.find((entry) => entry.file === item.file)?.preview ?? null,
-    })));
+    const updateTimer = window.setTimeout(() => {
+      setSourceFiles((current) => current.map((item) => ({
+        ...item,
+        preview: previewUrls.find((entry) => entry.file === item.file)?.preview ?? null,
+      })));
+    }, 0);
 
     return () => {
+      window.clearTimeout(updateTimer);
       previewUrls.forEach(({ preview }) => URL.revokeObjectURL(preview));
     };
   }, [initialSourceFiles]);
