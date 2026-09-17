@@ -70,12 +70,6 @@ function Topbar() {
           </div>
         </div>
       </div>
-
-      {/* Row 3: Blue sub-header strip */}
-      <div className="topbar__sub-strip">
-        <span className="topbar__sub-strip-left">MCL BUILDING BRANCH</span>
-        <span className="topbar__sub-strip-right">Official Portal for Internal Administration &nbsp; v2.1</span>
-      </div>
     </header>
   );
 }
