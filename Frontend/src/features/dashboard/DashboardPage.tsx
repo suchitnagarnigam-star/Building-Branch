@@ -47,13 +47,13 @@ const DEMO_STATUS_DATA = [
 ];
 
 const DEMO_PIPELINE = [
-  { stage: "Complaint\nRegistered", icon: "list", count: 1248, avg: "Avg. 0.5 days" },
-  { stage: "Assigned", icon: "users", count: 1102, avg: "Avg. 1.2 days" },
-  { stage: "Field Visit", icon: "pin", count: 856, avg: "Avg. 2.8 days" },
-  { stage: "Case Created", icon: "folder", count: 642, avg: "Avg. 1.6 days" },
-  { stage: "Notice 270", icon: "file", count: 428, avg: "Avg. 3.1 days" },
-  { stage: "Notice 269", icon: "file", count: 214, avg: "Avg. 4.2 days" },
-  { stage: "Resolution", icon: "check-circle", count: 226, avg: "Avg. 2.6 days" },
+  { stage: "Complaint Registered", icon: "file", count: 1248, avg: "Avg. 0.5 days", bg: "#dbeafe", color: "#2563eb" },
+  { stage: "Assigned", icon: "users", count: 1102, avg: "Avg. 1.2 days", bg: "#ffedd5", color: "#ea580c" },
+  { stage: "Field Visit", icon: "pin", count: 856, avg: "Avg. 2.8 days", bg: "#fee2e2", color: "#c25e40" },
+  { stage: "Case Created", icon: "file", count: 642, avg: "Avg. 1.6 days", bg: "#dbeafe", color: "#2563eb" },
+  { stage: "Notice 270", icon: "file", count: 428, avg: "Avg. 3.1 days", bg: "#dbeafe", color: "#2563eb" },
+  { stage: "Notice 269", icon: "file", count: 214, avg: "Avg. 4.2 days", bg: "#dbeafe", color: "#2563eb" },
+  { stage: "Resolution", icon: "check", count: 226, avg: "Avg. 2.6 days", bg: "#d1fae5", color: "#059669" },
 ];
 
 const DEMO_COMPLAINTS: ComplaintRecord[] = [
@@ -326,7 +326,13 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
           {pipeline.map((step, i) => (
             <div className="db-pipeline__step-wrap" key={step.stage}>
               <div className="db-pipeline__step">
-                <div className="db-pipeline__step-icon">
+                <div
+                  className="db-pipeline__step-icon"
+                  style={{
+                    backgroundColor: step.bg ?? "#dbeafe",
+                    color: step.color ?? "#2563eb",
+                  }}
+                >
                   <Icon name={step.icon} />
                 </div>
                 <div className="db-pipeline__step-label">{step.stage}</div>
