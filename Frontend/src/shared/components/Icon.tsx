@@ -24,6 +24,11 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <path d="M7 7h10v10H7z" opacity="0.2" />
     </svg>
   ),
+  plus: (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  ),
   list: (className) => (
     <svg {...commonProps} className={className}>
       <path d="M9 6h11M9 12h11M9 18h11" />

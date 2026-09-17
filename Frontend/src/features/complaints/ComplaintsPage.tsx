@@ -111,8 +111,21 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   return (
     <div className="panel panel--table">
+      <div className="complaints-page-header">
+        <div>
+          <h2 className="complaints-page-title">Complaints & Applications</h2>
+          <p className="complaints-page-subtitle">Track, assign, and register building violation complaints</p>
+        </div>
+        <button
+          className="primary-button small-button complaints-create-btn"
+          type="button"
+          onClick={() => navigate("/complaints/new")}
+        >
+          <Icon name="plus" /> Register New Complaint
+        </button>
+      </div>
+
       <div className="complaints-toolbar">
-        <h2>Complaints</h2>
         <div className="complaints-filters">
           <div className="search-box complaints-search">
             <Icon name="search" />

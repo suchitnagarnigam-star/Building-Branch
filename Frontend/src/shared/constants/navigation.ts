@@ -2,6 +2,7 @@ import type { Role, Status } from "../types";
 
 export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Role[] }[] = [
   { label: "Dashboard", route: "/dashboard", icon: "dashboard", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "New Complaint", route: "/complaints/new", icon: "plus", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Complaints", route: "/complaints", icon: "list", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Cases", route: "/cases", icon: "folder", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Field Inspections", route: "/field-inspection", icon: "search", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
