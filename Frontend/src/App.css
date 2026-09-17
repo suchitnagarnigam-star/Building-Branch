@@ -176,24 +176,25 @@
 }
 
 .sidebar__illustration {
-  padding: 8px 4px 4px;
+  margin: 14px -14px 6px;
+  padding: 0;
   text-align: center;
+  overflow: hidden;
 }
 
 .sidebar__illustration-img {
   width: 100%;
   height: auto;
-  max-height: 220px;
-  object-fit: contain;
-  border-radius: 8px;
+  display: block;
   mix-blend-mode: multiply;
   opacity: 0.95;
+  filter: contrast(1.04) brightness(1.01);
 }
 
 .sidebar__footer {
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid #e2e8f0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .sidebar__tagline {
