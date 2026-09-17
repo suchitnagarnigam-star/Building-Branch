@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 
-function Topbar() {
+type TopbarProps = {
+  userName?: string;
+  userRole?: string;
+  onLogout?: () => void;
+};
+
+function Topbar({
+  userName = "Yuvraj Singh",
+  userRole = "Building Branch (Staff)",
+}: TopbarProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
 
   useEffect(() => {
@@ -21,6 +30,13 @@ function Topbar() {
     hour12: true,
   }).format(currentTime);
 
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <header className="topbar">
       {/* Row 1: Government utility bar */}
@@ -34,29 +50,9 @@ function Topbar() {
           <span className="topbar__gov-separator">|</span>
           <span className="topbar__gov-eng">Municipal Corporation Ludhiana</span>
         </div>
-        <div className="topbar__gov-right">
-          <span className="topbar__gov-datetime">
-            <span className="topbar__gov-icon">📅</span>
-            <time dateTime={currentTime.toISOString()}>
-              {formattedDate} &nbsp; {formattedTime}
-            </time>
-          </span>
-          <span className="topbar__gov-separator">|</span>
-          <span className="topbar__font-controls">
-            <button type="button" className="topbar__font-btn">A-</button>
-            <button type="button" className="topbar__font-btn topbar__font-btn--active">A</button>
-            <button type="button" className="topbar__font-btn">A+</button>
-          </span>
-          <span className="topbar__gov-separator">|</span>
-          <span className="topbar__admin-badge">
-            <span className="topbar__admin-icon">👤</span>
-            Building Branch Admin
-          </span>
-          <button type="button" className="topbar__logout-btn">Logout</button>
-        </div>
       </div>
 
-      {/* Row 2: Main header with logo and branding */}
+      {/* Row 2: Main header with logo and user profile controls */}
       <div className="topbar__main-header">
         <div className="topbar__brand-group">
           <div className="topbar__logo-wrap">
@@ -69,20 +65,30 @@ function Topbar() {
             <div className="topbar__brand-subtitle">Building Permission &amp; Enforcement Operations</div>
           </div>
         </div>
-        <div className="topbar__right-logos">
-          <div className="topbar__swachh-bharat">
-            <span className="swachh-glasses">👓</span>
-            <span className="swachh-text">
-              <strong>ਸਵੱਛ ਭਾਰਤ</strong>
-              <small>ਇਕ ਕਦਮ ਸਵੱਛਤਾ ਵਲ</small>
-            </span>
+
+        <div className="topbar__header-controls">
+          <div className="topbar__datetime-badge">
+            <span className="topbar__gov-icon">📅</span>
+            <time dateTime={currentTime.toISOString()}>
+              {formattedDate} &nbsp; {formattedTime}
+            </time>
           </div>
-          <div className="topbar__digital-india">
-            <span className="digital-icon">🇮🇳</span>
-            <span className="digital-text">
-              <strong>Digital India</strong>
-              <small>Power To Empower</small>
-            </span>
+
+          <div className="topbar__font-controls">
+            <button type="button" className="topbar__font-btn">A-</button>
+            <button type="button" className="topbar__font-btn topbar__font-btn--active">A</button>
+            <button type="button" className="topbar__font-btn">A+</button>
+          </div>
+
+          <div className="topbar__profile-card">
+            <div className="topbar__avatar-wrap">
+              <div className="topbar__avatar">{initials}</div>
+              <span className="topbar__status-dot" title="Active Online"></span>
+            </div>
+            <div className="topbar__profile-meta">
+              <div className="topbar__user-name">{userName}</div>
+              <div className="topbar__user-role">{userRole}</div>
+            </div>
           </div>
         </div>
       </div>

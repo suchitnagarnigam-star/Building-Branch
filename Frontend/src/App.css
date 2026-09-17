@@ -321,69 +321,114 @@
   padding: 0 2px;
 }
 
-.topbar__gov-datetime {
+.topbar__header-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.topbar__datetime-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #cbd5e1;
-  padding: 0 8px;
-  white-space: nowrap;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  background: #f8fafc;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
 }
 
 .topbar__gov-icon {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .topbar__font-controls {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .topbar__font-btn {
-  padding: 1px 6px;
-  border-radius: 3px;
-  color: #cbd5e1;
-  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  transition: all 0.15s ease;
 }
 
-.topbar__font-btn:hover,
+.topbar__font-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 .topbar__font-btn--active {
   background: #2563eb;
-  color: #fff;
+  color: #ffffff;
+  border-color: #2563eb;
 }
 
-.topbar__admin-badge {
+.topbar__profile-card {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #10b981;
-  padding: 0 8px;
-  white-space: nowrap;
-  font-weight: 600;
+  gap: 10px;
+  padding: 4px 8px;
 }
 
-.topbar__admin-icon {
-  font-size: 12px;
+.topbar__avatar-wrap {
+  position: relative;
+  display: inline-block;
 }
 
-.topbar__logout-btn {
-  margin-left: 8px;
-  padding: 3px 10px;
-  border-radius: 4px;
-  background: rgba(220, 38, 38, 0.2);
-  color: #fca5a5;
+.topbar__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.topbar__status-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+}
+
+.topbar__profile-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.topbar__user-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.topbar__user-role {
+  color: #64748b;
   font-size: 11px;
-  cursor: pointer;
-  border: none;
-  transition: background 0.2s;
-}
-
-.topbar__logout-btn:hover {
-  background: rgba(220, 38, 38, 0.4);
+  font-weight: 500;
+  margin-top: 1px;
 }
 
 /* Row 2: White Main header */

@@ -112,6 +112,11 @@ function App() {
     return <DashboardPage navigate={navigate} setSelectedComplaintId={setSelectedComplaintId} />;
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    navigate("/login");
+  };
+
   return (
     <div className="app-shell">
       {isLogin ? (
@@ -120,13 +125,18 @@ function App() {
         </div>
       ) : (
         <>
-          <Topbar />
+          <Topbar
+            userName={userName}
+            userRole={userRole === "Admin" ? "Building Branch (Staff)" : userRole}
+            onLogout={handleLogout}
+          />
           <div className="app-workspace">
             <Sidebar
               route={route}
               userRole={userRole}
               userName={userName}
               navigate={navigate}
+              onLogout={handleLogout}
             />
             <div className="app-content">
               <main className="page-shell">{renderPage()}</main>
