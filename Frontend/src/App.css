@@ -2591,3 +2591,79 @@ textarea {
   color: white;
   font-size: 12px;
 }
+
+.officer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.officer-modal {
+  width: min(900px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.officer-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.officer-modal__header h2 {
+  margin: 0;
+}
+
+.officer-modal__header p {
+  margin: 4px 0 0;
+}
+
+.officer-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.officer-details-grid > div {
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.officer-details-grid span {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.officer-details-grid strong {
+  display: block;
+}
+
+.officer-details-grid__full {
+  grid-column: 1 / -1;
+}
+
+.officer-complaints {
+  margin-top: 28px;
+}
+
+@media (max-width: 700px) {
+  .officer-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .officer-details-grid__full {
+    grid-column: auto;
+  }
+}

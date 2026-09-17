@@ -178,6 +178,50 @@ router.get("/officers", async (_req, res) => {
   }
 });
 
+router.get("/officers/:officerId", async (req, res) => {
+  try {
+    const officerId = req.params.officerId.trim();
+
+    const [officers, complaints] = await Promise.all([
+      getOfficers(),
+      getComplaints(),
+    ]);
+
+    const officer = officers.find(
+      (item) => item.officerId === officerId,
+    );
+
+    if (!officer) {
+      res.status(404).json({
+        success: false,
+        message: "Officer not found.",
+      });
+      return;
+    }
+
+    const assignedComplaints = complaints.filter(
+      (complaint) =>
+        complaint.assignedOfficerId === officer.officerId,
+    );
+
+    res.json({
+      success: true,
+      officer: {
+        ...officer,
+        zone: `Zone ${officer.zone}`,
+      },
+      complaints: assignedComplaints,
+    });
+  } catch (error) {
+    console.error("Error loading officer details:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to load officer details.",
+    });
+  }
+});
+
 router.get("/officers/roster", async (_req, res) => {
   try {
     const [officers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
