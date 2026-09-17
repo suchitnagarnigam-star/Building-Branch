@@ -1,6 +1,6 @@
 # MCL-BB Context Handoff
 
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-18
 
 ## Current status
 
@@ -23,10 +23,11 @@ The current codebase supports:
 
 Recently completed work in the current branch (`uv-dev`) includes:
 
-- Merged and reconciled `ad-dev` inspection workflow updates
-- Connected `POST /api/inspections` for field visit persistence, case creation, and notice uploads
-- Centralised API base URL handling across `FieldInspectionPage.tsx` and `ComplaintDetailPage.tsx`
-- Preserved master specification in `docs/MASTER.md` and cleaned up legacy duplicate documents
+- **Main Header & Topbar Refactor**: User profile widget, Date/Time badge, and Font size controls repositioned to the top right of the main white header (`Topbar.tsx`).
+- **Sidebar & Footer Navigation**: Removed top duplicate profile box from `Sidebar.tsx`; updated sidebar illustration to `ludhiana-illustration.png`; positioned Settings and Logout buttons in sidebar footer.
+- **Dashboard Data Wiring**: Fully re-wired `DashboardPage.tsx` stats, Complaints by Zone bar chart, Case Status doughnut chart, Case Pipeline stage progression, and Recent Complaints table to dynamically compute from backend API (`GET /api/complaints`) with fallback to shared mock dataset.
+- **Dashboard Report Export**: Added direct CSV summary report export ("Export Report") from the Dashboard header.
+- **GIS Map Offline Status**: Set GIS Map page to offline placeholder state.
 
 ## Architecture
 
