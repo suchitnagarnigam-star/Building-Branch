@@ -77,22 +77,7 @@ function formatDate(dateStr: string): string {
 
 const currentMonth = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(new Date());
 
-/* ─── Custom donut label ─── */
 
-function DonutCenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number }; total: number }) {
-  if (!viewBox) return null;
-  const { cx, cy } = viewBox;
-  return (
-    <g>
-      <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 28, fontWeight: 700, fill: "#1c1c1e" }}>
-        {total.toLocaleString()}
-      </text>
-      <text x={cx} y={cy + 18} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 12, fill: "#6b7280" }}>
-        Total Cases
-      </text>
-    </g>
-  );
-}
 
 /* ─── Component ─── */
 
@@ -216,12 +201,12 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
           </div>
           <div className="db-chart-card__body">
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={zoneData} barCategoryGap="30%">
+              <BarChart data={zoneData} barCategoryGap="30%" margin={{ top: 28, right: 15, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e6eb" />
                 <XAxis dataKey="zone" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
-                <Tooltip />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12, fill: "#1c1c1e", fontWeight: 600 }}>
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} domain={[0, "dataMax + 40"]} />
+                <Tooltip cursor={{ fill: "rgba(0, 0, 0, 0.03)" }} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12.5, fill: "#0f172a", fontWeight: 700, dy: -6 }}>
                   {zoneData.map((_entry, index) => {
                     const colors = ["#3b82f6", "#c26d53", "#10b981", "#64748b"];
                     return <Cell key={`zone-cell-${index}`} fill={colors[index % colors.length]} />;
@@ -244,22 +229,25 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             </select>
           </div>
           <div className="db-chart-card__body db-chart-card__body--donut">
+            <div className="db-donut-center">
+              <div className="db-donut-center__val">{statusTotal.toLocaleString()}</div>
+              <div className="db-donut-center__lbl">Total Cases</div>
+            </div>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie
                   data={statusData}
-                  cx="40%"
+                  cx="33%"
                   cy="50%"
                   innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={2}
+                  outerRadius={92}
+                  paddingAngle={3}
                   dataKey="value"
                   stroke="none"
                 >
                   {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
-                  <DonutCenterLabel total={statusTotal} />
                 </Pie>
                 <Legend
                   layout="vertical"
@@ -274,7 +262,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                     return (
                       <span className="db-legend-item">
                         <span className="db-legend-item__name">{value}</span>
-                        <span className="db-legend-item__value">{item.value}</span>
+                        <span className="db-legend-item__value">{item.value.toLocaleString()}</span>
                         <span className="db-legend-item__pct">{pct}%</span>
                       </span>
                     );

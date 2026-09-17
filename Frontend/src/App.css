@@ -3021,29 +3021,82 @@ textarea {
 }
 
 .db-chart-card__body--donut {
+  position: relative;
   padding: 0 0 16px;
 }
 
+.db-donut-center {
+  position: absolute;
+  top: 48%;
+  left: 33%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.db-donut-center__val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.db-donut-center__lbl {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* Donut legend */
+.recharts-legend-item {
+  margin-bottom: 6px !important;
+}
+
 .db-legend-item {
   display: inline-flex;
-  gap: 8px;
-  font-size: 12px;
-  align-items: baseline;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  width: 175px;
+  justify-content: space-between;
 }
 
 .db-legend-item__name {
-  color: var(--ink);
+  color: #334155;
   font-weight: 500;
+  min-width: 82px;
 }
 
 .db-legend-item__value {
-  color: var(--ink);
-  font-weight: 600;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 13.5px;
 }
 
 .db-legend-item__pct {
-  color: var(--muted);
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 42px;
+  text-align: right;
+}
+
+/* Remove boxy outlines on clicking chart elements */
+.recharts-wrapper *:focus,
+.recharts-surface *:focus,
+.recharts-sector:focus,
+.recharts-bar-rectangle:focus,
+.recharts-pie:focus,
+.recharts-layer:focus,
+svg:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Case Pipeline */
