@@ -3022,12 +3022,18 @@ textarea {
 
 .db-chart-card__body--donut {
   position: relative;
-  padding: 0 0 16px;
+  padding: 8px 24px 16px;
 }
 
 /* Donut legend */
 .recharts-legend-item {
   margin-bottom: 10px !important;
+  cursor: pointer;
+}
+
+.recharts-pie-sector:hover {
+  opacity: 0.88;
+  transition: opacity 0.2s ease;
 }
 
 .db-legend-item {
@@ -3038,6 +3044,14 @@ textarea {
   line-height: 1.5;
   width: 185px;
   justify-content: space-between;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.db-legend-item:hover {
+  background-color: #f1f5f9;
 }
 
 .db-legend-item__name {

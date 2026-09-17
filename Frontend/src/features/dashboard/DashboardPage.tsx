@@ -233,16 +233,22 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
               <PieChart>
                 <Pie
                   data={statusData}
-                  cx="32%"
+                  cx="36%"
                   cy="50%"
-                  innerRadius={68}
-                  outerRadius={102}
+                  innerRadius={66}
+                  outerRadius={100}
                   paddingAngle={3}
                   dataKey="value"
                   stroke="none"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => navigate("/cases")}
                 >
                   {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color}
+                      style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+                    />
                   ))}
                   <Label
                     position="center"
@@ -250,7 +256,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                       if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) return null;
                       const { cx, cy } = viewBox as { cx: number; cy: number };
                       return (
-                        <g>
+                        <g style={{ cursor: "pointer" }} onClick={() => navigate("/cases")}>
                           <text
                             x={cx}
                             y={cy - 6}
@@ -285,7 +291,13 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                     if (!item) return value;
                     const pct = statusTotal > 0 ? ((item.value / statusTotal) * 100).toFixed(1) : "0";
                     return (
-                      <span className="db-legend-item">
+                      <span
+                        className="db-legend-item"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/cases");
+                        }}
+                      >
                         <span className="db-legend-item__name">{value}</span>
                         <span className="db-legend-item__value">{item.value.toLocaleString()}</span>
                         <span className="db-legend-item__pct">{pct}%</span>
