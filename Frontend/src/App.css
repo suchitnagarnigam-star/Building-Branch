@@ -2022,16 +2022,55 @@ textarea {
   margin: 0 auto 12px;
 }
 
-.complaint-form-card {
-  padding: 24px 28px 18px;
+.complaint-form-card--manual {
+  border-top: 4px solid #2563eb;
+  position: relative;
 }
 
-/* Upload sidebar card */
-.complaint-upload-card {
-  padding: 20px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.complaint-upload-card--ocr {
+  border-top: 4px solid #7c3aed;
+  position: relative;
+  background: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
+}
+
+.option-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+  width: fit-content;
+}
+
+.option-badge--manual {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.option-badge--ocr {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.option-badge__tag {
+  background: currentColor;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.option-card__subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 16px;
+  line-height: 1.4;
 }
 
 .complaint-source-preview-card {

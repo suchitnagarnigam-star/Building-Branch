@@ -358,9 +358,14 @@ function ComplaintFormPage({
       <div className={`complaint-form-layout${isDocumentReview ? " complaint-form-layout--extracted" : ""}`}>
 
         {/* ── Left: manual entry form ── */}
-        <div className="page-card complaint-form-card">
+        <div className="page-card complaint-form-card complaint-form-card--manual">
+          <div className="option-badge option-badge--manual">
+            <span className="option-badge__tag">OPTION 1</span>
+            <span className="option-badge__text">Direct Form Filing</span>
+          </div>
           <div className="page-card__header">
-            <h1 style={{ marginBottom: 0, paddingBottom: "1rem" }}>Register a Complaint</h1>
+            <h1 style={{ marginBottom: 0, paddingBottom: "0.5rem" }}>Register a Complaint</h1>
+            <p className="option-card__subtitle">Fill out the complaint details manually for citizen reports</p>
           </div>
 
           <form onSubmit={handleSubmit} className="complaint-form" noValidate>
@@ -557,8 +562,13 @@ function ComplaintFormPage({
         </div>
 
         {!isDocumentReview && (
-          <div className="page-card complaint-upload-card">
-            <h2 className="panel__header">Register from External Source</h2>
+          <div className="page-card complaint-upload-card complaint-upload-card--ocr">
+            <div className="option-badge option-badge--ocr">
+              <span className="option-badge__tag">OPTION 2</span>
+              <span className="option-badge__text">AI / Document Auto-Fill</span>
+            </div>
+            <h2 className="panel__header" style={{ marginBottom: 0 }}>Register from External Source</h2>
+            <p className="option-card__subtitle">Extract complaint information automatically from news image, PDF, or email</p>
             <div className="source-upload-section">
               <div className="source-upload-section__header">
                 <p className="source-upload-section__hint">
