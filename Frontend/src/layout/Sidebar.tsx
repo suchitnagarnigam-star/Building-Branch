@@ -34,7 +34,7 @@ function Sidebar({ route, userRole, navigate, onLogout }: SidebarProps) {
       <div className="sidebar__footer">
         <div className="sidebar__illustration">
           <img
-            src="/ludhiana-illustration.jpg"
+            src="/ludhiana-illustration.png"
             alt="Ludhiana Heritage & Landmark"
             className="sidebar__illustration-img"
           />
