@@ -176,15 +176,18 @@
 }
 
 .sidebar__illustration {
-  padding: 8px 8px 0;
-  opacity: 0.65;
+  padding: 8px 4px 4px;
   text-align: center;
 }
 
-.sidebar__building-svg {
+.sidebar__illustration-img {
   width: 100%;
   height: auto;
-  max-height: 80px;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 8px;
+  mix-blend-mode: multiply;
+  opacity: 0.95;
 }
 
 .sidebar__footer {
