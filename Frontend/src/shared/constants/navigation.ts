@@ -8,8 +8,6 @@ export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Rol
   { label: "Field Inspections", route: "/field-inspection", icon: "search", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Notices", route: "/notices", icon: "file", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Officers", route: "/officers", icon: "users", roles: ["Admin", "ATP", "MTP", "JC", "C"] },
-  { label: "GIS / Map", route: "/gis-map", icon: "map", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
-  { label: "Reports", route: "/reports", icon: "chart", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
 ];
 
 export const statusConfig: Record<Status, { tone: string; text: string }> = {

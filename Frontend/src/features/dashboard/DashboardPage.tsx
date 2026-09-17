@@ -152,6 +152,48 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
     { label: "FIELD INSPECTIONS", value: stats.inspections, change: "14.6%", changeDir: "up" as const, accent: "teal", icon: "pin" },
   ];
 
+  const handleExportReport = () => {
+    const rows = [
+      ["Building Branch Summary Report", currentMonth],
+      ["Generated On", new Date().toLocaleString()],
+      [],
+      ["Metric", "Value", "Trend"],
+      ["Total Complaints", stats.total, "+12.4% vs last month"],
+      ["Open / Active Cases", stats.open, "+6.8% vs last month"],
+      ["Resolved This Month", stats.resolved, "+18.2% vs last month"],
+      ["Field Inspections", stats.inspections, "+14.6% vs last month"],
+      [],
+      ["Zone Summary"],
+      ["Zone", "Complaint Count"],
+      ...zoneData.map((z) => [z.zone, z.count]),
+      [],
+      ["Case Status Summary"],
+      ["Status", "Count", "Percentage"],
+      ...statusData.map((s) => [s.name, s.value, `${((s.value / statusTotal) * 100).toFixed(1)}%`]),
+      [],
+      ["Recent Complaints"],
+      ["Complaint ID", "Citizen Name", "Title", "Zone", "Block", "Status", "Date"],
+      ...recentComplaints.map((c) => [
+        c.complaintId,
+        c.citizenName || "N/A",
+        c.title || "N/A",
+        c.zone,
+        c.block,
+        c.status,
+        c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "N/A",
+      ]),
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Building_Branch_Report_${currentMonth.replace(/\s+/g, "_")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="db-page">
       {/* Page header */}
@@ -161,10 +203,19 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
           <h1 className="db-page__title">Building Branch Dashboard</h1>
           <p className="db-page__subtitle">Municipal Corporation Ludhiana • Building Permission &amp; Enforcement Operations</p>
         </div>
-        <div className="db-page__month-picker">
-          <Icon name="calendar" />
-          <span>{currentMonth}</span>
-          <span className="db-page__month-caret">▾</span>
+        <div className="db-page__actions">
+          <button
+            type="button"
+            className="primary-button small-button db-export-report-btn"
+            onClick={handleExportReport}
+          >
+            <Icon name="download" /> Export Report
+          </button>
+          <div className="db-page__month-picker">
+            <Icon name="calendar" />
+            <span>{currentMonth}</span>
+            <span className="db-page__month-caret">▾</span>
+          </div>
         </div>
       </div>
 
