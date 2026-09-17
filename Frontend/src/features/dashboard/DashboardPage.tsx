@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, Label,
 } from "recharts";
 import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
@@ -200,8 +200,8 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             </select>
           </div>
           <div className="db-chart-card__body">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={zoneData} barCategoryGap="30%" margin={{ top: 28, right: 15, left: -10, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={zoneData} barCategoryGap="30%" margin={{ top: 32, right: 15, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e6eb" />
                 <XAxis dataKey="zone" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} domain={[0, "dataMax + 40"]} />
@@ -229,18 +229,14 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             </select>
           </div>
           <div className="db-chart-card__body db-chart-card__body--donut">
-            <div className="db-donut-center">
-              <div className="db-donut-center__val">{statusTotal.toLocaleString()}</div>
-              <div className="db-donut-center__lbl">Total Cases</div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie
                   data={statusData}
-                  cx="33%"
+                  cx="32%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={92}
+                  innerRadius={68}
+                  outerRadius={102}
                   paddingAngle={3}
                   dataKey="value"
                   stroke="none"
@@ -248,13 +244,42 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                   {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <Label
+                    position="center"
+                    content={({ viewBox }) => {
+                      if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) return null;
+                      const { cx, cy } = viewBox as { cx: number; cy: number };
+                      return (
+                        <g>
+                          <text
+                            x={cx}
+                            y={cy - 6}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            style={{ fontSize: "24px", fontWeight: 800, fill: "#0f172a" }}
+                          >
+                            {statusTotal.toLocaleString()}
+                          </text>
+                          <text
+                            x={cx}
+                            y={cy + 16}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            style={{ fontSize: "11px", fontWeight: 700, fill: "#64748b", letterSpacing: "0.05em" }}
+                          >
+                            TOTAL CASES
+                          </text>
+                        </g>
+                      );
+                    }}
+                  />
                 </Pie>
                 <Legend
                   layout="vertical"
                   verticalAlign="middle"
                   align="right"
                   iconType="circle"
-                  iconSize={10}
+                  iconSize={11}
                   formatter={(value: string) => {
                     const item = statusData.find((d) => d.name === value);
                     if (!item) return value;
