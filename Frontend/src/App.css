@@ -2812,8 +2812,12 @@ textarea {
 .notice-section__body { padding: 0 20px 21px; }
 .notice-section__body > p { margin: 0 0 18px 46px; color: #876c3c; font-size: 12px; }
 .notice-upload { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px dashed #d8bd7b; border-radius: 8px; background: #fff; }
+.notice-upload--success { border-style: solid; border-color: #b7dec4; background: #f5fcf7; }
 .notice-upload > svg { width: 20px; height: 20px; margin: 0; }
 .notice-upload > span { flex: 1; color: var(--muted); font-size: 12px; }
+.notice-upload__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.notice-upload__actions .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
+
 
 .inspection-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 5px 0 0; }
 .inspection-actions .primary-button { min-height: 42px; }
@@ -2900,6 +2904,82 @@ textarea {
   font-size: 12px;
 }
 
+
+.officer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.officer-modal {
+  width: min(900px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.officer-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.officer-modal__header h2 {
+  margin: 0;
+}
+
+.officer-modal__header p {
+  margin: 4px 0 0;
+}
+
+.officer-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.officer-details-grid > div {
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.officer-details-grid span {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.officer-details-grid strong {
+  display: block;
+}
+
+.officer-details-grid__full {
+  grid-column: 1 / -1;
+}
+
+.officer-complaints {
+  margin-top: 28px;
+}
+
+@media (max-width: 700px) {
+  .officer-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .officer-details-grid__full {
+    grid-column: auto;
+  }
+}
 /* ═══════════════════════════════════════════════════════
    Dashboard Page — New Layout
    ═══════════════════════════════════════════════════════ */

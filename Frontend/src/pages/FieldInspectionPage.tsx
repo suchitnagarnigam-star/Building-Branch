@@ -112,15 +112,11 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
 
   useEffect(() => {
     if (sourceOfReport !== "complaint") {
-      setComplaintLookup(null);
-      setComplaintError("");
       return;
     }
 
     const id = complaintId.trim();
     if (!id) {
-      setComplaintLookup(null);
-      setComplaintError("");
       return;
     }
 
@@ -196,6 +192,8 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
     setSourceOfReport(value);
     setSubmitError("");
     if (value === "field_visit") {
+      setInspectionOutcome("violation_found");
+      setNoticeOpen(true);
       setComplaintId("");
       setComplaintLookup(null);
       setComplaintError("");
@@ -203,6 +201,12 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
       setBlock("");
       setWard("");
       setLocation("");
+    } else {
+      setInspectionOutcome("");
+      setNoticeNumber("");
+      setNoticeDate("");
+      setNoticePhoto(null);
+      setNoticeOpen(false);
     }
   };
 
@@ -256,6 +260,12 @@ const submitInspection = async (
   event.preventDefault();
   setSubmitError("");
 
+  const effectiveInspectionOutcome =
+    sourceOfReport === "field_visit"
+      ? "violation_found"
+      : inspectionOutcome;
+  setInspectionOutcome(effectiveInspectionOutcome);
+
   /*
    * Client-side validation.
    *
@@ -263,7 +273,7 @@ const submitInspection = async (
    * again, so these checks are only for user feedback.
    */
 
-  if (!inspectionOutcome) {
+  if (!effectiveInspectionOutcome) {
     setSubmitError(
       "Please select the inspection outcome.",
     );
@@ -350,7 +360,7 @@ const submitInspection = async (
     return;
   };
 
-  if (inspectionOutcome === "violation_found" && (
+  if (effectiveInspectionOutcome === "violation_found" && (
     !noticeNumber.trim() ||
     !noticeDate ||
     !noticePhoto
@@ -374,7 +384,7 @@ const submitInspection = async (
 
     formData.append(
       "inspectionOutcome",
-      inspectionOutcome,
+      effectiveInspectionOutcome,
     );
 
     formData.append(
@@ -465,7 +475,7 @@ const submitInspection = async (
     });
 
     // only send notice when it is complete and valid.
-    if (inspectionOutcome === "violation_found" && noticePhoto) {
+    if (effectiveInspectionOutcome === "violation_found" && noticePhoto) {
       formData.append(
         "noticeNumber",
         noticeNumber.trim(),
@@ -514,6 +524,22 @@ const submitInspection = async (
 
   return (
     <div className="field-inspection-page">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
+        <div>
+          <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--ink)" }}>Field Inspection</h1>
+          <p style={{ color: "var(--muted)", fontSize: "12px", margin: "2px 0 0" }}>Record field inspection report or construction status</p>
+        </div>
+        <button
+          type="button"
+          className="secondary-button"
+          style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600, borderColor: "var(--accent)", color: "var(--accent)", background: "var(--accent-light)" }}
+          onClick={() => navigate("/construction-status")}
+        >
+          <Icon name="edit" />
+          Record Construction Status
+        </button>
+      </div>
+
       <form className="field-inspection-form compact-form" onSubmit={submitInspection}>
         <section className="inspection-card">
           <div className="inspection-card__header">
@@ -548,7 +574,14 @@ const submitInspection = async (
                   id="complaintId"
                   required={sourceOfReport === "complaint"}
                   value={complaintId}
-                  onChange={(event) => setComplaintId(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setComplaintId(value);
+                    if (!value.trim()) {
+                      setComplaintLookup(null);
+                      setComplaintError("");
+                    }
+                  }}
                   placeholder="Enter complaint ID"
                   inputMode="numeric"
                   maxLength={14}
@@ -580,7 +613,7 @@ const submitInspection = async (
           </div>
         </section>
 
-        <section className="inspection-card">
+        {isComplaintMode && <section className="inspection-card">
           <div className="inspection-card__header"><span className="inspection-card__number">03</span><h2>Inspection Outcome</h2></div>
           <div className="form-field form-field--full">
             <div className="choice-grid choice-grid--inline compact-choice-grid">
@@ -594,8 +627,9 @@ const submitInspection = async (
               </label>
             </div>
           </div>
-
-          <div className="inspection-card__header compact-header"><span className="inspection-card__number">04</span><h2>Details</h2></div>
+        </section>}
+        <section className="inspection-card">
+          <div className="inspection-card__header compact-header"><span className="inspection-card__number">{isComplaintMode ? "04" : "03"}</span><h2>Details</h2></div>
           <div className="inspection-grid">
             <div className="form-field form-field--full"><label>Building Type <span>*</span></label><div className="building-type-grid">{["Residential", "Commercial", "Industrial", "Other"].map((type) => <label className={`building-type ${buildingType === type ? "building-type--selected" : ""}`} key={type}><input type="radio" name="buildingType" value={type} required checked={buildingType === type} onChange={(event) => setBuildingType(event.target.value)} /><span>{type}</span></label>)}</div></div>
             {buildingType === "Other" && <div className="form-field form-field--full"><label htmlFor="otherBuildingType">Specify Building Type <span>*</span></label><input id="otherBuildingType" required value={otherBuildingType} onChange={(event) => setOtherBuildingType(event.target.value)} placeholder="Enter building type" /></div>}
