@@ -17,6 +17,7 @@ import SettingsPage from "./features/settings/SettingsPage";
 import NewComplaintScreen from "./features/complaints/NewComplaintScreen";
 import ExternalUploadSuccessScreen from "./features/complaints/ExternalUploadSuccessScreen";
 import ExtractedComplaintPage from "./features/complaints/ExtractedComplaintPage";
+import ConstructionStatusForm from "./pages/ConstructionStatusForm";
 import ComingSoonPage from "./shared/components/ComingSoonPage";
 
 import { useRouter } from "./shared/hooks/useRouter";
@@ -101,6 +102,9 @@ function App() {
     if (route === "/analytics") return <AnalyticsPage />;
     if (route === "/field-inspection") {
       return <FieldInspectionPage navigate={navigate} />;
+    }
+    if (route === "/construction-status") {
+      return <ConstructionStatusForm navigate={navigate} />;
     }
     if (route === "/officers") return <OfficersPage />;
     if (route === "/settings") return <SettingsPage />;

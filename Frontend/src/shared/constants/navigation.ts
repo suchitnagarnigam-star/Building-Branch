@@ -5,6 +5,7 @@ export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Rol
   { label: "Complaints", route: "/complaints", icon: "list", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Cases", route: "/cases", icon: "folder", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Field Inspections", route: "/field-inspection", icon: "search", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Construction Status", route: "/construction-status", icon: "edit", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Notices", route: "/notices", icon: "file", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Officers", route: "/officers", icon: "users", roles: ["Admin", "ATP", "MTP", "JC", "C"] },
   { label: "GIS / Map", route: "/gis-map", icon: "map", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
@@ -44,6 +45,8 @@ export const formatPageTitle = (route: string): string => {
       return "Analytics";
     case "/field-inspection":
       return "Field Inspections";
+    case "/construction-status":
+      return "Construction Status";
     case "/officers":
       return "Officers";
     case "/settings":

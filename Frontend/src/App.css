@@ -2623,8 +2623,12 @@ textarea {
 .notice-section__body { padding: 0 20px 21px; }
 .notice-section__body > p { margin: 0 0 18px 46px; color: #876c3c; font-size: 12px; }
 .notice-upload { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px dashed #d8bd7b; border-radius: 8px; background: #fff; }
+.notice-upload--success { border-style: solid; border-color: #b7dec4; background: #f5fcf7; }
 .notice-upload > svg { width: 20px; height: 20px; margin: 0; }
 .notice-upload > span { flex: 1; color: var(--muted); font-size: 12px; }
+.notice-upload__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.notice-upload__actions .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
+
 
 .inspection-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 5px 0 0; }
 .inspection-actions .primary-button { min-height: 42px; }

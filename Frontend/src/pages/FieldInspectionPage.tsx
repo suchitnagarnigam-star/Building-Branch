@@ -524,6 +524,22 @@ const submitInspection = async (
 
   return (
     <div className="field-inspection-page">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
+        <div>
+          <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--ink)" }}>Field Inspection</h1>
+          <p style={{ color: "var(--muted)", fontSize: "12px", margin: "2px 0 0" }}>Record field inspection report or construction status</p>
+        </div>
+        <button
+          type="button"
+          className="secondary-button"
+          style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600, borderColor: "var(--accent)", color: "var(--accent)", background: "var(--accent-light)" }}
+          onClick={() => navigate("/construction-status")}
+        >
+          <Icon name="edit" />
+          Record Construction Status
+        </button>
+      </div>
+
       <form className="field-inspection-form compact-form" onSubmit={submitInspection}>
         <section className="inspection-card">
           <div className="inspection-card__header">
