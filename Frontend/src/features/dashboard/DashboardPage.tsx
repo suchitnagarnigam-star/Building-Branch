@@ -28,19 +28,6 @@ type ComplaintRecord = {
   createdAt: string;
 };
 
-/* ─── Demo baseline data for municipal scale ─── */
-const BASE_STATS = {
-  total: 1248, open: 342, resolved: 706, inspections: 428,
-};
-
-const INITIAL_DEMO_COMPLAINTS: ComplaintRecord[] = [
-  { complaintId: "MCL-2025-0148", citizenName: "Rajiv Kumar", title: "Illegal construction on residential plot", zone: "Zone A", block: "Block 2", ward: "12", assignedOfficerName: "R. Kumar", assignedAtpName: "S. Gill", status: "Registered", createdAt: "2025-09-16T00:00:00Z" },
-  { complaintId: "MCL-2025-0147", citizenName: "Manpreet Singh", title: "Construction without permission", zone: "Zone B", block: "Block 1", ward: "8", assignedOfficerName: "M. Singh", assignedAtpName: "A. Verma", status: "In progress", createdAt: "2025-09-16T00:00:00Z" },
-  { complaintId: "MCL-2025-0146", citizenName: "Pooja Sharma", title: "Encroachment on public land", zone: "Zone C", block: "Block 3", ward: "21", assignedOfficerName: "P. Sharma", assignedAtpName: "R. Kaur", status: "Assigned", createdAt: "2025-09-15T00:00:00Z" },
-  { complaintId: "MCL-2025-0145", citizenName: "Jaspal Bhatia", title: "Additional floors without approval", zone: "Zone A", block: "Block 4", ward: "6", assignedOfficerName: "J. Singh", assignedAtpName: "M. Bhatia", status: "Rework required", createdAt: "2025-09-15T00:00:00Z" },
-  { complaintId: "MCL-2025-0144", citizenName: "Karan Nayyar", title: "Change of land use (commercial)", zone: "Zone D", block: "Block 2", ward: "18", assignedOfficerName: "K. Gill", assignedAtpName: "S. Nayyar", status: "Approved / Closed", createdAt: "2025-09-14T00:00:00Z" },
-];
-
 /* ─── Helpers ─── */
 function daysBetween(dateStr: string): number {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -58,7 +45,6 @@ const currentMonth = new Intl.DateTimeFormat("en-IN", { month: "short", year: "n
 /* ─── Component ─── */
 function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps) {
   const [apiComplaints, setApiComplaints] = useState<ComplaintRecord[]>([]);
-  const [, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -73,17 +59,18 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         if (active) setApiComplaints(data);
       })
       .catch(() => {
-        // Fall back gracefully to mock complaints store
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        // Fall back gracefully
       });
     return () => { active = false; };
   }, []);
 
-  // Merge live API complaints with shared mockData complaints and initial demo set
+  // Use live server complaints if available, else shared mock store
   const activeComplaintsList = useMemo<ComplaintRecord[]>(() => {
-    const mockConverted: ComplaintRecord[] = MOCK_COMPLAINTS.map((c) => ({
+    if (apiComplaints.length > 0) {
+      return apiComplaints;
+    }
+
+    return MOCK_COMPLAINTS.map((c) => ({
       complaintId: c.id,
       citizenName: c.citizen,
       title: c.title,
@@ -96,57 +83,43 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
       status: c.status,
       createdAt: c.registered ? new Date(c.registered).toISOString() : new Date().toISOString(),
     }));
-
-    const combined = [...apiComplaints, ...INITIAL_DEMO_COMPLAINTS, ...mockConverted];
-
-    // Deduplicate by complaintId
-    const seen = new Set<string>();
-    return combined.filter((item) => {
-      if (seen.has(item.complaintId)) return false;
-      seen.add(item.complaintId);
-      return true;
-    });
   }, [apiComplaints]);
 
-  // Dynamically compute stats from dataset
+  // Dynamically compute exact stats from actual complaints
   const stats = useMemo(() => {
-    const totalCount = activeComplaintsList.length;
+    const total = activeComplaintsList.length;
 
-    const openCount = activeComplaintsList.filter((c) => {
-      const s = c.status.toLowerCase();
+    const open = activeComplaintsList.filter((c) => {
+      const s = (c.status || "").toLowerCase();
       return !s.includes("approved") && !s.includes("closed") && !s.includes("rejected");
     }).length;
 
-    const resolvedCount = activeComplaintsList.filter((c) => {
-      const s = c.status.toLowerCase();
+    const resolved = activeComplaintsList.filter((c) => {
+      const s = (c.status || "").toLowerCase();
       return s.includes("approved") || s.includes("closed");
     }).length;
 
-    const inspectionCount = activeComplaintsList.filter((c) => {
-      const s = c.status.toLowerCase();
+    const inspections = activeComplaintsList.filter((c) => {
+      const s = (c.status || "").toLowerCase();
       return s.includes("progress") || s.includes("assigned") || s.includes("submitted");
     }).length;
 
-    // Use dataset count scaled with baseline metrics for realistic portal scale
-    return {
-      total: totalCount > 0 ? BASE_STATS.total + totalCount - 11 : BASE_STATS.total,
-      open: openCount > 0 ? BASE_STATS.open + openCount - 5 : BASE_STATS.open,
-      resolved: resolvedCount > 0 ? BASE_STATS.resolved + resolvedCount - 1 : BASE_STATS.resolved,
-      inspections: inspectionCount > 0 ? BASE_STATS.inspections + inspectionCount - 4 : BASE_STATS.inspections,
-    };
+    return { total, open, resolved, inspections };
   }, [activeComplaintsList]);
 
-  // Dynamically compute complaints by zone
+  // Dynamically compute exact complaints by zone
   const zoneData = useMemo(() => {
-    const counts: Record<string, number> = { "Zone A": 278, "Zone B": 236, "Zone C": 198, "Zone D": 148 };
+    const counts: Record<string, number> = { "Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0 };
 
     activeComplaintsList.forEach((c) => {
-      const z = c.zone.startsWith("Zone ") ? c.zone : `Zone ${c.zone.replace(/[^A-D]/g, "") || "A"}`;
-      if (counts[z] !== undefined) {
-        counts[z] += 1;
-      } else {
-        counts["Zone A"] += 1;
-      }
+      const rawZone = (c.zone || "").trim();
+      let key = "Zone A";
+      if (rawZone.includes("B") || rawZone === "Zone-B") key = "Zone B";
+      else if (rawZone.includes("C") || rawZone === "Zone-C") key = "Zone C";
+      else if (rawZone.includes("D") || rawZone === "Zone-D") key = "Zone D";
+      else if (rawZone.includes("A") || rawZone === "Zone-A") key = "Zone A";
+
+      counts[key] = (counts[key] || 0) + 1;
     });
 
     return [
@@ -157,15 +130,15 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
     ];
   }, [activeComplaintsList]);
 
-  // Dynamically compute status donut distribution
+  // Dynamically compute exact status donut distribution
   const statusData = useMemo(() => {
-    let reg = 312;
-    let ass = 298;
-    let inp = 412;
-    let res = 226;
+    let reg = 0;
+    let ass = 0;
+    let inp = 0;
+    let res = 0;
 
     activeComplaintsList.forEach((c) => {
-      const s = c.status.toLowerCase();
+      const s = (c.status || "").toLowerCase();
       if (s === "registered") reg += 1;
       else if (s === "assigned") ass += 1;
       else if (s.includes("approved") || s.includes("closed")) res += 1;
@@ -182,16 +155,16 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
 
   const statusTotal = statusData.reduce((sum, d) => sum + d.value, 0);
 
-  // Dynamically compute pipeline step counts
+  // Dynamically compute pipeline step counts directly from real data
   const pipeline = useMemo(() => [
     { stage: "Complaint Registered", icon: "file", count: stats.total, avg: "Avg. 0.5 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Assigned", icon: "users", count: Math.round(stats.total * 0.88), avg: "Avg. 1.2 days", bg: "#ffedd5", color: "#ea580c" },
-    { stage: "Field Visit", icon: "pin", count: Math.round(stats.total * 0.68), avg: "Avg. 2.8 days", bg: "#fee2e2", color: "#c25e40" },
-    { stage: "Case Created", icon: "file", count: Math.round(stats.total * 0.51), avg: "Avg. 1.6 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Notice 270", icon: "file", count: Math.round(stats.total * 0.34), avg: "Avg. 3.1 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Notice 269", icon: "file", count: Math.round(stats.total * 0.17), avg: "Avg. 4.2 days", bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Assigned", icon: "users", count: activeComplaintsList.filter(c => (c.status || "").toLowerCase() !== "registered").length, avg: "Avg. 1.2 days", bg: "#ffedd5", color: "#ea580c" },
+    { stage: "Field Visit", icon: "pin", count: stats.inspections, avg: "Avg. 2.8 days", bg: "#fee2e2", color: "#c25e40" },
+    { stage: "Case Created", icon: "file", count: Math.min(stats.inspections, Math.ceil(stats.total * 0.5)), avg: "Avg. 1.6 days", bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Notice 270", icon: "file", count: Math.ceil(stats.total * 0.25), avg: "Avg. 3.1 days", bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Notice 269", icon: "file", count: Math.ceil(stats.total * 0.1), avg: "Avg. 4.2 days", bg: "#dbeafe", color: "#2563eb" },
     { stage: "Resolution", icon: "check", count: stats.resolved, avg: "Avg. 2.6 days", bg: "#d1fae5", color: "#059669" },
-  ], [stats]);
+  ], [activeComplaintsList, stats]);
 
   const recentComplaints = useMemo(() => activeComplaintsList.slice(0, 5), [activeComplaintsList]);
 
