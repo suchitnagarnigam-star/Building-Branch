@@ -11,13 +11,16 @@ if (!databaseUrl) {
 
 export const pool = new Pool({
   connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false,
+  },
   max: 10,
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 5_000,
 });
 
 pool.on("error", (error) => {
-  console.error("Unexpected PostgreSQL pool error:", error);
+  console.warn("PostgreSQL pool connection warning/error:", error.message);
 });
 
 export async function testDatabaseConnection(): Promise<void> {
