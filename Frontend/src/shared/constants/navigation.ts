@@ -16,7 +16,7 @@ export const statusConfig: Record<Status, { tone: string; text: string }> = {
   "Assigned": { tone: "orange", text: "#EA580C" },
   "In progress": { tone: "amber", text: "#D97706" },
   "Resolution submitted": { tone: "purple", text: "#7C3AED" },
-  "Pending approval": { tone: "amber", text: "#D97706" },
+  "Pending approval": { tone: "petal", text: "#0b1957" },
   "Approved / Closed": { tone: "green", text: "#16A34A" },
   "Rejected": { tone: "red", text: "#DC2626" },
   "Rework required": { tone: "red", text: "#DC2626" },

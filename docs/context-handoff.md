@@ -1,6 +1,6 @@
 # MCL-BB Context Handoff
 
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-19
 
 ## Current status
 
@@ -12,17 +12,19 @@ The current codebase supports:
 - Claude complaint-field extraction
 - Separate external-document review page
 - Editing extracted fields before submission
-- PostgreSQL complaint persistence
+- PostgreSQL complaint persistence with local JSON fallback & SSL connection handling
 - Google Drive complaint folder creation, file upload, listing, and retrieval
-- Complaint detail page hydration from backend plus Drive attachment previews
+- Complaint detail page hydration from live backend data plus Drive attachment previews
 - Connected BI Field Inspection workflow (`POST /api/inspections`) supporting both complaint-driven visits and proactive field visits
-- Case creation, evidence persistence (`visit_evidence`), and Section 270 notice recording
-- Roster-driven zone and officer assignment mapping (`GET /api/officers/roster`)
+- Automatic Case creation (`CASE-XXXX`), evidence persistence (`visit_evidence`), and Section 270 notice recording (`notices` table)
+- Google Drive dedicated inspection subfolder creation and evidence/notice file upload
+- Roster-driven zone and officer assignment mapping (`GET /api/officers/roster`, `GET /api/officers/:officerId`)
 - Complaint list, detail, confirmation, pending, analytics, officers, field inspection, and settings screens
 - Fixed application sidebar on desktop and fixed bottom navigation on mobile
 
 Recently completed work in the current branch (`uv-dev`) includes:
 
+- **Field Inspection Backend Persistence**: Implemented `POST /api/inspections` endpoint handling multipart image uploads (`inspectionPhotos`, `noticePhoto`), PostgreSQL case & visit evidence creation, Section 270 notice persistence, and Google Drive inspection folder integration.
 - **Main Header & Topbar Refactor**: User profile widget, Date/Time badge, and Font size controls repositioned to the top right of the main white header (`Topbar.tsx`).
 - **Sidebar & Footer Navigation**: Removed top duplicate profile box from `Sidebar.tsx`; updated sidebar illustration to `ludhiana-illustration.png`; positioned Settings and Logout buttons in sidebar footer.
 - **Dashboard Data Wiring**: Fully re-wired `DashboardPage.tsx` stats, Complaints by Zone bar chart, Case Status doughnut chart, Case Pipeline stage progression, and Recent Complaints table to dynamically compute from backend API (`GET /api/complaints`) with fallback to shared mock dataset.

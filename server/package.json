@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx app.ts",
+    "dev": "node node_modules/tsx/dist/cli.mjs app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "db:test": "tsx db/testConnection.ts"
+    "db:test": "node node_modules/tsx/dist/cli.mjs db/testConnection.ts"
   },
   "keywords": [],
   "author": "",

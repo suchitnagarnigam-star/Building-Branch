@@ -3,12 +3,6 @@ import { Pool } from "pg";
 
 const databaseUrl = process.env.DATABASE_URL;
 
-if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_URL is not configured. Add your Neon PostgreSQL connection string to server/.env.",
-  );
-}
-
 export const pool = new Pool({
   connectionString: databaseUrl,
   ssl: {
@@ -20,15 +14,40 @@ export const pool = new Pool({
 });
 
 pool.on("error", (error) => {
-  console.warn("PostgreSQL pool connection warning/error:", error.message);
+  console.warn("⚠️  [Database Pool Warning]:", error.message);
 });
 
-export async function testDatabaseConnection(): Promise<void> {
-  const result = await pool.query<{ now: string }>(
-    "SELECT NOW() AS now",
-  );
+export async function testDatabaseConnection(): Promise<boolean> {
+  const line = "============================================================";
+  if (!databaseUrl) {
+    console.log(`\n${line}\n🔴 [DATABASE STATUS]: UNCONFIGURED\n   Reason: DATABASE_URL environment variable is missing.\n   Mode: Local JSON Fallback Active\n${line}\n`);
+    return false;
+  }
 
-  console.log(
-    `Neon PostgreSQL connected successfully at ${result.rows[0]?.now}`,
-  );
+  try {
+    const startTime = Date.now();
+    const result = await pool.query<{ now: string; current_database: string }>(
+      "SELECT NOW() AS now, current_database() AS current_database",
+    );
+    const latency = Date.now() - startTime;
+    const dbName = result.rows[0]?.current_database || "PostgreSQL";
+    const dbTime = result.rows[0]?.now;
+
+    console.log(`\n${line}`);
+    console.log(`🟢 [DATABASE STATUS]: CONNECTED SUCCESSFULLY`);
+    console.log(`   Database Name : ${dbName}`);
+    console.log(`   Response Time : ${latency} ms`);
+    console.log(`   Server Time   : ${dbTime}`);
+    console.log(`   Mode          : Live PostgreSQL Query Active`);
+    console.log(`${line}\n`);
+    return true;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.log(`\n${line}`);
+    console.log(`🟡 [DATABASE STATUS]: CONNECTION FAILED / DISCONNECTED`);
+    console.log(`   Error Details : ${errorMsg}`);
+    console.log(`   Mode          : Local JSON Fallback Active (high availability)`);
+    console.log(`${line}\n`);
+    return false;
+  }
 }

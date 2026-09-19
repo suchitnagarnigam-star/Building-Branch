@@ -146,12 +146,16 @@ Processing endpoints:
 
 - `GET /api/complaints`
 - `GET /api/complaints/:complaintId`
+- `GET /api/complaints/:complaintId/files`
+- `GET /api/complaints/:complaintId/files/:fileId`
 - `GET /api/officers`
 - `GET /api/officers/roster`
+- `GET /api/officers/:officerId`
 - `POST /api/complaints/source-upload`
 - `POST /api/complaints/process-source`
 - `POST /api/complaints/extract-source`
 - `POST /api/complaints`
+- `POST /api/inspections`
 
 ## Layout
 

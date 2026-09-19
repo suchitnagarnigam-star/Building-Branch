@@ -1,22 +1,31 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  --navy: #1a2a4a;
-  --navy-light: #243557;
-  --slate: #f2f4f8;
+  /* Government Ops Palette Tokens */
+  --midnight: #0b1957;
+  --lace: #f7f4ed;
+  --petal: #e8d9ed;
+  --bridal-blue: #e9f3ff;
+  --sapphire: #426bc2;
+  --lavender: #d2b3db;
+
+  /* App System Mapping */
+  --navy: var(--midnight);
+  --navy-light: #162975;
+  --slate: var(--lace);
   --white: #ffffff;
-  --ink: #1c1c1e;
-  --muted: #6b7280;
-  --border: #e4e6eb;
-  --accent: #2563eb;
-  --accent-light: #eff4ff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #0b1957;
+  --accent-light: var(--bridal-blue);
   --success: #16a34a;
   --warning: #d97706;
   --danger: #dc2626;
-  --neutral-status: #6b7280;
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.12);
-  --shadow-modal: 0 8px 32px rgba(0,0,0,0.16);
+  --neutral-status: #64748b;
+  --shadow-card: 0 1px 3px rgba(11, 25, 87, 0.06), 0 1px 2px rgba(11, 25, 87, 0.04);
+  --shadow-dropdown: 0 4px 16px rgba(11, 25, 87, 0.12);
+  --shadow-modal: 0 12px 40px rgba(11, 25, 87, 0.24);
 }
 
 * {
@@ -30,7 +39,7 @@ html, body, #root {
 
 body {
   font-family: "Inter", Arial, sans-serif;
-  background: var(--slate);
+  background: var(--lace);
   color: var(--ink);
 }
 
@@ -55,3 +64,20 @@ button {
   background: none;
   border: none;
 }
+
+/* Custom scrollbars - only visible when overflowing */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
