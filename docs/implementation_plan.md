@@ -91,25 +91,77 @@ CREATE TABLE bi_field_visits (
 CREATE TABLE visit_evidence (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   visit_id    UUID NOT NULL REFERENCES bi_field_visits(id),
-  file_type   VARCHAR,   -- 'inspection_photo' | 'notice_photo' | 'challan_image'
+  file_type   VARCHAR,   -- 'inspection_photo' | 'notice_photo' | 'challan_image' | 'evidence_document'
   drive_url   TEXT,
   uploaded_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-#### [NEW] Migration: `challans`
+#### [NEW] Migration: `case_replies` (Latest `workflow.pdf` Specification)
 
 ```sql
-CREATE TABLE challans (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  visit_id        UUID NOT NULL REFERENCES bi_field_visits(id),
-  complaint_id    UUID REFERENCES complaints(id),
-  bi_officer_id   UUID NOT NULL REFERENCES officers(id),
-  challan_number  VARCHAR UNIQUE,
-  challan_image   TEXT,
-  issued_at       TIMESTAMPTZ DEFAULT now(),
-  status          VARCHAR DEFAULT 'Issued'
+CREATE TABLE case_replies (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id        UUID NOT NULL REFERENCES cases(id),
+  complaint_id   UUID REFERENCES complaints(id),
+  reply_text     TEXT NOT NULL,
+  reply_date     TIMESTAMPTZ DEFAULT now(),
+  evidence_url   TEXT,
+  reviewed_by    UUID REFERENCES officers(id),
+  review_status  VARCHAR,  -- 'REPLY_VALID_RESOLVED' | 'REPLY_INVALID_VIOLATION_CONTINUES'
+  review_note    TEXT,
+  reviewed_at    TIMESTAMPTZ
 );
+```
+
+#### [NEW] Migration: `case_assessments` (Compoundable Pathway)
+
+```sql
+CREATE TABLE case_assessments (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id           UUID NOT NULL REFERENCES cases(id),
+  portion_type      VARCHAR NOT NULL,  -- 'full_compoundable' | 'partly_compoundable_portion'
+  assessment_status VARCHAR NOT NULL,  -- 'PENDING' | 'COMPLETED'
+  total_charges     NUMERIC(12,2),
+  receipt_number    VARCHAR,
+  receipt_date      DATE,
+  date_of_assessment DATE,
+  receipt_photo_url TEXT,
+  assessed_by       UUID REFERENCES officers(id),
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  updated_at        TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### [NEW] Migration: `notices` (Section 270 & Section 269 Statutory Notices)
+
+```sql
+CREATE TABLE notices (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id           UUID NOT NULL REFERENCES cases(id),
+  complaint_id      UUID REFERENCES complaints(id),
+  notice_type       VARCHAR NOT NULL,  -- 'SECTION_270' | 'SECTION_269'
+  notice_number     VARCHAR NOT NULL,
+  date_of_notice    DATE NOT NULL,
+  photo_of_notice   TEXT NOT NULL,
+  area_portion      VARCHAR,           -- 'full' | 'non_compoundable_area'
+  issued_by         UUID NOT NULL REFERENCES officers(id),
+  status            VARCHAR DEFAULT 'Active',
+  issued_at         TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### [MODIFY] Migration: `cases` (Statutory & Closure Extensions)
+
+```sql
+ALTER TABLE cases 
+  ADD COLUMN IF NOT EXISTS construction_status VARCHAR,      -- 'COMPOUNDABLE' | 'PARTLY_COMPOUNDABLE' | 'NON_COMPOUNDABLE'
+  ADD COLUMN IF NOT EXISTS compoundable_handled BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS non_compoundable_handled BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS closing_description TEXT,          -- REQUIRED when ATP closes case
+  ADD COLUMN IF NOT EXISTS closing_evidence_url TEXT,
+  ADD COLUMN IF NOT EXISTS closed_by UUID REFERENCES officers(id),
+  ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
 ```
 
 #### [NEW] Migration: `complaint_status_log`
@@ -118,6 +170,7 @@ CREATE TABLE challans (
 CREATE TABLE complaint_status_log (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   complaint_id  UUID NOT NULL REFERENCES complaints(id),
+  case_id       UUID REFERENCES cases(id),
   old_status    VARCHAR,
   new_status    VARCHAR NOT NULL,
   changed_by    UUID REFERENCES officers(id),
@@ -257,29 +310,107 @@ Tapping a row shows visit detail.
 
 ---
 
-### Phase 5: Complaint Status Lifecycle API
+### Phase 4c: Violator Reply & Joint Review Endpoint (`workflow.pdf`)
 
-Replaces the v1 Phase 4. State machine is now expanded to match v3.
+Implements reply capture and joint ATP/BI evaluation:
+
+#### [NEW] `server/routes/caseRoutes.ts` or routes in `complaintRoutes.ts`:
+- `POST /api/cases/:caseId/reply`:
+  - Multer: upload optional reply evidence documents (`evidenceFiles`).
+  - Required fields: `reply_text`, `reply_date`.
+  - Persists record in `case_replies`.
+  - Updates case status to `VIOLATOR_REPLY_RECORDED`.
+- `POST /api/cases/:caseId/review-reply`:
+  - Required fields: `review_status` ('REPLY_VALID_RESOLVED' | 'REPLY_INVALID_VIOLATION_CONTINUES'), `review_note`, `reviewed_by`.
+  - If valid: marks case `REPLY_VALID_RESOLVED` and prompts for case closure.
+  - If invalid: transitions case to `STATUS_OF_CONSTRUCTION_PENDING`.
+
+---
+
+### Phase 4d: Construction Status & Compounding Assessment / Section 269 Notice
+
+Implements the three statutory enforcement tracks from `workflow.pdf`:
+
+#### [MODIFY] `server/routes/complaintRoutes.ts`:
+- `POST /api/cases/:caseId/construction-status`:
+  - Sets construction classification: `COMPOUNDABLE`, `PARTLY_COMPOUNDABLE`, or `NON_COMPOUNDABLE`.
+- `POST /api/cases/:caseId/assessment` (Compoundable Track):
+  - Multer: `receipt_photo`.
+  - Fields: `portion_type`, `assessment_status` ('PENDING' | 'COMPLETED'), `total_charges`, `receipt_number`, `receipt_date`, `date_of_assessment`.
+  - Persists in `case_assessments`.
+  - If partly compoundable, sets `compoundable_handled = true` on `cases`.
+- `POST /api/cases/:caseId/notice-269` (Non-Compoundable Track):
+  - Multer: `photo_of_notice`.
+  - Fields: `notice_number`, `date_of_notice`, `area_portion`.
+  - Persists in `notices` with `notice_type: 'SECTION_269'`.
+  - If partly compoundable, sets `non_compoundable_handled = true` on `cases`.
+  - Verifies `Both Areas Handled?` (`compoundable_handled && non_compoundable_handled`) before transitioning status to `CASE_STATUS_UPDATED`.
+
+---
+
+### Phase 4e: Universal ATP Case Close API & Protocol
+
+Permits authorized ATP officers to close a case from any active milestone:
+
+#### [MODIFY] `server/routes/complaintRoutes.ts`:
+- `POST /api/cases/:caseId/close`:
+  - Multer: optional `closing_evidence`.
+  - Validate: `closing_description` is strictly REQUIRED (returns HTTP 400 if empty).
+  - Persists `closing_description`, `closing_evidence_url`, `closed_by`, and `closed_at` on `cases`.
+  - Inserts terminal event into `complaint_status_log` (`CASE_CLOSED_BY_ATP`).
+  - Returns HTTP 200 with closed case object.
+
+---
+
+### Phase 5: Statutory Status Lifecycle API & State Machine (`workflow.pdf`)
+
+Replaces previous simplified state machine with the full statutory workflow from `workflow.pdf`.
 
 #### [NEW] `server/workflow/state-machine/STATUS_TRANSITIONS.ts`
 
 ```typescript
 export const STATUS_TRANSITIONS: Record<string, string[]> = {
-  'REGISTERED':                  ['ASSIGNED'],
-  'ASSIGNED':                    ['UNDER_INSPECTION'],
-  'UNDER_INSPECTION':            ['COMPLAINT_UPDATE_SUBMITTED'],
-  'COMPLAINT_UPDATE_SUBMITTED':  ['CLOSED', 'PENDING_ENFORCEMENT'],
-  'PENDING_ENFORCEMENT':         ['FIELD_VISIT_RECORDED'],
-  'FIELD_VISIT_RECORDED':        ['CHALLAN_ISSUED', 'INVALID_NO_ACTION'],
-  'INVALID_NO_ACTION':           ['CLOSED'],
-  'CHALLAN_ISSUED':              ['NOTICE_ACTIVE'],
-  'NOTICE_ACTIVE':               ['RESOLVED', 'NOTICE_EXPIRED'],
-  'RESOLVED':                    ['CLOSED'],
-  'NOTICE_EXPIRED':              ['REINSPECTION_REQUIRED'],
-  'REINSPECTION_REQUIRED':       ['REINSPECTION_COMPLETED'],
-  'REINSPECTION_COMPLETED':      ['ESCALATED', 'CLOSED'],
-  'ESCALATED':                   ['FINAL_ACTION_RECORDED'],
-  'FINAL_ACTION_RECORDED':       ['CLOSED'],
+  // Intake & Pre-Inspection
+  'REGISTERED':                     ['ASSIGNED', 'CASE_CLOSED_BY_ATP'],
+  'ASSIGNED':                       ['UNDER_INSPECTION', 'CASE_CLOSED_BY_ATP'],
+  
+  // Inspection & Section 270 Notice
+  'UNDER_INSPECTION':               ['INSPECTED_NO_VIOLATION', 'NOTICE_270_ISSUED', 'CASE_CLOSED_BY_ATP'],
+  'INSPECTED_NO_VIOLATION':         ['CASE_CLOSED_BY_ATP'],
+  'NOTICE_270_ISSUED':              ['VIOLATOR_REPLY_RECORDED', 'NOTICE_270_EXPIRED', 'CASE_CLOSED_BY_ATP'],
+  'NOTICE_270_EXPIRED':             ['REINSPECTION_REQUIRED', 'STATUS_OF_CONSTRUCTION_PENDING', 'CASE_CLOSED_BY_ATP'],
+  
+  // Violator Reply & Review
+  'VIOLATOR_REPLY_RECORDED':        ['REPLY_VALID_RESOLVED', 'STATUS_OF_CONSTRUCTION_PENDING', 'CASE_CLOSED_BY_ATP'],
+  'REPLY_VALID_RESOLVED':           ['CASE_CLOSED_BY_ATP', 'CLOSED'],
+
+  // Construction Classification
+  'STATUS_OF_CONSTRUCTION_PENDING': [
+    'CONSTRUCTION_COMPOUNDABLE', 
+    'CONSTRUCTION_PARTLY_COMPOUNDABLE', 
+    'CONSTRUCTION_NON_COMPOUNDABLE', 
+    'CASE_CLOSED_BY_ATP'
+  ],
+
+  // Track 1: Compoundable
+  'CONSTRUCTION_COMPOUNDABLE':       ['ASSESSMENT_PENDING', 'ASSESSMENT_COMPLETED', 'CASE_CLOSED_BY_ATP'],
+  'ASSESSMENT_PENDING':             ['ASSESSMENT_COMPLETED', 'CASE_CLOSED_BY_ATP'],
+  'ASSESSMENT_COMPLETED':           ['CASE_STATUS_UPDATED', 'CASE_CLOSED_BY_ATP'],
+
+  // Track 2: Partly Compoundable (Dual-Track Handling)
+  'CONSTRUCTION_PARTLY_COMPOUNDABLE':['PARTLY_COMPOUNDABLE_IN_PROGRESS', 'CASE_CLOSED_BY_ATP'],
+  'PARTLY_COMPOUNDABLE_IN_PROGRESS':['BOTH_AREAS_HANDLED', 'CASE_CLOSED_BY_ATP'],
+  'BOTH_AREAS_HANDLED':             ['CASE_STATUS_UPDATED', 'CASE_CLOSED_BY_ATP'],
+
+  // Track 3: Non-Compoundable
+  'CONSTRUCTION_NON_COMPOUNDABLE':   ['NOTICE_269_ISSUED', 'CASE_CLOSED_BY_ATP'],
+  'NOTICE_269_ISSUED':              ['CASE_STATUS_UPDATED', 'CASE_CLOSED_BY_ATP'],
+
+  // Case Continuation & Closing
+  'CASE_STATUS_UPDATED':            ['WORKFLOW_CONTINUED', 'CASE_CLOSED_BY_ATP'],
+  'WORKFLOW_CONTINUED':             ['FINAL_ENFORCEMENT_ACTION', 'CASE_CLOSED_BY_ATP', 'CLOSED'],
+  'CASE_CLOSED_BY_ATP':             [],
+  'CLOSED':                         [],
 };
 ```
 
@@ -294,10 +425,11 @@ Add `PATCH /api/complaints/:complaintId/status`:
 #### [MODIFY] `ComplaintDetailPage.tsx`
 - Replace old action buttons with buttons mapped to valid next states.
 - Each button calls `PATCH /api/complaints/:id/status` with the target status.
+- Add "ATP Close Case" modal button (visible to authorized ATP roles) prompting for required `closing_description` and optional evidence file.
 - Disable buttons during in-flight request (prevent double-submit).
 - On success: update local `complaint` state — no page reload needed.
 - On 400: display the transition error message to the operator.
-- Show `complaint_status_log` entries as a timeline at the bottom of the detail page.
+- Show `complaint_status_log` entries as an audit timeline at the bottom of the detail page.
 
 ---
 

@@ -1,6 +1,6 @@
 # MCL-BB Context Handoff
 
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-21
 
 ## Current status
 
@@ -22,8 +22,18 @@ The current codebase supports:
 - Complaint list, detail, confirmation, pending, analytics, officers, field inspection, and settings screens
 - Fixed application sidebar on desktop and fixed bottom navigation on mobile
 
-Recently completed work in the current branch (`uv-dev`) includes:
+Recently completed and aligned specifications (as of `workflow.pdf` integration):
 
+- **Authoritative Statutory Enforcement Lifecycle (`workflow.pdf`)**: Formalized the PMC Act 1976 legal procedure across all docs and execution plans:
+  - **Inspection & Notice 270**: BI field inspection → Violation check (No → Record Status; Yes → Issue Section 270 Notice).
+  - **3-Day Statutory Window**: Violator given 3 days to submit reply (`Store Reply + Reply Date + Evidence if provided`).
+  - **Joint ATP / BI Review**: Valid reply closes case; invalid reply routes to Construction Status.
+  - **Construction Classification Triad**:
+    1. *Compoundable*: Assessment workflow (Pending vs Completed with Total Charges, Receipt #, Receipt Date, Assessment Date, Receipt Photo).
+    2. *Partly Compoundable*: Dual-track split into Compoundable Area (Assessment & Receipt) and Non-Compoundable Area (Section 269 Notice: Notice #, Date, Photo) with concurrency gate `Both Areas Handled?`.
+    3. *Non-Compoundable*: Section 269 Notice issuance (Notice #, Date, Photo).
+  - **Universal ATP Case Closure Protocol**: ATP has statutory authority to close a case from any milestone with mandatory `Closing Description REQUIRED` and optional `Evidence if Available`.
+  - **Central Audit Repository**: `Case Status / History` logs every transition and document.
 - **Field Inspection Backend Persistence**: Implemented `POST /api/inspections` endpoint handling multipart image uploads (`inspectionPhotos`, `noticePhoto`), PostgreSQL case & visit evidence creation, Section 270 notice persistence, and Google Drive inspection folder integration.
 - **Main Header & Topbar Refactor**: User profile widget, Date/Time badge, and Font size controls repositioned to the top right of the main white header (`Topbar.tsx`).
 - **Sidebar & Footer Navigation**: Removed top duplicate profile box from `Sidebar.tsx`; updated sidebar illustration to `ludhiana-illustration.png`; positioned Settings and Logout buttons in sidebar footer.

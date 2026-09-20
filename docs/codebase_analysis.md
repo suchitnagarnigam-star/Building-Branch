@@ -123,6 +123,17 @@ building branch/
 5. Captures photos, building type, violator details, and Section 270(1) PMC Act 1976 notice details.
 6. **Current Status**: Backend handler `POST /api/inspections` is **fully implemented** in `server/routes/complaintRoutes.ts`. It handles multipart file uploads (`inspectionPhotos`, `noticePhoto`), creates cases (`CASE-XXXX`), saves evidence to `visit_evidence` table, records Section 270 notices in `notices` table, and uploads attachments to dedicated Google Drive inspection folders.
 
+### Path D: Authoritative Statutory Enforcement Lifecycle (`workflow.pdf`)
+1. **Field Inspection & Violation Check**: BI inspects property. If no violation, records inspection status; if violation found, issues Section 270 notice (`Status: 270 Issued`).
+2. **3-Day Response Window**: Property owner given 3 days to submit response (`Store Reply + Reply Date + Evidence if provided`).
+3. **ATP / BI Reply Review**: Joint review. If valid, case is closed; if invalid, case transitions to `Status of Construction`.
+4. **Construction Status Triad**:
+   - **Compoundable Track**: Assessment workflow (Pending vs Completed). Completed assessment requires Total Charges, Receipt Number, Receipt Date, Date of Assessment, and Photo of Receipt.
+   - **Partly Compoundable Track**: Property divided into Compoundable Area (Assessment & Receipt) and Non-Compoundable Area (Section 269 Notice). System verifies `Both Areas Handled?` before advancing.
+   - **Non-Compoundable Track**: Statutory Section 269 Notice issued with Notice Number, Date of Notice, and Photo of Notice.
+5. **Universal ATP Case Closure Protocol**: ATP can close case at any milestone with mandatory `Closing Description REQUIRED` and optional `Evidence if Available`.
+6. **Central Audit & History Log**: `Case Status / History` logs all transitions, notices, assessments, receipts, and closure records.
+
 ---
 
 ## 5. Detailed Audit of Problems & Status Updates
@@ -141,9 +152,9 @@ building branch/
 ### Issue 4: PostgreSQL & Cloud Credentials Handling
 - **Status**: **PARTIALLY RESOLVED**. Implemented SSL connection handling and local JSON data fallback (`complaints.json`) for high availability.
 
-### Issue 5: Missing Workflow Lifecycle Actions
-- The status lifecycle (`Registered` → `Assigned` → `In Progress` → `Resolution Submitted` → `Pending Approval` → `Approved / Closed`) needs backend transition validation (`PATCH /api/complaints/:complaintId/status`) and timeline persistence.
-- **Status**: Open (P1 Task).
+### Issue 5: Statutory Workflow Lifecycle & State Machine (`workflow.pdf`)
+- The status lifecycle must incorporate the legal stages from `workflow.pdf` (`NOTICE_270_ISSUED`, `VIOLATOR_REPLY_RECORDED`, `CONSTRUCTION_COMPOUNDABLE`, `ASSESSMENT_COMPLETED`, `NOTICE_269_ISSUED`, `CASE_CLOSED_BY_ATP`).
+- **Status**: Planned (P1 Task).
 
 ---
 
@@ -155,22 +166,28 @@ building branch/
    - Add `VITE_API_BASE_URL` in `Frontend/.env` (defaulting to `http://localhost:5000/api`).
    - Replace all hardcoded `http://localhost:5000` URLs across frontend code.
 
-2. **Implement Status Transition APIs & Workflow State Machine**
-   - Add `PATCH /api/complaints/:complaintId/status` to handle status changes (`Assigned`, `Under Inspection`, `Resolution Submitted`, `Closed`).
-   - Log transitions in `complaint_status_log` and update `ComplaintDetailPage.tsx` action buttons and timeline.
+2. **Implement Statutory Workflow State Machine (`workflow.pdf`)**
+   - Implement `server/workflow/state-machine/STATUS_TRANSITIONS.ts` with all statutory states.
+   - Add `PATCH /api/complaints/:complaintId/status` and `POST /api/cases/:id/close` (with mandatory closing description).
+   - Log transitions in `complaint_status_log` and render audit timeline on `ComplaintDetailPage.tsx`.
 
-3. **Dedicated BI Complaint Resolution Update Endpoint & Form (Mode A)**
-   - Add `POST /api/complaints/:complaintId/bi-update` for quick resolution photo + note updates.
-   - Refactor `FieldInspectionPage.tsx` to explicitly present Mode A vs Mode B.
+3. **Violator Reply & Review Endpoints (`Phase 4c`)**
+   - `POST /api/cases/:caseId/reply`: Capture reply text, date, and supporting documents.
+   - `POST /api/cases/:caseId/review-reply`: ATP/BI joint determination (Valid vs Violation Continues).
+
+4. **Compounding Assessment & Section 269 Notice Endpoints (`Phase 4d`)**
+   - `POST /api/cases/:caseId/assessment`: Total charges, receipt number/date, assessment date, receipt photo.
+   - `POST /api/cases/:caseId/notice-269`: Notice number, date, photo of notice.
+   - Concurrency gate for Partly Compoundable cases (`Both Areas Handled?`).
 
 ---
 
 ## 🔵 P2 (Medium Priority - Analytics & Inspection Ledger)
 
-4. **Inspection Ledger UI (`InspectionLedgerPage.tsx`)**
+5. **Inspection Ledger UI (`InspectionLedgerPage.tsx`)**
    - Build UI for BIs and ATPs to browse recorded inspection visits fetched from `GET /api/inspections`.
 
-5. **Operational Analytics Backend & UI**
+6. **Operational Analytics Backend & UI**
    - Implement `server/services/analyticsService.ts` and routes (`/api/analytics/...`) to compute BI performance metrics and zone rankings from real database records.
 
 ---
@@ -181,7 +198,11 @@ building branch/
 - [x] Connect `ComplaintDetailPage.tsx` to `GET /api/complaints/:id`
 - [x] Create `POST /api/inspections` backend handler
 - [x] Implement Dashboard CSV report export
+- [x] Align docs and execution plans with latest `workflow.pdf`
 - [ ] Refactor API calls to use `VITE_API_BASE_URL`
-- [ ] Implement `PATCH /api/complaints/:id/status` state machine route
+- [ ] Implement `PATCH /api/complaints/:id/status` & statutory state machine
+- [ ] Implement Violator Reply (`/api/cases/:id/reply`) and Review endpoints
+- [ ] Implement Compounding Assessment & Section 269 endpoints
+- [ ] Implement Universal ATP Case Close (`/api/cases/:id/close`)
 - [ ] Build `InspectionLedgerPage.tsx`
 - [ ] Build real operational analytics endpoints (`/api/analytics/bi/:id`, `/api/analytics/zone/:zone`)

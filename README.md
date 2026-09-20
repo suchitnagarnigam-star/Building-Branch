@@ -33,74 +33,114 @@ npm run dev
 
 The backend runs at `http://localhost:5000`.
 
-## Complete Master Workflow
+## Authoritative Statutory Enforcement Workflow (`workflow.pdf`)
 
-For a detailed product and architectural reference, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md).
+For full product specifications, legal citations, and architecture, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md) and [`docs/implementation_plan.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/implementation_plan.md).
 
 ```mermaid
 flowchart TD
-    A[Complaint Received] --> B{Source}
-    B -->|Manual| C[Manual Entry]
-    B -->|Email/Post/Document| D[Document Upload]
-    D --> E[OCR/AI Extraction]
-    E --> F[Officer Review]
-    C --> G[Validate Complaint]
-    F --> G
-    G --> H[Identify Zone/Ward/Area]
-    H --> I[Map BI and ATP]
-    I --> J[Create Complaint]
-    J --> K[Notify BI and ATP]
+    %% Intake & Field Inspection
+    CC["Complaint / Case"] --> BI["BI Field Inspection"]
+    BI --> VF{"Violation Found?"}
+    VF -- "No" --> CR["Continue / Record Inspection Status"]
+    VF -- "Yes" --> I270["Issue 270 Notice"]
+    I270 --> S270["Status: 270 Issued"]
+    S270 --> D3["3 Days Given to Violator"]
+    D3 --> VR["Violator Reply"]
 
-    K --> L[BI Field Visit]
-    L --> M[Evidence Image]
-    M --> N[BI Report]
-    N --> O{Validation}
-    O -->|Invalid| P[Reject]
-    P --> M
-    O -->|Valid| Q[BI Update]
-    Q --> R[ATP Review]
+    %% Reply & Review
+    VR --> SR["Store Reply + Reply Date + Evidence if provided"]
+    SR --> RR{"ATP / BI Reviews Reply"}
 
-    R --> S{Decision}
-    S -->|No Action| T[Close Complaint]
-    S -->|Existing Case| U[Link Existing Case]
-    S -->|New Violation| V[Create Enforcement Case]
+    RR -- "Reply Valid / Case Resolved" --> CC_Resolved["Close Case"]
+    RR -- "Reply Not Valid / Violation Continues" --> SC_Box["Status of Construction"]
+    SC_Box --> SC_Decision{"Status of Construction"}
 
-    W[Proactive BI Violation] --> V
+    %% Path 1: Compoundable
+    SC_Decision -- "Compoundable" --> Comp_Box["Compoundable"]
+    Comp_Box --> SA1["Status of Assessment"]
+    SA1 --> AS1{"Assessment Status"}
+    AS1 -- "Pending" --> AP1["Assessment Pending"]
+    AS1 -- "Yes" --> AC1["Assessment Completed"]
+    AC1 --> TC1["Total Charges"]
+    TC1 --> RN1["Receipt Number"]
+    RN1 --> RD1["Receipt Date"]
+    RD1 --> DA1["Date of Assessment"]
+    DA1 --> PR1["Photo of Receipt"]
+    PR1 --> UCS["Update Case Status"]
 
-    V --> X{Section 270?}
-    X -->|No| Y[Continue Case]
-    X -->|Yes| Z[Issue 270]
-    Z --> AA[Record Details + Document]
-    AA --> AB[Start 3-Day Period]
+    %% Path 2: Partly Compoundable
+    SC_Decision -- "Partly Compoundable" --> PComp_Box["Partly Compoundable"]
+    PComp_Box --> TAP["Two Areas / Portions"]
+    TAP --> CA["Compoundable Area"]
+    TAP --> NCA["Non-Compoundable Area"]
 
-    AB --> AC{Action Taken?}
-    AC -->|Yes| AD[Authorized Review]
-    AD --> AE[Close/Update]
-    AC -->|No| AF{Expired?}
-    AF -->|No| AB
-    AF -->|Yes| AG[Notify BI and ATP]
-    AG --> AH[BI Reinspection]
+    CA --> SA2["Status of Assessment"]
+    SA2 --> AS2{"Assessment Status"}
+    AS2 -- "Pending" --> AP2["Assessment Pending"]
+    AS2 -- "Yes" --> AC2["Assessment Completed"]
+    AC2 --> TC2["Total Charges"]
+    TC2 --> RN2["Receipt Number"]
+    RN2 --> RD2["Receipt Date"]
+    RD2 --> DA2["Date of Assessment"]
+    DA2 --> PR2["Photo of Receipt"]
+    PR2 --> BAH{"Both Areas Handled?"}
 
-    AH --> AI[New Evidence + Report]
-    AI --> AJ[Section 269 Serious Stage]
-    AJ --> AK{Classification}
-    AK -->|Compoundable| AL[Compensation/Correction]
-    AK -->|Non-compoundable| AM[Serious Enforcement]
-    AK -->|Demolition| AN[Demolition]
-    AL --> AO[Senior Visibility]
-    AM --> AO
-    AN --> AO
+    NCA --> I269_P["Issue 269 Notice"]
+    I269_P --> NN_P["Notice Number"]
+    NN_P --> DN_P["Date of Notice"]
+    DN_P --> PN_P["Photo of Notice"]
+    PN_P --> BAH
 
-    AO --> AP[Authorized Action]
-    AP --> AQ[Status History]
-    AQ --> AR[Monitor Time + Severity]
-    AR --> AS[Calculate Score]
-    AS --> AT{3 Week Threshold?}
-    AT -->|No| AU[Normal Analytics]
-    AT -->|Yes| AV[Delayed Flag]
-    AV --> AW[Rank Flagged Cases]
-    AW --> AX[Analytics + Higher Notifications]
+    BAH -- "Yes" --> UCS
+
+    %% Path 3: Non-Compoundable
+    SC_Decision -- "Non-Compoundable" --> NC_Box["Non-Compoundable"]
+    NC_Box --> I269["Issue 269 Notice"]
+    I269 --> NN["Notice Number"]
+    NN --> DN["Date of Notice"]
+    DN --> PN["Photo of Notice"]
+    PN --> UCS
+
+    %% Lifecycle Continuation
+    UCS --> UCCS["Update Current Case Status"]
+    UCCS --> CCW["Continue Case Workflow"]
+
+    %% Universal ATP Close Case
+    ATP_Close["ATP Close Case"]
+    ATP_Close --> CDR["Closing Description REQUIRED"]
+    CDR --> EA["Evidence if Available"]
+    EA --> Closed["Case Closed"]
+    Closed --> Log[("Case Status / History")]
+
+    %% Triggers to ATP Close Case
+    CC -.-> ATP_Close
+    BI -.-> ATP_Close
+    I270 -.-> ATP_Close
+    VR -.-> ATP_Close
+    RR -.-> ATP_Close
+    SC_Decision -.-> ATP_Close
+
+    %% Audit Log connections
+    CC -.-> Log
+    BI -.-> Log
+    I270 -.-> Log
+    VR -.-> Log
+    Comp_Box -.-> Log
+    PComp_Box -.-> Log
+    NC_Box -.-> Log
+    UCS -.-> Log
 ```
+
+### Key Workflow Highlights
+1. **Section 270 Notice & 3-Day Window**: If a violation is discovered during inspection, a Section 270 notice is recorded (`Status: 270 Issued`), initiating a statutory 3-day window for the violator to respond.
+2. **Violator Response & Joint Review**: Reply statement, receipt timestamp, and optional evidence documents are stored and jointly reviewed by the ATP and BI. Valid replies immediately resolve and close the case; invalid replies proceed to construction status evaluation.
+3. **Construction Classification Triad**:
+   - **Compoundable**: Assessment workflow (Pending vs Completed). Completed assessment requires Total Charges, Receipt Number, Receipt Date, Date of Assessment, and Photo of Receipt.
+   - **Partly Compoundable**: Divided into Two Areas (Compoundable Area Assessment & Receipt; Non-Compoundable Area Section 269 Notice). The system enforces a strict concurrency gate (`Both Areas Handled?`) before proceeding.
+   - **Non-Compoundable**: Statutory Section 269 Notice issuance with Notice Number, Date of Notice, and Photo of Notice.
+4. **Universal ATP Case Closure Protocol**: An authorized ATP officer may close a case from any milestone. Closure strictly requires a mandatory `Closing Description REQUIRED` and optional `Evidence if Available`.
+5. **Central Audit Trail**: Every event, notice, payment receipt, and closure is recorded in `Case Status / History`.
 
 ## Complaint registration workflows
 

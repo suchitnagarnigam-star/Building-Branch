@@ -144,13 +144,12 @@ Full system oversight, administration and future configuration capability.
 
 ---
 
-# 7. Two Core Workflows
+# 7. Core Workflows Overview
 
-## Workflow A — Complaint-Driven
-A complaint enters the system and is investigated.
-
-## Workflow B — BI-Initiated Case
-BI independently identifies a potential violation and creates a case.
+## 7.1 Two Intake Streams
+The system supports two core intake streams:
+- **Workflow A — Complaint-Driven**: External complaint intake (manual or OCR document) followed by field verification.
+- **Workflow B — BI-Initiated Case**: Proactive field detection by Building Inspectors.
 
 ```mermaid
 flowchart LR
@@ -162,6 +161,103 @@ flowchart LR
     E -->|New Violation| H[New Enforcement Case]
     D --> H
 ```
+
+## 7.2 The Statutory Enforcement Lifecycle (`workflow.pdf`)
+Once an actionable violation is identified (from either complaint verification or proactive inspection), the case enters the authoritative statutory enforcement lifecycle under the Punjab Municipal Corporation Act, 1976 (PMC Act), as specified in `workflow.pdf`:
+
+```mermaid
+flowchart TD
+    CC["Complaint / Case"] --> BI["BI Field Inspection"]
+    BI --> VF{"Violation Found?"}
+    VF -- "No" --> CR["Continue / Record Inspection Status"]
+    VF -- "Yes" --> I270["Issue 270 Notice"]
+    I270 --> S270["Status: 270 Issued"]
+    S270 --> D3["3 Days Given to Violator"]
+    D3 --> VR["Violator Reply"]
+
+    VR --> SR["Store Reply + Reply Date + Evidence if provided"]
+    SR --> RR{"ATP / BI Reviews Reply"}
+
+    RR -- "Reply Valid / Case Resolved" --> CC_Resolved["Close Case"]
+    RR -- "Reply Not Valid / Violation Continues" --> SC_Box["Status of Construction"]
+    SC_Box --> SC_Decision{"Status of Construction"}
+
+    %% Path 1: Compoundable
+    SC_Decision -- "Compoundable" --> Comp_Box["Compoundable"]
+    Comp_Box --> SA1["Status of Assessment"]
+    SA1 --> AS1{"Assessment Status"}
+    AS1 -- "Pending" --> AP1["Assessment Pending"]
+    AS1 -- "Yes" --> AC1["Assessment Completed"]
+    AC1 --> TC1["Total Charges"]
+    TC1 --> RN1["Receipt Number"]
+    RN1 --> RD1["Receipt Date"]
+    RD1 --> DA1["Date of Assessment"]
+    DA1 --> PR1["Photo of Receipt"]
+    PR1 --> UCS["Update Case Status"]
+
+    %% Path 2: Partly Compoundable
+    SC_Decision -- "Partly Compoundable" --> PComp_Box["Partly Compoundable"]
+    PComp_Box --> TAP["Two Areas / Portions"]
+    TAP --> CA["Compoundable Area"]
+    TAP --> NCA["Non-Compoundable Area"]
+
+    CA --> SA2["Status of Assessment"]
+    SA2 --> AS2{"Assessment Status"}
+    AS2 -- "Pending" --> AP2["Assessment Pending"]
+    AS2 -- "Yes" --> AC2["Assessment Completed"]
+    AC2 --> TC2["Total Charges"]
+    TC2 --> RN2["Receipt Number"]
+    RN2 --> RD2["Receipt Date"]
+    RD2 --> DA2["Date of Assessment"]
+    DA2 --> PR2["Photo of Receipt"]
+    PR2 --> BAH{"Both Areas Handled?"}
+
+    NCA --> I269_P["Issue 269 Notice"]
+    I269_P --> NN_P["Notice Number"]
+    NN_P --> DN_P["Date of Notice"]
+    DN_P --> PN_P["Photo of Notice"]
+    PN_P --> BAH
+
+    BAH -- "Yes" --> UCS
+
+    %% Path 3: Non-Compoundable
+    SC_Decision -- "Non-Compoundable" --> NC_Box["Non-Compoundable"]
+    NC_Box --> I269["Issue 269 Notice"]
+    I269 --> NN["Notice Number"]
+    NN --> DN["Date of Notice"]
+    DN --> PN["Photo of Notice"]
+    PN --> UCS
+
+    %% Final continuation
+    UCS --> UCCS["Update Current Case Status"]
+    UCCS --> CCW["Continue Case Workflow"]
+
+    %% ATP Universal Closure Path
+    ATP_Close["ATP Close Case"]
+    ATP_Close --> CDR["Closing Description REQUIRED"]
+    CDR --> EA["Evidence if Available"]
+    EA --> Closed["Case Closed"]
+    Closed --> Log[("Case Status / History")]
+
+    %% Dotted triggers to ATP Close Case
+    CC -.-> ATP_Close
+    BI -.-> ATP_Close
+    I270 -.-> ATP_Close
+    VR -.-> ATP_Close
+    RR -.-> ATP_Close
+    SC_Decision -.-> ATP_Close
+
+    %% Audit Log connections
+    CC -.-> Log
+    BI -.-> Log
+    I270 -.-> Log
+    VR -.-> Log
+    Comp_Box -.-> Log
+    PComp_Box -.-> Log
+    NC_Box -.-> Log
+    UCS -.-> Log
+```
+
 
 ---
 
@@ -344,110 +440,208 @@ Recommended prototype direction:
 
 ---
 
-# 14. Section 270 Workflow
+# 14. BI Field Inspection & Section 270 Notice Workflow
 
-Section 270 is currently understood as an optional first notice/challan stage.
-
-If BI decides no notice is required:
-- Submit evidence/report
-- ATP reviews
-
-If BI issues Section 270:
-1. Issue notice through official field process
-2. Record notice information
-3. Record number/data
-4. Upload notice image/document
-5. Start notice period
-
-Exact legal requirements should be verified against official source material before production.
+When a complaint is assigned or a proactive case is initiated, the Building Inspector (BI) conducts an on-site physical inspection.
 
 ```mermaid
 flowchart TD
-    A[BI case inspection] --> B{Issue Section 270?}
-    B -->|No| C[Submit evidence + report]
-    C --> D[ATP review]
-    B -->|Yes| E[Issue Section 270]
-    E --> F[Record notice details]
-    F --> G[Upload notice document]
-    G --> H[Start 3-day period]
+    CC["Complaint / Case"] --> BI["BI Field Inspection"]
+    BI --> VF{"Violation Found?"}
+    VF -- "No" --> CR["Continue / Record Inspection Status"]
+    VF -- "Yes" --> I270["Issue 270 Notice"]
+    I270 --> S270["Status: 270 Issued"]
+    S270 --> D3["3 Days Given to Violator"]
+    D3 --> VR["Violator Reply"]
 ```
+
+## 14.1 Inspection Outcome
+1. **No Violation Found**:
+   - BI logs inspection details, geotagged photo evidence, and written report.
+   - Status updated to `Continue / Record Inspection Status`. Case either remains in monitoring or is submitted to ATP for closure.
+2. **Violation Found**:
+   - BI issues statutory Section 270 Notice under the PMC Act, 1976.
+   - System updates case status to `Status: 270 Issued`.
+   - Records notice number, issue date, and uploaded photo of physical notice.
+
+## 14.2 Statutory 3-Day Response Window
+- Under Section 270, the property owner/violator is legally granted **3 Days** to respond or rectify the violation (`3 Days Given to Violator`).
+- A backend timer tracks this statutory window.
 
 ---
 
-# 15. Three-Day Notice Period
-
-After Section 270:
-- A 3-day period starts
-- Future reminders can be generated
-- External WhatsApp integration is later scope
-- Portal remains officer-only for now
-
-If action happens:
-- Authorized officer reviews
-- Official status may be updated
-
-If no action happens:
-- BI and ATP receive expiry notification
-- BI revisits the location
+# 15. Violator Reply & ATP / BI Reply Review
 
 ```mermaid
 flowchart TD
-    A[Section 270 issued] --> B[3-day timer]
-    B --> C{Action taken?}
-    C -->|Yes| D[Authorized review]
-    D --> E[Close/update status]
-    C -->|No| F{Period expired?}
-    F -->|No| B
-    F -->|Yes| G[Notify BI and ATP]
-    G --> H[BI reinspection]
+    VR["Violator Reply"] --> SR["Store Reply + Reply Date + Evidence if provided"]
+    SR --> RR{"ATP / BI Reviews Reply"}
+    RR -- "Reply Valid / Case Resolved" --> CC_Resolved["Close Case"]
+    RR -- "Reply Not Valid / Violation Continues" --> SC_Box["Status of Construction"]
+    SC_Box --> SC_Decision{"Status of Construction"}
 ```
+
+## 15.1 Storing the Reply
+When the violator submits their explanation or evidence:
+- **Violator Reply**: Response statement or legal representation.
+- **Reply Date**: Timestamp of receipt.
+- **Evidence Documents**: Supporting sanction plans, NOCs, ownership proofs, or photographic evidence.
+
+## 15.2 Joint Supervisory Review
+ATP and BI jointly review the submitted reply:
+1. **Reply Valid / Case Resolved**:
+   - The violator proves lawful sanction, permission, or prompt rectification.
+   - The case proceeds immediately to `Close Case`, logged into `Case Status / History`.
+2. **Reply Not Valid / Violation Continues**:
+   - If the reply is rejected or illegal construction is ongoing, the case transitions to `Status of Construction` for statutory legal classification.
 
 ---
 
-# 16. Section 269 Serious Enforcement Stage
+# 16. Construction Status & Three Enforcement Pathways
 
-After expiry and reinspection, the matter may enter the serious Section 269 stage.
-
-BI submits:
-- New evidence
-- Updated report
-- Relevant Section 269 information/documents
-- Enforcement classification
-
-Current remembered categories:
-- Compoundable
-- Non-compoundable
-- Demolition
-
-These legal details must be verified against official sources before production implementation.
-
-After this stage, visibility should be provided to:
-- ATP
-- MTP
-- JC
-- Super Admin
-
-The application tracks the workflow and records. Actual government/legal field actions are outside the application's direct responsibility.
+When a violation continues after notice review, the matter is classified according to municipal bylaws into one of three distinct tracks:
 
 ```mermaid
 flowchart TD
-    A[Period expires] --> B[BI reinspection]
-    B --> C[New evidence]
-    C --> D[Updated report]
-    D --> E[Section 269]
-    E --> F{Classification}
-    F -->|Compoundable| G[Compensation/correction path]
-    F -->|Non-compoundable| H[Serious enforcement]
-    F -->|Demolition| I[Demolition path]
-    G --> J[Senior visibility]
-    H --> J
-    I --> J
-    J --> K[Authorized review/action]
+    SC_Decision{"Status of Construction"}
+    
+    %% Path 1: Compoundable
+    SC_Decision -- "Compoundable" --> Comp_Box["Compoundable"]
+    Comp_Box --> SA1["Status of Assessment"]
+    SA1 --> AS1{"Assessment Status"}
+    AS1 -- "Pending" --> AP1["Assessment Pending"]
+    AS1 -- "Yes" --> AC1["Assessment Completed"]
+    AC1 --> TC1["Total Charges"]
+    TC1 --> RN1["Receipt Number"]
+    RN1 --> RD1["Receipt Date"]
+    RD1 --> DA1["Date of Assessment"]
+    DA1 --> PR1["Photo of Receipt"]
+    PR1 --> UCS["Update Case Status"]
+
+    %% Path 2: Partly Compoundable
+    SC_Decision -- "Partly Compoundable" --> PComp_Box["Partly Compoundable"]
+    PComp_Box --> TAP["Two Areas / Portions"]
+    TAP --> CA["Compoundable Area"]
+    TAP --> NCA["Non-Compoundable Area"]
+
+    CA --> SA2["Status of Assessment"]
+    SA2 --> AS2{"Assessment Status"}
+    AS2 -- "Pending" --> AP2["Assessment Pending"]
+    AS2 -- "Yes" --> AC2["Assessment Completed"]
+    AC2 --> TC2["Total Charges"]
+    TC2 --> RN2["Receipt Number"]
+    RN2 --> RD2["Receipt Date"]
+    RD2 --> DA2["Date of Assessment"]
+    DA2 --> PR2["Photo of Receipt"]
+    PR2 --> BAH{"Both Areas Handled?"}
+
+    NCA --> I269_P["Issue 269 Notice"]
+    I269_P --> NN_P["Notice Number"]
+    NN_P --> DN_P["Date of Notice"]
+    DN_P --> PN_P["Photo of Notice"]
+    PN_P --> BAH
+
+    BAH -- "Yes" --> UCS
+
+    %% Path 3: Non-Compoundable
+    SC_Decision -- "Non-Compoundable" --> NC_Box["Non-Compoundable"]
+    NC_Box --> I269["Issue 269 Notice"]
+    I269 --> NN["Notice Number"]
+    NN --> DN["Date of Notice"]
+    DN --> PN["Photo of Notice"]
+    PN --> UCS
+
+    %% Final continuation
+    UCS --> UCCS["Update Current Case Status"]
+    UCCS --> CCW["Continue Case Workflow"]
 ```
+
+## 16.1 Pathway 1: Compoundable
+Applicable when deviations are minor and permissible for compounding/regularization under MCL building bylaws.
+- Enters `Status of Assessment`.
+- **Assessment Status** check:
+  - **Pending**: Case flagged as `Assessment Pending` until municipal town planning assessment is finalized.
+  - **Yes (Completed)**: Upon payment, the system captures full fiscal and receipt metadata:
+    1. `Total Charges`: Assessed compounding fee amount (INR).
+    2. `Receipt Number`: Official municipal treasury receipt number.
+    3. `Receipt Date`: Date of payment receipt.
+    4. `Date of Assessment`: Date assessment order was approved.
+    5. `Photo of Receipt`: Uploaded physical treasury/challan receipt scan.
+- On receipt verification, advances to `Update Case Status`.
+
+## 16.2 Pathway 2: Partly Compoundable (Dual-Track Handling)
+Applicable when a property contains both regularizable deviations and severe illegal construction.
+- The property is split into `Two Areas / Portions`:
+  1. **Compoundable Area**: Undergoes full Assessment & Payment workflow (`Status of Assessment` → `Assessment Pending` or `Assessment Completed` with Total Charges, Receipt Number, Receipt Date, Date of Assessment, Photo of Receipt).
+  2. **Non-Compoundable Area**: Enforces statutory demolition notice under Section 269 (`Issue 269 Notice` with Notice Number, Date of Notice, Photo of Notice).
+- **Synchronization Gate (`Both Areas Handled?`)**:
+  - The system enforces a strict concurrency rule: both the compounding payment verification AND the Section 269 notice issuance must be verified before the case can advance (`Update Case Status`).
+
+## 16.3 Pathway 3: Non-Compoundable (Serious Enforcement / Section 269)
+Applicable when the construction violates non-negotiable zoning rules, major setbacks, or structural safety.
+- Bypasses compounding assessment entirely.
+- Enters statutory Section 269 notice issuance:
+  1. `Issue 269 Notice`: Statutory demolition/sealing order under PMC Act Section 269.
+  2. `Notice Number`: Formal municipal file / notice registration number.
+  3. `Date of Notice`: Statutory issuance date.
+  4. `Photo of Notice`: Uploaded physical copy of Section 269 notice served at property.
+- Advances to `Update Case Status`.
+
+## 16.4 Workflow Continuation
+From `Update Case Status`:
+- System transitions to `Update Current Case Status`.
+- Proceeds to `Continue Case Workflow` for post-notice enforcement monitoring, demolition scheduling, or final archival.
 
 ---
 
-# 17. Status Ownership
+# 17. Universal ATP Case Closure Protocol
+
+To preserve administrative agility and legal oversight, the Assistant Town Planner (ATP) has statutory authority to close a case at any stage of the workflow.
+
+```mermaid
+flowchart TD
+    Trigger["Case Milestone (Inspection, Notice 270, Reply, Construction Status)"] -.-> ATP_Close["ATP Close Case"]
+    ATP_Close --> CDR["Closing Description REQUIRED"]
+    CDR --> EA["Evidence if Available"]
+    EA --> Closed["Case Closed"]
+    Closed --> Log[("Case Status / History")]
+```
+
+## 17.1 Universal Access Points
+ATP can trigger `ATP Close Case` directly from:
+- `Complaint / Case` (Intake stage)
+- `BI Field Inspection` (Pre-notice stage)
+- `Issue 270 Notice` (Notice active stage)
+- `Violator Reply` (Post-reply stage)
+- `ATP / BI Reviews Reply` (Review stage)
+- `Status of Construction` (Compoundable or Non-Compoundable stage)
+
+## 17.2 Mandatory Closure Requirements
+To prevent arbitrary closures and maintain full legal accountability, the system enforces:
+1. **Closing Description REQUIRED**: Mandatory narrative justification explaining the legal or administrative grounds for closure.
+2. **Evidence if Available**: Optional supporting documentation (e.g., sanctioned building plan, court stay order, demolition completion photo, receipt voucher).
+3. **Case Closed**: Transition to terminal state.
+4. **Logged to Audit Log**: Immediate event creation in `Case Status / History`.
+
+---
+
+# 18. Case Status / History & Audit Trail
+
+The system maintains a centralized, tamper-evident audit repository (`Case Status / History`).
+
+Every milestone in `workflow.pdf` publishes structured event entries into `Case Status / History`:
+- Complaint registration & assignment
+- Field inspection reports & photos
+- Section 270 notice issuance
+- Violator reply submission & review outcome
+- Compounding assessment creation & receipt photo upload
+- Section 269 notice details & notice photo
+- Universal ATP closures with required description
+- State transitions and officer actor IDs
+
+---
+
+# 19. Status Ownership
 
 ## BI
 Can:
@@ -460,7 +654,7 @@ Cannot:
 - Change official complaint/case status arbitrarily
 
 ## ATP
-Handles routine review and status decisions.
+Handles routine review and status decisions, including issuing notices and closing cases under authorized criteria.
 
 ## MTP / JC / Super Admin
 Receive higher-level visibility and handle serious/authorized decisions according to administrative authority.
@@ -473,26 +667,6 @@ flowchart LR
     CASE --> JC[JC Oversight]
     CASE --> SA[Super Admin Oversight]
 ```
-
----
-
-# 18. Status History
-
-Do not only store `current_status`.
-
-Store:
-- Previous status
-- New status
-- Changed by
-- Changed at
-- Reason/note
-
-This supports:
-- Accountability
-- Timeline
-- Analytics
-- Time-in-state calculation
-- Delay detection
 
 ---
 
@@ -1125,69 +1299,110 @@ Define how to identify:
 
 # 38. Master End-to-End Workflow
 
+The complete end-to-end operational lifecycle combines complaint intake, proactive BI inspections, the statutory enforcement procedure established in `workflow.pdf`, and supervisory analytics.
+
 ```mermaid
 flowchart TD
-    A[Complaint Received] --> B{Source}
-    B -->|Manual| C[Manual Entry]
-    B -->|Email/Post/Document| D[Document Upload]
-    D --> E[OCR/AI Extraction]
-    E --> F[Officer Review]
-    C --> G[Validate Complaint]
-    F --> G
-    G --> H[Identify Zone/Ward/Area]
-    H --> I[Map BI and ATP]
-    I --> J[Create Complaint]
-    J --> K[Notify BI and ATP]
+    %% Intake Streams
+    CR_In["Complaint Received (Manual / OCR Document)"] --> Val_Comp["Validate & Map (BI & ATP)"]
+    Val_Comp --> Comp_Rec["Complaint Record Created"]
+    Comp_Rec --> Field_Insp["BI Field Inspection"]
+    Proactive["Proactive BI Field Detection"] --> Field_Insp
 
-    K --> L[BI Field Visit]
-    L --> M[Evidence Image]
-    M --> N[BI Report]
-    N --> O{Validation}
-    O -->|Invalid| P[Reject]
-    P --> M
-    O -->|Valid| Q[BI Update]
-    Q --> R[ATP Review]
+    %% Inspection & Violation Check
+    Field_Insp --> V_Check{"Violation Found?"}
+    V_Check -- "No" --> No_Viol["Continue / Record Inspection Status"]
+    V_Check -- "Yes" --> Notice_270["Issue 270 Notice"]
 
-    R --> S{Decision}
-    S -->|No Action| T[Close Complaint]
-    S -->|Existing Case| U[Link Existing Case]
-    S -->|New Violation| V[Create Enforcement Case]
+    %% Notice 270 & 3-Day Window
+    Notice_270 --> Stat_270["Status: 270 Issued"]
+    Stat_270 --> Window_3D["3 Days Given to Violator"]
+    Window_3D --> Viol_Reply["Violator Reply"]
 
-    W[Proactive BI Violation] --> V
+    %% Reply Capture & Joint Review
+    Viol_Reply --> Store_Reply["Store Reply + Reply Date + Evidence if provided"]
+    Store_Reply --> Reply_Review{"ATP / BI Reviews Reply"}
 
-    V --> X{Section 270?}
-    X -->|No| Y[Continue Case]
-    X -->|Yes| Z[Issue 270]
-    Z --> AA[Record Details + Document]
-    AA --> AB[Start 3-Day Period]
+    Reply_Review -- "Reply Valid / Case Resolved" --> Case_Resolved["Close Case"]
+    Reply_Review -- "Reply Not Valid / Violation Continues" --> Status_Const["Status of Construction"]
+    Status_Const --> Const_Decision{"Status of Construction"}
 
-    AB --> AC{Action Taken?}
-    AC -->|Yes| AD[Authorized Review]
-    AD --> AE[Close/Update]
-    AC -->|No| AF{Expired?}
-    AF -->|No| AB
-    AF -->|Yes| AG[Notify BI and ATP]
-    AG --> AH[BI Reinspection]
+    %% Path 1: Compoundable
+    Const_Decision -- "Compoundable" --> P1_Comp["Compoundable"]
+    P1_Comp --> P1_StatAss["Status of Assessment"]
+    P1_StatAss --> P1_AssCheck{"Assessment Status"}
+    P1_AssCheck -- "Pending" --> P1_Pending["Assessment Pending"]
+    P1_AssCheck -- "Yes" --> P1_Done["Assessment Completed"]
+    P1_Done --> P1_TC["Total Charges"]
+    P1_TC --> P1_RN["Receipt Number"]
+    P1_RN --> P1_RD["Receipt Date"]
+    P1_RD --> P1_DA["Date of Assessment"]
+    P1_DA --> P1_PR["Photo of Receipt"]
+    P1_PR --> Upd_Status["Update Case Status"]
 
-    AH --> AI[New Evidence + Report]
-    AI --> AJ[Section 269 Serious Stage]
-    AJ --> AK{Classification}
-    AK -->|Compoundable| AL[Compensation/Correction]
-    AK -->|Non-compoundable| AM[Serious Enforcement]
-    AK -->|Demolition| AN[Demolition]
-    AL --> AO[Senior Visibility]
-    AM --> AO
-    AN --> AO
+    %% Path 2: Partly Compoundable
+    Const_Decision -- "Partly Compoundable" --> P2_Partly["Partly Compoundable"]
+    P2_Partly --> P2_TwoAreas["Two Areas / Portions"]
+    P2_TwoAreas --> P2_CA["Compoundable Area"]
+    P2_TwoAreas --> P2_NCA["Non-Compoundable Area"]
 
-    AO --> AP[Authorized Action]
-    AP --> AQ[Status History]
-    AQ --> AR[Monitor Time + Severity]
-    AR --> AS[Calculate Score]
-    AS --> AT{3 Week Threshold?}
-    AT -->|No| AU[Normal Analytics]
-    AT -->|Yes| AV[Delayed Flag]
-    AV --> AW[Rank Flagged Cases]
-    AW --> AX[Analytics + Higher Notifications]
+    P2_CA --> P2_StatAss["Status of Assessment"]
+    P2_StatAss --> P2_AssCheck{"Assessment Status"}
+    P2_AssCheck -- "Pending" --> P2_Pending["Assessment Pending"]
+    P2_AssCheck -- "Yes" --> P2_Done["Assessment Completed"]
+    P2_Done --> P2_TC["Total Charges"]
+    P2_TC --> P2_RN["Receipt Number"]
+    P2_RN --> P2_RD["Receipt Date"]
+    P2_RD --> P2_DA["Date of Assessment"]
+    P2_DA --> P2_PR["Photo of Receipt"]
+    P2_PR --> P2_Sync{"Both Areas Handled?"}
+
+    P2_NCA --> P2_269["Issue 269 Notice"]
+    P2_269 --> P2_NN["Notice Number"]
+    P2_NN --> P2_DN["Date of Notice"]
+    P2_DN --> P2_PN["Photo of Notice"]
+    P2_PN --> P2_Sync
+
+    P2_Sync -- "Yes" --> Upd_Status
+
+    %% Path 3: Non-Compoundable
+    Const_Decision -- "Non-Compoundable" --> P3_NonComp["Non-Compoundable"]
+    P3_NonComp --> P3_269["Issue 269 Notice"]
+    P3_269 --> P3_NN["Notice Number"]
+    P3_NN --> P3_DN["Date of Notice"]
+    P3_DN --> P3_PN["Photo of Notice"]
+    P3_PN --> Upd_Status
+
+    %% Post Status Update & Continuation
+    Upd_Status --> Upd_Curr["Update Current Case Status"]
+    Upd_Curr --> Cont_Flow["Continue Case Workflow"]
+    Cont_Flow --> Mon_Delay{"3-Week Pending Threshold?"}
+    Mon_Delay -- "No" --> Normal_Analytics["Normal Lifecycle Analytics"]
+    Mon_Delay -- "Yes" --> Flag_Delayed["Delayed Case Flag & Senior Escalation"]
+
+    %% Universal ATP Case Closure
+    ATP_Close["ATP Close Case"]
+    ATP_Close --> ATP_Desc["Closing Description REQUIRED"]
+    ATP_Desc --> ATP_Evid["Evidence if Available"]
+    ATP_Evid --> ATP_Closed["Case Closed"]
+    ATP_Closed --> Audit_Log[("Case Status / History")]
+
+    %% Universal Close Triggers
+    Comp_Rec -.-> ATP_Close
+    Field_Insp -.-> ATP_Close
+    Notice_270 -.-> ATP_Close
+    Viol_Reply -.-> ATP_Close
+    Reply_Review -.-> ATP_Close
+    Const_Decision -.-> ATP_Close
+
+    %% Audit Logging
+    Comp_Rec -.-> Audit_Log
+    Field_Insp -.-> Audit_Log
+    Notice_270 -.-> Audit_Log
+    Viol_Reply -.-> Audit_Log
+    Case_Resolved -.-> Audit_Log
+    Upd_Status -.-> Audit_Log
+    Flag_Delayed -.-> Audit_Log
 ```
 
 ---
