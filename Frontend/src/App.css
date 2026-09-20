@@ -162,10 +162,15 @@
 
 .nav-item--active {
   position: relative;
-  background: var(--bridal-blue);
-  color: var(--midnight);
+  background: var(--midnight);
+  color: #ffffff;
   font-weight: 600;
-  box-shadow: none;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(11, 25, 87, 0.2);
+}
+
+.nav-item--active .nav-item__icon svg {
+  color: #ffffff;
 }
 
 .nav-item__icon {
@@ -3097,10 +3102,22 @@ textarea {
   gap: 14px;
   background: #fff;
   border: 1px solid var(--border);
+  border-left: 4px solid var(--midnight);
   border-radius: 10px;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 2px 12px rgba(11, 25, 87, 0.07);
   padding: 20px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
+.db-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(11, 25, 87, 0.12);
+}
+
+.db-stat-card:nth-child(1) { border-left-color: #2563eb; }
+.db-stat-card:nth-child(2) { border-left-color: #ea580c; }
+.db-stat-card:nth-child(3) { border-left-color: #16a34a; }
+.db-stat-card:nth-child(4) { border-left-color: #0d9488; }
 
 .db-stat-card__icon {
   width: 44px;
@@ -3152,7 +3169,7 @@ textarea {
 .db-stat-card__value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--midnight);
   line-height: 1.1;
 }
 
@@ -3201,8 +3218,10 @@ textarea {
 .db-chart-card__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
-  color: var(--ink);
+  font-weight: 700;
+  color: var(--midnight);
+  border-left: 3.5px solid var(--midnight);
+  padding-left: 10px;
 }
 
 .db-chart-card__subtitle {
@@ -3311,8 +3330,10 @@ svg:focus {
 .db-pipeline-card__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
-  color: var(--ink);
+  font-weight: 700;
+  color: var(--midnight);
+  border-left: 3.5px solid var(--midnight);
+  padding-left: 10px;
 }
 
 .db-pipeline-card__subtitle {
@@ -3328,15 +3349,15 @@ svg:focus {
   padding: 6px 14px;
   border-radius: 6px;
   background: var(--accent-light);
-  color: var(--accent);
+  color: var(--midnight);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .db-link-btn:hover {
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(11, 25, 87, 0.1);
 }
 
 .db-link-btn svg {
@@ -3349,7 +3370,10 @@ svg:focus {
   align-items: center;
   gap: 0;
   overflow-x: auto;
-  padding: 8px 0;
+  padding: 16px 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .db-pipeline__step-wrap {
@@ -3438,8 +3462,10 @@ svg:focus {
 .db-recent-card__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
-  color: var(--ink);
+  font-weight: 700;
+  color: var(--midnight);
+  border-left: 3.5px solid var(--midnight);
+  padding-left: 10px;
 }
 
 .db-recent-card__subtitle {
