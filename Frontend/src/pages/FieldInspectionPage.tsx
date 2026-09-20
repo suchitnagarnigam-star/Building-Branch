@@ -5,6 +5,7 @@ import Icon from "../shared/components/Icon";
 
 type FieldInspectionPageProps = {
   navigate: (route: string) => void;
+  caseId?: string;
 };
 
 type Officer = {
@@ -36,6 +37,18 @@ type ComplaintLookup = {
   address: string;
 };
 
+type CaseLookup = {
+  case_id: string;
+  primary_complaint_id: string | null;
+  building_identity: string;
+  location: string;
+  zone: string;
+  block: string;
+  ward: string | null;
+  assigned_bi_id: string | null;
+  assigned_bi_name: string | null;
+};
+
 const getApiBaseUrl = () => {
   const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
   return base.replace(/\/$/, "");
@@ -44,6 +57,7 @@ const getApiBaseUrl = () => {
 const OFFICERS_API_URL = `${getApiBaseUrl()}/officers/roster`;
 const INSPECTIONS_API_URL = `${getApiBaseUrl()}/inspections`;
 const COMPLAINTS_API_URL = `${getApiBaseUrl()}/complaints`;
+const CASES_API_URL = `${getApiBaseUrl()}/cases`;
 
 const normalise = (value: string) =>
   value.replace(/^zone\s*/i, "").replace(/^block\s*/i, "").trim().toUpperCase();
@@ -53,9 +67,28 @@ const isBiOfficer = (officer: Officer) => {
   return designation === "BI" || designation.endsWith("-BI");
 };
 
-function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
-  const [sourceOfReport, setSourceOfReport] = useState<"complaint" | "field_visit">("complaint");
-  const [inspectionOutcome, setInspectionOutcome] = useState<"no_violation"|"violation_found"|"">("");
+function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPageProps) {
+  const initialCaseId = useMemo(() => {
+    if (propCaseId) return propCaseId;
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const match = hash.match(/[?&](?:caseId|case_id)=([^&]+)/i);
+      return match ? decodeURIComponent(match[1]) : "";
+    }
+    return "";
+  }, [propCaseId]);
+
+  const [sourceOfReport, setSourceOfReport] = useState<"complaint" | "field_visit" | "case" | string>(() =>
+    initialCaseId ? "case" : "complaint",
+  );
+  const [existingCaseId, setExistingCaseId] = useState(initialCaseId);
+  const [caseLookup, setCaseLookup] = useState<CaseLookup | null>(null);
+  const [caseLoading, setCaseLoading] = useState(false);
+  const [caseError, setCaseError] = useState("");
+
+  const [inspectionOutcome, setInspectionOutcome] = useState<"no_violation"|"violation_found"|"">(
+    () => (initialCaseId ? "violation_found" : ""),
+  );
   const [complaintId, setComplaintId] = useState("");
   const [complaintLookup, setComplaintLookup] = useState<ComplaintLookup | null>(null);
   const [complaintLoading, setComplaintLoading] = useState(false);
@@ -154,6 +187,57 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
     };
   }, [complaintId, sourceOfReport]);
 
+  useEffect(() => {
+    if (sourceOfReport !== "case") {
+      return;
+    }
+
+    const id = existingCaseId.trim();
+    if (!id) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCaseLoading(true);
+      setCaseError("");
+      try {
+        const response = await fetch(`${CASES_API_URL}/${encodeURIComponent(id)}`, {
+          signal: controller.signal,
+        });
+        const result = await response.json() as {
+          success?: boolean;
+          caseRecord?: CaseLookup;
+          message?: string;
+        };
+
+        if (!response.ok || !result.success || !result.caseRecord) {
+          throw new Error(result.message || "Case not found.");
+        }
+
+        const caseRec = result.caseRecord;
+        setCaseLookup(caseRec);
+        if (caseRec.assigned_bi_id) setReportingOfficer(caseRec.assigned_bi_id);
+        if (caseRec.block) setBlock(caseRec.block);
+        if (caseRec.ward) setWard(caseRec.ward);
+        if (caseRec.location) setLocation(caseRec.location);
+        if (caseRec.building_identity) setBuildingType(caseRec.building_identity);
+        if (caseRec.primary_complaint_id) setComplaintId(caseRec.primary_complaint_id);
+      } catch (reason: unknown) {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setCaseLookup(null);
+        setCaseError(reason instanceof Error ? reason.message : "Unable to load case details.");
+      } finally {
+        if (!controller.signal.aborted) setCaseLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [existingCaseId, sourceOfReport]);
+
   const zone = useMemo(() => zoneForBlock(block), [block]);
   const selectedReportingOfficer = useMemo(
     () => officers.find((officer) => officer.officerId === reportingOfficer),
@@ -186,10 +270,13 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
     }
     return undefined;
   }, [block, complaintLookup, officers, zone]);
-  const isComplaintMode = sourceOfReport === "complaint";
 
-  const handleSourceChange = (value: "complaint" | "field_visit") => {
-    setSourceOfReport(value);
+  const isComplaintMode = sourceOfReport === "complaint";
+  const isCaseMode = sourceOfReport === "case";
+  const isAutoPopulatedMode = isComplaintMode || isCaseMode;
+
+  const handleSourceChange = (value: "complaint" | "field_visit" | string) => {
+    setSourceOfReport(value as "complaint" | "field_visit" | "case");
     setSubmitError("");
     if (value === "field_visit") {
       setInspectionOutcome("violation_found");
@@ -197,16 +284,28 @@ function FieldInspectionPage({ navigate }: FieldInspectionPageProps) {
       setComplaintId("");
       setComplaintLookup(null);
       setComplaintError("");
+      setExistingCaseId("");
+      setCaseLookup(null);
+      setCaseError("");
       setReportingOfficer("");
       setBlock("");
       setWard("");
       setLocation("");
+    } else if (value === "case") {
+      setInspectionOutcome("violation_found");
+      setNoticeOpen(true);
+      setComplaintId("");
+      setComplaintLookup(null);
+      setComplaintError("");
     } else {
       setInspectionOutcome("");
       setNoticeNumber("");
       setNoticeDate("");
       setNoticePhoto(null);
       setNoticeOpen(false);
+      setExistingCaseId("");
+      setCaseLookup(null);
+      setCaseError("");
     }
   };
 
@@ -261,16 +360,13 @@ const submitInspection = async (
   setSubmitError("");
 
   const effectiveInspectionOutcome =
-    sourceOfReport === "field_visit"
+    sourceOfReport === "field_visit" || sourceOfReport === "case"
       ? "violation_found"
       : inspectionOutcome;
   setInspectionOutcome(effectiveInspectionOutcome);
 
   /*
    * Client-side validation.
-   *
-   * The backend performs the authoritative validation
-   * again, so these checks are only for user feedback.
    */
 
   if (!effectiveInspectionOutcome) {
@@ -287,9 +383,16 @@ const submitInspection = async (
     return;
   }
 
-  if(sourceOfReport === "complaint" && !complaintId.trim()) {
+  if (sourceOfReport === "complaint" && !complaintId.trim()) {
     setSubmitError(
       "Please enter the complaint ID.",
+    );
+    return;
+  }
+
+  if (sourceOfReport === "case" && !existingCaseId.trim()) {
+    setSubmitError(
+      "Please enter the Case ID.",
     );
     return;
   }
@@ -396,6 +499,13 @@ const submitInspection = async (
       formData.append(
         "complaintId",
         complaintId.trim(),
+      );
+    }
+
+    if (sourceOfReport === "case" || existingCaseId.trim()) {
+      formData.append(
+        "caseId",
+        existingCaseId.trim(),
       );
     }
 
@@ -522,6 +632,188 @@ const submitInspection = async (
   }
 };
 
+
+  if (sourceOfReport === "case") {
+    return (
+      <div className="field-inspection-page">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
+          <div>
+            <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--ink)" }}>Field Inspection - Existing Case</h1>
+            <p style={{ color: "var(--muted)", fontSize: "12px", margin: "2px 0 0" }}>Fetch existing case details and proceed to construction status</p>
+          </div>
+          <button
+            type="button"
+            className="secondary-button"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600, borderColor: "var(--accent)", color: "var(--accent)", background: "var(--accent-light)" }}
+            onClick={() => navigate("/construction-status")}
+          >
+            <Icon name="edit" />
+            Record Construction Status
+          </button>
+        </div>
+
+        <form className="field-inspection-form compact-form" onSubmit={(e) => {
+          e.preventDefault();
+          if (!existingCaseId.trim()) {
+            setSubmitError("Please enter a valid Existing Case ID.");
+            return;
+          }
+          if (!caseLookup) {
+            setSubmitError("Please wait for case details to load or verify the Case ID.");
+            return;
+          }
+          navigate(`/cases/${encodeURIComponent(existingCaseId.trim())}/construction-status`);
+        }}>
+          <section className="inspection-card">
+            <div className="inspection-card__header">
+              <span className="inspection-card__number">01</span>
+              <h2>Report Information & Case Details</h2>
+            </div>
+            <div className="inspection-grid">
+              <div className="form-field form-field--full">
+                <label>Source of Report <span>*</span></label>
+                <div className="choice-grid choice-grid--inline compact-choice-grid">
+                  {[
+                    { id: "complaint", label: "Complaint Based" },
+                    { id: "field_visit", label: "Proactive Visit" },
+                    { id: "case", label: "Existing Case" },
+                  ].map((item) => (
+                    <label className={`choice-card choice-card--compact ${sourceOfReport === item.id ? "choice-card--selected" : ""}`} key={item.id}>
+                      <input
+                        type="radio"
+                        name="sourceOfReport"
+                        value={item.id}
+                        checked={sourceOfReport === item.id}
+                        onChange={() => handleSourceChange(item.id as "complaint" | "field_visit" | "case")}
+                      />
+                      <span><strong>{item.label}</strong></span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="caseId">Existing Case ID <span>*</span></label>
+                <input
+                  id="caseId"
+                  required
+                  value={existingCaseId}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setExistingCaseId(value);
+                    if (!value.trim()) {
+                      setCaseLookup(null);
+                      setCaseError("");
+                    }
+                  }}
+                  placeholder="Enter Case ID (e.g. CASE-XXXXXX)"
+                />
+                {caseLoading && <small>Loading case details...</small>}
+                {caseError && <small className="field-error">{caseError}</small>}
+                {caseLookup && <small className="field-success">Case details loaded ({caseLookup.case_id}).</small>}
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="reportingOfficer">Reporting Officer (BI)</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedReportingOfficer?.name || caseLookup?.assigned_bi_name || reportingOfficer || "—"}
+                  style={{ background: "var(--surface-muted)", cursor: "not-allowed" }}
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Supervising ATP</label>
+                <div className={`atp-card ${!supervisingAtp ? "atp-card--empty" : ""}`}>
+                  <Icon name="user" />
+                  {supervisingAtp ? <div><strong>{supervisingAtp.name}</strong><span>{supervisingAtp.designation}</span></div> : <div><strong>{block ? "No ATP mapped" : "Select a case"}</strong></div>}
+                </div>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="block">Block</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={block || "—"}
+                  style={{ background: "var(--surface-muted)", cursor: "not-allowed" }}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="zone">Zone</label>
+                <div id="zone" className="derived-field" style={{ background: "var(--surface-muted)" }}>
+                  <Icon name="map" />
+                  {zone || caseLookup?.zone || "—"}
+                </div>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="ward">Ward (Optional)</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={ward || "—"}
+                  style={{ background: "var(--surface-muted)", cursor: "not-allowed" }}
+                />
+              </div>
+
+              <div className="form-field form-field--wide">
+                <label htmlFor="location">Address / Landmark</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={location || "—"}
+                  style={{ background: "var(--surface-muted)", cursor: "not-allowed" }}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="buildingType">Building Type</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={buildingType || caseLookup?.building_identity || "—"}
+                  style={{ background: "var(--surface-muted)", cursor: "not-allowed" }}
+                />
+              </div>
+            </div>
+          </section>
+
+          <div className="inspection-actions">
+            {submitError && (
+              <div
+                className="field-error"
+                role="alert"
+                style={{ marginRight: "auto" }}
+              >
+                {submitError}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => navigate("/dashboard")}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={!caseLookup}
+            >
+              Next
+              <Icon name="arrow" />
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="field-inspection-page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
@@ -550,17 +842,27 @@ const submitInspection = async (
             <div className="form-field form-field--full">
               <label>Source of Report <span>*</span></label>
               <div className="choice-grid choice-grid--inline compact-choice-grid">
-                {(["complaint", "field_visit"] as const).map((value) => (
-                  <label className={`choice-card choice-card--compact ${sourceOfReport === value ? "choice-card--selected" : ""}`} key={value}>
-                    <input type="radio" name="sourceOfReport" value={value} checked={sourceOfReport === value} onChange={() => handleSourceChange(value)} />
-                    <span><strong>{value === "complaint" ? "Complaint Based" : "Field Visit"}</strong></span>
+                {[
+                  { id: "complaint", label: "Complaint Based" },
+                  { id: "field_visit", label: "Proactive Visit" },
+                  { id: "case", label: "Existing Case" },
+                ].map((item) => (
+                  <label className={`choice-card choice-card--compact ${sourceOfReport === item.id ? "choice-card--selected" : ""}`} key={item.id}>
+                    <input
+                      type="radio"
+                      name="sourceOfReport"
+                      value={item.id}
+                      checked={sourceOfReport === item.id}
+                      onChange={() => handleSourceChange(item.id as "complaint" | "field_visit" | "case")}
+                    />
+                    <span><strong>{item.label}</strong></span>
                   </label>
                 ))}
               </div>
             </div>
             <div className="form-field">
               <label htmlFor="reportingOfficer">Reporting Officer <span>*</span></label>
-              <select id="reportingOfficer" required value={reportingOfficer} onChange={(event) => { setReportingOfficer(event.target.value); setBlock(""); }} disabled={isComplaintMode || officersLoading || Boolean(officersError)}>
+              <select id="reportingOfficer" required value={reportingOfficer} onChange={(event) => { setReportingOfficer(event.target.value); setBlock(""); }} disabled={isAutoPopulatedMode || officersLoading || Boolean(officersError)}>
                 <option value="">{officersLoading ? "Loading officers..." : "Select officer"}</option>
                 {officers.filter(isBiOfficer).map((officer) => <option key={officer.officerId} value={officer.officerId}>{officer.name}</option>)}
               </select>
@@ -592,6 +894,29 @@ const submitInspection = async (
               </div>
             )}
 
+            {sourceOfReport === "case" && (
+              <div className="form-field">
+                <label htmlFor="caseId">Existing Case ID <span>*</span></label>
+                <input
+                  id="caseId"
+                  required={sourceOfReport === "case"}
+                  value={existingCaseId}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setExistingCaseId(value);
+                    if (!value.trim()) {
+                      setCaseLookup(null);
+                      setCaseError("");
+                    }
+                  }}
+                  placeholder="Enter Case ID (e.g. CASE-XXXXXX)"
+                />
+                {caseLoading && <small>Loading case details...</small>}
+                {caseError && <small className="field-error">{caseError}</small>}
+                {caseLookup && <small className="field-success">Case details loaded ({caseLookup.case_id}).</small>}
+              </div>
+            )}
+
             <div className="form-field">
               <label>Supervising ATP</label>
               <div className={`atp-card ${!supervisingAtp ? "atp-card--empty" : ""}`}>
@@ -605,10 +930,10 @@ const submitInspection = async (
         <section className="inspection-card">
           <div className="inspection-card__header"><span className="inspection-card__number">02</span><h2>Location</h2></div>
           <div className="inspection-grid">
-            <div className="form-field"><label htmlFor="block">Block <span>*</span></label>            <select id="block" required value={block} onChange={(event) => setBlock(event.target.value)} disabled={isComplaintMode || !selectedReportingOfficer}><option value="">{selectedReportingOfficer ? "Select block" : "Select officer first"}</option>{availableBlocks.map((entry) => <option value={entry.block} key={entry.block}>{entry.block}</option>)}</select></div>
-            <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{complaintLookup?.zone || zone || "Auto"}</div></div>
-            <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" readOnly={isComplaintMode} value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Ward" /></div>
-            <div className="form-field form-field--wide"><label htmlFor="location">Address / Landmark <span>*</span></label><input id="location" readOnly={isComplaintMode} required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter location" /></div>
+            <div className="form-field"><label htmlFor="block">Block <span>*</span></label><select id="block" required value={block} onChange={(event) => setBlock(event.target.value)} disabled={isAutoPopulatedMode || !selectedReportingOfficer}><option value="">{selectedReportingOfficer ? "Select block" : "Select officer first"}</option>{availableBlocks.map((entry) => <option value={entry.block} key={entry.block}>{entry.block}</option>)}</select></div>
+            <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{caseLookup?.zone || complaintLookup?.zone || zone || "Auto"}</div></div>
+            <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" readOnly={isAutoPopulatedMode} value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Ward" /></div>
+            <div className="form-field form-field--wide"><label htmlFor="location">Address / Landmark <span>*</span></label><input id="location" readOnly={isAutoPopulatedMode} required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter location" /></div>
             <div className="form-field form-field--full"><label>GPS Location <span>*</span></label><div className={`location-capture ${coordinates ? "location-capture--success" : ""}`}><div className="location-capture__icon"><Icon name="map" /></div><div className="location-capture__content"><strong>{coordinates ? "Location captured" : "GPS not captured"}</strong>{coordinates ? <span>Lat {coordinates.latitude.toFixed(5)} · Long {coordinates.longitude.toFixed(5)}</span> : <span>Capture site location</span>}</div><button type="button" className="secondary-button" onClick={captureLocation} disabled={locationLoading}>{locationLoading ? "Capturing..." : coordinates ? "Recapture" : "Capture Location"}</button></div>{locationError && <small className="field-error">{locationError}</small>}</div>
           </div>
         </section>
