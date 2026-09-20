@@ -11,6 +11,7 @@ import type {
 type ConstructionStatusFormProps = {
   navigate?: (route: string) => void;
   onSubmitSuccess?: (payload: ConstructionFormPayload) => void;
+  caseId?: string;
 };
 
 const ASSESSMENT_STATUS_OPTIONS = ["Assessed", "Pending"];
