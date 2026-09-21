@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Icon from "../shared/components/Icon";
 import type {
@@ -14,9 +14,68 @@ type ConstructionStatusFormProps = {
   caseId?: string;
 };
 
+type CaseRecord = {
+  case_id: string;
+  source_type?: string;
+  primary_complaint_id?: string | null;
+  building_identity?: string | null;
+  location?: string | null;
+  zone?: string | null;
+  block?: string | null;
+  ward?: string | null;
+  assigned_bi_id?: string | null;
+  assigned_bi_name?: string | null;
+  assigned_atp_id?: string | null;
+  assigned_atp_name?: string | null;
+  current_status?: string;
+  construction_status?: string | null;
+};
+
 const ASSESSMENT_STATUS_OPTIONS = ["Assessed", "Pending"];
 
-function ConstructionStatusForm({ navigate, onSubmitSuccess }: ConstructionStatusFormProps) {
+function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId }: ConstructionStatusFormProps) {
+  // ── Target Case State ───────────────────────────────────────────────────────
+  const [targetCaseId, setTargetCaseId] = useState(propCaseId || "");
+  const [caseRecord, setCaseRecord] = useState<CaseRecord | null>(null);
+  const [isLoadingCase, setIsLoadingCase] = useState(false);
+  const [availableCases, setAvailableCases] = useState<CaseRecord[]>([]);
+
+  useEffect(() => {
+    if (propCaseId) {
+      setTargetCaseId(propCaseId);
+      fetchCaseDetails(propCaseId);
+    } else {
+      fetch("/api/cases")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.cases)) {
+            setAvailableCases(data.cases);
+            if (data.cases.length > 0 && !targetCaseId) {
+              setTargetCaseId(data.cases[0].case_id);
+              fetchCaseDetails(data.cases[0].case_id);
+            }
+          }
+        })
+        .catch((e) => console.warn("Could not load case list", e));
+    }
+  }, [propCaseId]);
+
+  const fetchCaseDetails = async (id: string) => {
+    if (!id.trim()) return;
+    setIsLoadingCase(true);
+    try {
+      const res = await fetch(`/api/cases/${encodeURIComponent(id.trim())}`);
+      const data = await res.json();
+      if (data.success && data.caseRecord) {
+        setCaseRecord(data.caseRecord);
+      }
+    } catch (e) {
+      console.warn("Could not load case details", e);
+    } finally {
+      setIsLoadingCase(false);
+    }
+  };
+
   // ── Optional Reply by Violator fields (rendered at end) ────────────────────
   const [replyByViolator, setReplyByViolator] = useState("");
   const [replyPhoto, setReplyPhoto] = useState<File | null>(null);
@@ -137,34 +196,84 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess }: ConstructionStatu
     return true;
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!targetCaseId.trim()) {
+      setSubmitError("Case ID is required. Please select or specify a Case ID.");
+      return;
+    }
     if (!validate()) return;
 
     setIsSubmitting(true);
+    setSubmitError("");
 
-    let constStatusPayload;
-    if (status === "compoundable") {
-      constStatusPayload = { status: "compoundable" as const, compoundable };
-    } else if (status === "non_compoundable") {
-      constStatusPayload = { status: "non_compoundable" as const, nonCompoundable };
-    } else {
-      constStatusPayload = { status: "partly_compoundable" as const, compoundable, nonCompoundable };
-    }
+    try {
+      const formData = new FormData();
+      formData.append("status", status);
 
-    const payload: ConstructionFormPayload = {
-      replyByViolator: replyByViolator.trim() || undefined,
-      replyPhoto,
-      constructionStatus: constStatusPayload,
-    };
+      if (status === "compoundable" || status === "partly_compoundable") {
+        formData.append("assessmentStatus", compoundable.assessmentStatus);
+        if (compoundable.assessmentStatus === "Assessed") {
+          formData.append("totalCharges", compoundable.totalCharges);
+          formData.append("assessmentDate", compoundable.assessmentDate);
+          formData.append("receiptNumber", compoundable.receiptNumber);
+          formData.append("receiptDate", compoundable.receiptDate);
+          if (compoundable.receiptPhoto) {
+            formData.append("receiptPhoto", compoundable.receiptPhoto);
+          }
+        }
+      }
 
-    setTimeout(() => {
+      if (status === "non_compoundable" || status === "partly_compoundable") {
+        formData.append("noticeNumber", nonCompoundable.noticeNumber);
+        formData.append("noticeDate", nonCompoundable.noticeDate);
+        if (nonCompoundable.noticePhoto) {
+          formData.append("noticePhoto", nonCompoundable.noticePhoto);
+        }
+      }
+
+      if (replyByViolator.trim()) {
+        formData.append("replyByViolator", replyByViolator.trim());
+      }
+      if (replyPhoto) {
+        formData.append("replyPhoto", replyPhoto);
+      }
+
+      const response = await fetch(
+        `/api/cases/${encodeURIComponent(targetCaseId.trim())}/construction-status`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to record construction status.");
+      }
+
       setIsSubmitting(false);
       setSubmitSuccess(true);
+
       if (onSubmitSuccess) {
-        onSubmitSuccess(payload);
+        let constStatusPayload;
+        if (status === "compoundable") {
+          constStatusPayload = { status: "compoundable" as const, compoundable };
+        } else if (status === "non_compoundable") {
+          constStatusPayload = { status: "non_compoundable" as const, nonCompoundable };
+        } else {
+          constStatusPayload = { status: "partly_compoundable" as const, compoundable, nonCompoundable };
+        }
+        onSubmitSuccess({
+          replyByViolator: replyByViolator.trim() || undefined,
+          replyPhoto,
+          constructionStatus: constStatusPayload,
+        });
       }
-    }, 400);
+    } catch (err) {
+      setIsSubmitting(false);
+      setSubmitError(err instanceof Error ? err.message : "Submission failed. Please check network connection.");
+    }
   };
 
   const renderCompoundableFields = (sectionNumber: string, sectionLabel?: string) => {
@@ -492,8 +601,188 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess }: ConstructionStatu
 
   const isFormActive = Boolean(status);
 
+  if (submitSuccess) {
+    return (
+      <div className="field-inspection-page">
+        <div className="field-inspection-form compact-form">
+          <section className="inspection-card" style={{ textAlign: "center", padding: "48px 24px" }}>
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "50%",
+                background: "#dcfce7",
+                color: "#16a34a",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "28px",
+                margin: "0 auto 16px",
+              }}
+            >
+              ✓
+            </div>
+            <h2 style={{ fontSize: "22px", margin: "0 0 8px", color: "var(--text-primary)" }}>
+              Construction Status Recorded
+            </h2>
+            <p style={{ color: "var(--muted)", margin: "0 0 24px", fontSize: "14px" }}>
+              Case <strong>{targetCaseId}</strong> has been updated with{" "}
+              <strong style={{ textTransform: "capitalize" }}>{status.replace("_", " ")}</strong> construction details.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+              {navigate && (
+                <>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => navigate(`/cases/${encodeURIComponent(targetCaseId.trim())}`)}
+                  >
+                    <Icon name="eye" /> View Case Details
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => navigate("/cases")}
+                  >
+                    <Icon name="list" /> Enforcement Cases
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => navigate("/field-inspection")}
+                  >
+                    <Icon name="arrow" /> Field Inspection
+                  </button>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="field-inspection-page">
+      <div className="field-inspection-page__intro" style={{ marginBottom: "18px" }}>
+        <div>
+          <p className="eyebrow" style={{ textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.08em", color: "var(--accent)" }}>
+            Statutory Field Operations
+          </p>
+          <h1 style={{ margin: "4px 0 6px", fontSize: "24px" }}>
+            Construction Status Assessment
+          </h1>
+          <p style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>
+            Assess compoundable fee compliance, record Section 269 notices, and file violator replies.
+          </p>
+        </div>
+        {caseRecord && (
+          <div className="field-inspection-page__status">
+            <span></span>
+            Case: {caseRecord.case_id}
+          </div>
+        )}
+      </div>
+
+      {/* ── CASE INFORMATION & SELECTION CARD ── */}
+      <section className="inspection-card" style={{ marginBottom: "16px" }}>
+        <div className="inspection-card__header">
+          <span className="inspection-card__number">
+            <Icon name="folder" />
+          </span>
+          <div>
+            <h2>Target Case Information</h2>
+          </div>
+        </div>
+
+        {propCaseId ? (
+          <div className="inspection-grid">
+            <div className="form-field">
+              <label>Case ID</label>
+              <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--accent)" }}>
+                {targetCaseId}
+              </div>
+            </div>
+            <div className="form-field">
+              <label>Current Status</label>
+              <div>
+                <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "12px", background: "var(--accent-light, #e0f2fe)", color: "var(--accent, #0284c7)", fontWeight: 600, fontSize: "12px" }}>
+                  {caseRecord?.current_status || "Open"}
+                </span>
+              </div>
+            </div>
+            {caseRecord && (
+              <>
+                <div className="form-field">
+                  <label>Location & Zone</label>
+                  <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                    {caseRecord.location || "Ludhiana"} ({caseRecord.zone || "Zone A"}, {caseRecord.block || "Block"})
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label>Assigned Officer</label>
+                  <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                    {caseRecord.assigned_bi_name || "Sonia Mehta (BI)"}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="inspection-grid">
+            <div className="form-field form-field--full">
+              <label htmlFor="caseSelect">Target Case ID <span>*</span></label>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {availableCases.length > 0 ? (
+                  <select
+                    id="caseSelect"
+                    value={targetCaseId}
+                    onChange={(e) => {
+                      setTargetCaseId(e.target.value);
+                      fetchCaseDetails(e.target.value);
+                    }}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">-- Choose an Existing Case --</option>
+                    {availableCases.map((c) => (
+                      <option key={c.case_id} value={c.case_id}>
+                        {c.case_id} — {c.location || "Ludhiana"} ({c.current_status})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Enter Case ID e.g. CASE-F689612E08BB"
+                    value={targetCaseId}
+                    onChange={(e) => setTargetCaseId(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                )}
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => fetchCaseDetails(targetCaseId)}
+                  disabled={isLoadingCase}
+                >
+                  {isLoadingCase ? "Loading..." : "Load Case"}
+                </button>
+              </div>
+            </div>
+            {caseRecord && (
+              <div className="form-field form-field--full" style={{ background: "rgba(0,0,0,0.03)", padding: "10px 14px", borderRadius: "8px" }}>
+                <div style={{ fontSize: "13px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                  <div><strong>Location:</strong> {caseRecord.location || "N/A"}</div>
+                  <div><strong>Zone:</strong> {caseRecord.zone || "Zone A"}</div>
+                  <div><strong>Status:</strong> {caseRecord.current_status || "Open"}</div>
+                  <div><strong>Assigned BI:</strong> {caseRecord.assigned_bi_name || "Sonia Mehta"}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
       <form className="field-inspection-form compact-form" onSubmit={handleSubmit} noValidate>
         {/* ── SECTION 01: STATUS OF CONSTRUCTION ── */}
         <section className="inspection-card">
@@ -575,7 +864,7 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess }: ConstructionStatu
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate(targetCaseId ? `/cases/${encodeURIComponent(targetCaseId)}` : "/cases")}
                 disabled={isSubmitting}
               >
                 Cancel
