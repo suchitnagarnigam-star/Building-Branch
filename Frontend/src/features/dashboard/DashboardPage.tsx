@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, Label,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+import { DonutChart, type DonutChartSegment } from "@/components/ui/donut-chart";
 import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
@@ -47,6 +47,7 @@ const currentMonth = new Intl.DateTimeFormat("en-IN", { month: "short", year: "n
 /* ─── Component ─── */
 function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps) {
   const [apiComplaints, setApiComplaints] = useState<ComplaintRecord[]>([]);
+  const [hoveredDonutSegment, setHoveredDonutSegment] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -161,6 +162,18 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
   }, [activeComplaintsList]);
 
   const statusTotal = statusData.reduce((sum, d) => sum + d.value, 0);
+
+  const donutSegments: DonutChartSegment[] = useMemo(() => [
+    { label: "Registered", value: statusData[0].value, color: "#3b82f6" },
+    { label: "Assigned", value: statusData[1].value, color: "#ea580c" },
+    { label: "In Progress", value: statusData[2].value, color: "#d97706" },
+    { label: "Resolved", value: statusData[3].value, color: "#10b981" },
+  ], [statusData]);
+
+  const activeDonutSeg = donutSegments.find((s) => s.label === hoveredDonutSegment);
+  const displayDonutVal = activeDonutSeg ? activeDonutSeg.value : statusTotal;
+  const displayDonutLbl = activeDonutSeg ? activeDonutSeg.label : "TOTAL CASES";
+  const displayDonutPct = activeDonutSeg && statusTotal > 0 ? Math.round((activeDonutSeg.value / statusTotal) * 100) : 100;
 
   // Dynamically compute pipeline step counts directly from real data
   const pipeline = useMemo(() => [
@@ -309,85 +322,77 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
               <option>This Month</option>
             </select>
           </div>
-          <div className="db-chart-card__body db-chart-card__body--donut">
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="36%"
-                  cy="50%"
-                  innerRadius={66}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-                  stroke="none"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => navigate("/cases")}
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      style={{ cursor: "pointer", transition: "opacity 0.2s" }}
-                    />
-                  ))}
-                  <Label
-                    position="center"
-                    content={({ viewBox }) => {
-                      if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) return null;
-                      const { cx, cy } = viewBox as { cx: number; cy: number };
-                      return (
-                        <g style={{ cursor: "pointer" }} onClick={() => navigate("/cases")}>
-                          <text
-                            x={cx}
-                            y={cy - 6}
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                            style={{ fontSize: "24px", fontWeight: 800, fill: "#0f172a" }}
-                          >
-                            {statusTotal.toLocaleString()}
-                          </text>
-                          <text
-                            x={cx}
-                            y={cy + 16}
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                            style={{ fontSize: "11px", fontWeight: 700, fill: "#64748b", letterSpacing: "0.05em" }}
-                          >
-                            TOTAL CASES
-                          </text>
-                        </g>
-                      );
+          <div className="db-chart-card__body db-chart-card__body--donut" style={{ display: "flex", alignItems: "center", justifyContent: "space-around", flexWrap: "wrap", gap: "16px", minHeight: "240px", padding: "12px 16px" }}>
+            <div style={{ cursor: "pointer" }} onClick={() => navigate("/cases")}>
+              <DonutChart
+                data={donutSegments}
+                size={210}
+                strokeWidth={26}
+                animationDuration={1.1}
+                animationDelayPerSegment={0.06}
+                highlightOnHover={true}
+                onSegmentHover={(seg) => setHoveredDonutSegment(seg ? seg.label : null)}
+                centerContent={
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      userSelect: "none",
                     }}
-                  />
-                </Pie>
-                <Legend
-                  layout="vertical"
-                  verticalAlign="middle"
-                  align="right"
-                  iconType="circle"
-                  iconSize={11}
-                  formatter={(value: string) => {
-                    const item = statusData.find((d) => d.name === value);
-                    if (!item) return value;
-                    const pct = statusTotal > 0 ? ((item.value / statusTotal) * 100).toFixed(1) : "0";
-                    return (
-                      <span
-                        className="db-legend-item"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate("/cases");
-                        }}
-                      >
-                        <span className="db-legend-item__name">{value}</span>
-                        <span className="db-legend-item__value">{item.value.toLocaleString()}</span>
-                        <span className="db-legend-item__pct">{pct}%</span>
+                  >
+                    <span style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>
+                      {displayDonutVal.toLocaleString()}
+                    </span>
+                    <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", letterSpacing: "0.05em", marginTop: "3px", textTransform: "uppercase" }}>
+                      {displayDonutLbl}
+                    </span>
+                    {activeDonutSeg && (
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: activeDonutSeg.color, marginTop: "2px" }}>
+                        [{displayDonutPct}%]
                       </span>
-                    );
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+                    )}
+                  </div>
+                }
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "190px" }}>
+              {donutSegments.map((item) => {
+                const pct = statusTotal > 0 ? ((item.value / statusTotal) * 100).toFixed(1) : "0";
+                const isHovered = hoveredDonutSegment === item.label;
+                return (
+                  <div
+                    key={item.label}
+                    className="db-legend-item"
+                    style={{
+                      background: isHovered ? "#f1f5f9" : "transparent",
+                      borderRadius: "6px",
+                      padding: "4px 8px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={() => setHoveredDonutSegment(item.label)}
+                    onMouseLeave={() => setHoveredDonutSegment(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate("/cases");
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: item.color, flexShrink: 0 }} />
+                      <span className="db-legend-item__name">{item.label}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span className="db-legend-item__value">{item.value.toLocaleString()}</span>
+                      <span className="db-legend-item__pct">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
