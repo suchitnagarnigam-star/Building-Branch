@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node node_modules/tsx/dist/cli.mjs app.ts",
     "build": "tsc",
+    "build": "node ./node_modules/typescript/bin/tsc",
     "start": "node dist/app.js",
     "db:test": "node node_modules/tsx/dist/cli.mjs db/testConnection.ts"
   },

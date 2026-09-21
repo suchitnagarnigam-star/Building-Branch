@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const node_path_1 = __importDefault(require("node:path"));
 const complaintRoutes_1 = __importDefault(require("./routes/complaintRoutes"));
+const database_1 = require("./db/database");
 const app = (0, express_1.default)();
 const moduleDirectory = __dirname;
 const serverRoot = node_path_1.default.basename(moduleDirectory) === "dist"
@@ -17,6 +18,7 @@ app.use(express_1.default.json());
 app.use("/uploads", express_1.default.static(node_path_1.default.join(serverRoot, "uploads")));
 app.use("/api", complaintRoutes_1.default);
 const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, async () => {
+    console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
+    await (0, database_1.testDatabaseConnection)();
 });
