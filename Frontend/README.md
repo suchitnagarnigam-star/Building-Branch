@@ -26,15 +26,19 @@ The frontend uses an application shell pattern:
 | Route | Component | Description |
 | :--- | :--- | :--- |
 | `#/dashboard` | `DashboardPage.tsx` | Operational KPIs, Zone complaint distribution, Case pipeline progress, CSV report export |
-| `#/complaints` | `ComplaintsPage.tsx` | Searchable complaint list with zone and status filters |
+| `#/complaints` | `ComplaintsPage.tsx` | Categorized complaint list (Active/Unassigned, Assigned/Converted, Resolved) with zone filters & case links |
 | `#/complaints/new` | `ComplaintFormPage.tsx` | Dual-mode intake: manual entry form and external document upload |
 | `#/complaints/new/extracted` | `ExtractedComplaintPage.tsx` | Verification of fields extracted by Mistral OCR and Claude LLM |
-| `#/complaints/:id` | `ComplaintDetailPage.tsx` | Complaint metadata, Drive attachment viewer, assigned officers, status action buttons, and audit trail |
+| `#/complaints/:id` | `ComplaintDetailPage.tsx` | Complaint metadata, Drive attachment viewer, assigned officers, case file promotion banner & actions |
 | `#/complaints/confirm/:id` | `ComplaintConfirmationPage.tsx` | Registration success receipt with complaint reference number |
+| `#/cases` | `CasesPage.tsx` | Dedicated Enforcement Cases list with Lifecycle Status & Source filters and active case metric segregation |
+| `#/cases/:caseId` | `CaseDetailPage.tsx` | Full statutory Enforcement Case view, statutory milestone progress, audit history, and notices |
+| `#/cases/:caseId/construction-status` | `ConstructionStatusPage.tsx` | Construction status classification form (Compoundable, Partly Compoundable, Non-Compoundable) & fee assessment |
+| `#/construction-status` | `ConstructionStatusPage.tsx` | Dual-lookup intake form with `-- Choose an Existing Case or enter Complaint ID --` prompt |
 | `#/field-inspection` | `FieldInspectionPage.tsx` | BI field visit report: GPS geolocation, photos, building classification, and Section 270 notice recording |
 | `#/officers` | `OfficersPage.tsx` | Roster directory showing assigned BI and ATP officers across Zones and Blocks |
 | `#/analytics` | `AnalyticsPage.tsx` | Enforcement analytics and delay-tracking dashboard |
-| `#/settings` | `SettingsPage.tsx` | Profile and system preferences |
+| `#/settings` | `SettingsPage.tsx` | Profile, system preferences, and root font-size display scaling controls (85%-115%) |
 
 ---
 

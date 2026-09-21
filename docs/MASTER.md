@@ -1491,10 +1491,22 @@ Handles submission of BI field visits for both complaint-driven investigations a
   - `inspectionPhotos`: Mandatory inspection evidence image files (stored in Google Drive)
   - `noticePhoto`: Optional Section 270 notice image file (stored in Google Drive)
 
-### 2. `GET /api/complaints/:complaintId/files`
+### 2. `POST /api/complaints/:complaintId/assign`
+Transactional complaint-to-case promotion endpoint. Assigns a BI officer to a complaint, automatically creates or reuses an enforcement case (`CASE-XXXXXXXXXXXX`), links primary complaint and `case_complaints`, sets status to `'Assigned'`, and logs to `case_audit_history`.
+
+### 3. `GET /api/cases`
+Fetches all enforcement cases with lifecycle filtering, search, and officer metadata.
+
+### 4. `GET /api/cases/:caseId`
+Resolves a specific case using multi-field lookup (matches `case_id`, `primary_complaint_id`, or linked `case_complaints.complaint_id`).
+
+### 5. `POST /api/cases/:caseId/construction-status`
+Persists construction status assessment (Compoundable, Partly Compoundable, Non-Compoundable) along with calculated fee assessment, receipt data, or Section 269 notice generation metadata.
+
+### 6. `GET /api/complaints/:complaintId/files`
 Fetches Google Drive file references associated with a complaint folder (categorized into source documents, preliminary evidence, and resolution photos).
 
-### 3. `GET /api/officers/roster`
+### 7. `GET /api/officers/roster`
 Returns the officer roster mapping Building Inspectors (BIs) and Assistant Town Planners (ATPs) to their respective assigned Zones and Blocks.
 
 ---

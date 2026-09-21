@@ -28,16 +28,17 @@ The current working assumption is:
   - `GET /api/cases/:caseId`
 - The branch state must still be verified before implementation begins.
 
-### 2.2 Known Gaps
+### 2.2 Known Gaps & Status Progress
 
-- `ConstructionStatusForm.tsx` currently uses a local `setTimeout` submission stub.
-- Statutory data is not fully persisted in the database.
-- Some frontend areas still use legacy complaint statuses.
-- `AnalyticsPage.tsx` uses mock values and synthetic officer statistics.
-- API URLs are hardcoded to `http://localhost:5000`.
-- `server/node_modules/` is tracked in Git.
-- Workflow transitions are not yet centralized and consistently enforced.
-- Role permissions, prerequisites, evidence requirements, and audit logging need hardening.
+- [x] Transactional complaint-to-case promotion (`POST /api/complaints/:complaintId/assign`).
+- [x] Backend case endpoints (`GET /api/cases`, `GET /api/cases/:caseId`).
+- [x] Construction Status dual lookup intake (`-- Choose an Existing Case or enter Complaint ID --`).
+- [x] Construction status persistence (`POST /api/cases/:caseId/construction-status`).
+- [x] Text and display scaling controls (`Topbar.tsx` popover slider & `SettingsPage.tsx` settings).
+- [ ] Centralise hardcoded `http://localhost:5000` URLs using `VITE_API_BASE_URL`.
+- [ ] Statutory workflow state machine transition validation (`STATUS_TRANSITIONS.ts`).
+- [ ] Violator reply persistence and review endpoints (`/api/cases/:id/reply`, `/api/cases/:id/review-reply`).
+- [ ] Live analytics API integration from persisted DB records.
 
 ---
 

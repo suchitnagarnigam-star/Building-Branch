@@ -199,6 +199,10 @@ building branch/
 - [x] Create `POST /api/inspections` backend handler
 - [x] Implement Dashboard CSV report export
 - [x] Align docs and execution plans with latest `workflow.pdf`
+- [x] Transactional Complaint-to-Case promotion endpoint (`POST /api/complaints/:id/assign`)
+- [x] Dedicated Enforcement Cases list (`/cases`) and detailed view (`/cases/:caseId`)
+- [x] Construction Status dual lookup (`-- Choose an Existing Case or enter Complaint ID --`) & backend resolution (`GET /api/cases/:caseId`)
+- [x] Dynamic text & display scaling controls in header popover (`Topbar.tsx`) & settings (`SettingsPage.tsx`)
 - [ ] Refactor API calls to use `VITE_API_BASE_URL`
 - [ ] Implement `PATCH /api/complaints/:id/status` & statutory state machine
 - [ ] Implement Violator Reply (`/api/cases/:id/reply`) and Review endpoints

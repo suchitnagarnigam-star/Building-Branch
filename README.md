@@ -174,20 +174,29 @@ Processing endpoints:
 - `/complaints/new`
 - `/complaints/new/extracted`
 - `/complaints/confirm/:complaintId`
-- `/field-inspection`
+- `/complaints/:complaintId`
 - `/complaints`
 - `/complaints/mine`
 - `/complaints/pending`
+- `/cases`
+- `/cases/:caseId`
+- `/cases/:caseId/construction-status`
+- `/construction-status`
+- `/field-inspection`
 - `/analytics`
 - `/officers`
 - `/settings`
 
 ## Backend API
 
-- `GET /api/complaints`
+- `GET /api/complaints` (includes subqueried `caseId`)
 - `GET /api/complaints/:complaintId`
 - `GET /api/complaints/:complaintId/files`
 - `GET /api/complaints/:complaintId/files/:fileId`
+- `POST /api/complaints/:complaintId/assign` (promotes complaint to enforcement case)
+- `GET /api/cases`
+- `GET /api/cases/:caseId` (resolves by case_id, primary_complaint_id, or case_complaints)
+- `POST /api/cases/:caseId/construction-status`
 - `GET /api/officers`
 - `GET /api/officers/roster`
 - `GET /api/officers/:officerId`
