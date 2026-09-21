@@ -460,7 +460,11 @@ router.get("/cases", async (_req, res) => {
 router.get("/cases/:caseId", async (req, res) => {
     const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
     try {
-        const result = await database_1.pool.query("SELECT * FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        const result = await database_1.pool.query(`SELECT * FROM cases
+       WHERE LOWER(case_id) = LOWER($1)
+          OR LOWER(primary_complaint_id) = LOWER($1)
+          OR case_id IN (SELECT case_id FROM case_complaints WHERE LOWER(complaint_id) = LOWER($1))
+       LIMIT 1`, [caseId]);
         if (result.rows.length > 0) {
             const caseRecord = result.rows[0];
             const actualCaseId = caseRecord.case_id;

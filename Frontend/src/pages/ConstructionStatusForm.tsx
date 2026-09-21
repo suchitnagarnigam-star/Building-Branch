@@ -36,7 +36,9 @@ const ASSESSMENT_STATUS_OPTIONS = ["Assessed", "Pending"];
 function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId }: ConstructionStatusFormProps) {
   // ── Target Case State ───────────────────────────────────────────────────────
   const [targetCaseId, setTargetCaseId] = useState(propCaseId || "");
+  const [typedId, setTypedId] = useState("");
   const [caseRecord, setCaseRecord] = useState<CaseRecord | null>(null);
+  const [caseError, setCaseError] = useState("");
   const [isLoadingCase, setIsLoadingCase] = useState(false);
   const [availableCases, setAvailableCases] = useState<CaseRecord[]>([]);
 
@@ -50,10 +52,6 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
         .then((data) => {
           if (data.success && Array.isArray(data.cases)) {
             setAvailableCases(data.cases);
-            if (data.cases.length > 0 && !targetCaseId) {
-              setTargetCaseId(data.cases[0].case_id);
-              fetchCaseDetails(data.cases[0].case_id);
-            }
           }
         })
         .catch((e) => console.warn("Could not load case list", e));
@@ -61,16 +59,28 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
   }, [propCaseId]);
 
   const fetchCaseDetails = async (id: string) => {
-    if (!id.trim()) return;
+    const cleanId = id.trim();
+    if (!cleanId) {
+      setCaseRecord(null);
+      setCaseError("");
+      return;
+    }
     setIsLoadingCase(true);
+    setCaseError("");
     try {
-      const res = await fetch(`/api/cases/${encodeURIComponent(id.trim())}`);
+      const res = await fetch(`/api/cases/${encodeURIComponent(cleanId)}`);
       const data = await res.json();
       if (data.success && data.caseRecord) {
         setCaseRecord(data.caseRecord);
+        setTargetCaseId(data.caseRecord.case_id);
+      } else {
+        setCaseRecord(null);
+        setCaseError(data.message || `No case found matching "${cleanId}". Please check the Case or Complaint ID.`);
       }
     } catch (e) {
       console.warn("Could not load case details", e);
+      setCaseRecord(null);
+      setCaseError("Could not load case details. Please try again.");
     } finally {
       setIsLoadingCase(false);
     }
@@ -731,43 +741,62 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
         ) : (
           <div className="inspection-grid">
             <div className="form-field form-field--full">
-              <label htmlFor="caseSelect">Target Case ID <span>*</span></label>
-              <div style={{ display: "flex", gap: "8px" }}>
-                {availableCases.length > 0 ? (
+              <label htmlFor="caseSelect">Target Case / Complaint ID <span>*</span></label>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                {availableCases.length > 0 && (
                   <select
                     id="caseSelect"
                     value={targetCaseId}
                     onChange={(e) => {
-                      setTargetCaseId(e.target.value);
-                      fetchCaseDetails(e.target.value);
+                      const val = e.target.value;
+                      setTargetCaseId(val);
+                      setTypedId("");
+                      if (val) fetchCaseDetails(val);
+                      else setCaseRecord(null);
                     }}
-                    style={{ flex: 1 }}
+                    style={{ flex: "1 1 340px", minWidth: "260px" }}
                   >
-                    <option value="">-- Choose an Existing Case --</option>
+                    <option value="">-- Choose an Existing Case or enter Complaint ID --</option>
                     {availableCases.map((c) => (
                       <option key={c.case_id} value={c.case_id}>
                         {c.case_id} — {c.location || "Ludhiana"} ({c.current_status})
                       </option>
                     ))}
                   </select>
-                ) : (
+                )}
+
+                <div style={{ display: "flex", gap: "8px", flex: "1 1 240px", minWidth: "220px" }}>
                   <input
                     type="text"
-                    placeholder="Enter Case ID e.g. CASE-F689612E08BB"
-                    value={targetCaseId}
-                    onChange={(e) => setTargetCaseId(e.target.value)}
+                    placeholder="Or enter Complaint / Case ID..."
+                    value={typedId}
+                    onChange={(e) => setTypedId(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (typedId.trim()) fetchCaseDetails(typedId);
+                      }
+                    }}
                     style={{ flex: 1 }}
                   />
-                )}
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => fetchCaseDetails(targetCaseId)}
-                  disabled={isLoadingCase}
-                >
-                  {isLoadingCase ? "Loading..." : "Load Case"}
-                </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      const idToFetch = typedId.trim() || targetCaseId.trim();
+                      if (idToFetch) fetchCaseDetails(idToFetch);
+                    }}
+                    disabled={isLoadingCase || (!typedId.trim() && !targetCaseId.trim())}
+                  >
+                    {isLoadingCase ? "Loading..." : "Load Case"}
+                  </button>
+                </div>
               </div>
+              {caseError && (
+                <small className="field-error" style={{ marginTop: "6px", display: "block" }}>
+                  {caseError}
+                </small>
+              )}
             </div>
             {caseRecord && (
               <div className="form-field form-field--full" style={{ background: "rgba(0,0,0,0.03)", padding: "10px 14px", borderRadius: "8px" }}>

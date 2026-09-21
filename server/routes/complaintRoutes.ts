@@ -570,7 +570,11 @@ router.get("/cases/:caseId", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT * FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+      `SELECT * FROM cases
+       WHERE LOWER(case_id) = LOWER($1)
+          OR LOWER(primary_complaint_id) = LOWER($1)
+          OR case_id IN (SELECT case_id FROM case_complaints WHERE LOWER(complaint_id) = LOWER($1))
+       LIMIT 1`,
       [caseId]
     );
 

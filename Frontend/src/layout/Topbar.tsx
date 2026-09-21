@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TopbarProps = {
   userName?: string;
@@ -11,11 +11,33 @@ function Topbar({
   userRole = "Building Branch (Staff)",
 }: TopbarProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [fontScale, setFontScale] = useState<number>(() => {
+    const saved = localStorage.getItem("mcl-font-scale");
+    return saved ? Number(saved) : 100;
+  });
+  const [showFontPopover, setShowFontPopover] = useState(false);
+  const fontPopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${(fontScale / 100) * 16}px`;
+    localStorage.setItem("mcl-font-scale", String(fontScale));
+  }, [fontScale]);
+
+  useEffect(() => {
+    if (!showFontPopover) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (fontPopoverRef.current && !fontPopoverRef.current.contains(event.target as Node)) {
+        setShowFontPopover(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showFontPopover]);
 
   const formattedDate = new Intl.DateTimeFormat("en-IN", {
     weekday: "short",
@@ -74,10 +96,56 @@ function Topbar({
             </time>
           </div>
 
-          <div className="topbar__font-controls">
-            <button type="button" className="topbar__font-btn">A-</button>
-            <button type="button" className="topbar__font-btn topbar__font-btn--active">A</button>
-            <button type="button" className="topbar__font-btn">A+</button>
+          {/* Text Scaling Slider Popover */}
+          <div style={{ position: "relative" }} ref={fontPopoverRef}>
+            <button
+              type="button"
+              className={`topbar__text-size-btn ${showFontPopover ? "topbar__text-size-btn--active" : ""}`}
+              onClick={() => setShowFontPopover((prev) => !prev)}
+              title="Display text scaling"
+              aria-label="Text size"
+            >
+              <span style={{ fontWeight: 700, fontSize: "13px", letterSpacing: "-0.5px" }}>Aa</span>
+              <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "2px" }}>{fontScale}%</span>
+            </button>
+
+            {showFontPopover && (
+              <div className="topbar__font-popover">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Text Size</span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 6px", borderRadius: "4px" }}>
+                    {fontScale}%
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>A</span>
+                  <input
+                    type="range"
+                    min="85"
+                    max="115"
+                    step="5"
+                    value={fontScale}
+                    onChange={(e) => setFontScale(Number(e.target.value))}
+                    style={{ flex: 1, accentColor: "#2563eb", cursor: "pointer" }}
+                  />
+                  <span style={{ fontSize: "15px", color: "#64748b", fontWeight: 700 }}>A</span>
+                </div>
+
+                <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
+                  {[85, 100, 115].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={`topbar__font-preset-btn ${fontScale === preset ? "topbar__font-preset-btn--active" : ""}`}
+                      onClick={() => setFontScale(preset)}
+                    >
+                      {preset === 100 ? "Default" : `${preset}%`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="topbar__profile-card">
