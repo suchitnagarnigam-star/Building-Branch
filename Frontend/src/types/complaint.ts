@@ -23,8 +23,9 @@ export interface Complaint {
   assignedAtpName?: string | null;
   assignedAtpMobile?: string | null;
 
-  status: "Registered";
+  status: "Registered" | "Assigned" | "In progress" | "Resolution submitted" | "Pending approval" | "Approved / Closed" | "Rejected" | string;
   createdAt: string;
+  caseId?: string | null;
 }
 
 export interface ComplaintFormData {

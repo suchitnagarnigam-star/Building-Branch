@@ -49,7 +49,13 @@ export const getComplaints = async (): Promise<Complaint[]> => {
         assigned_atp_mobile AS "assignedAtpMobile",
         status,
         created_at AS "createdAt",
-        drive_folder_url AS "driveFolderUrl"
+        drive_folder_url AS "driveFolderUrl",
+        (
+          SELECT case_id FROM cases WHERE primary_complaint_id = complaints.complaint_id
+          UNION
+          SELECT case_id FROM case_complaints WHERE complaint_id = complaints.complaint_id
+          LIMIT 1
+        ) AS "caseId"
       FROM complaints
       ORDER BY created_at DESC
     `);

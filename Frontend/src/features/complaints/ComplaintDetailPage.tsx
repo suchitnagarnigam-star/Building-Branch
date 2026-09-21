@@ -41,6 +41,7 @@ type StoredComplaint = {
   status: string;
   attachments?: StoredAttachment[];
   driveFolderUrl?: string | null;
+  caseId?: string | null;
 };
 
 const TIMELINE_STAGES = [
@@ -80,8 +81,43 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const [driveFilesLoading, setDriveFilesLoading] = useState(false);
   const [loading, setLoading] = useState(!storedComplaint);
   const [error, setError] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
 
   const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+
+  const handleAssignOfficer = async () => {
+    setAssigning(true);
+    try {
+      const response = await fetch(`${apiUrl}/complaints/${encodeURIComponent(complaintId)}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to assign officer and promote to case.");
+      }
+
+      setStoredComplaint((prev) =>
+        prev
+          ? {
+              ...prev,
+              caseId: data.caseId,
+              status: "Assigned",
+              assignedOfficerName: data.assignedOfficer?.name || prev.assignedOfficerName,
+              assignedOfficerMobile: data.assignedOfficer?.mobile || prev.assignedOfficerMobile,
+              assignedAtpName: data.assignedOfficer?.atpName || prev.assignedAtpName,
+            }
+          : null
+      );
+      setAssignSuccess(`Promoted to Case: ${data.caseId}`);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Unable to assign officer.");
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -228,6 +264,44 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           </div>
         </div>
 
+        {storedComplaint?.caseId && (
+          <div
+            className="panel detail-panel"
+            style={{
+              borderLeft: "4px solid var(--accent, #0284c7)",
+              background: "#f0f9ff",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "12px",
+              padding: "16px 20px",
+              marginBottom: "16px",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--accent, #0284c7)" }}>
+                Promoted Enforcement Case File
+              </div>
+              <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary, #0f172a)", marginTop: "2px" }}>
+                {storedComplaint.caseId}
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--muted, #64748b)" }}>
+                This complaint is actively linked to an official building branch case.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="primary-button"
+              style={{ padding: "8px 16px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              onClick={() => navigate(`/cases/${encodeURIComponent(storedComplaint.caseId!)}`)}
+            >
+              <span>View Case File</span>
+              <Icon name="arrow-right" />
+            </button>
+          </div>
+        )}
+
         <div className="panel detail-panel">
           <h3>Citizen and location</h3>
           <div className="detail-grid">
@@ -365,8 +439,34 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
 
         <div className="panel side-card">
           <h3>Actions</h3>
+          {storedComplaint?.caseId ? (
+            <button
+              type="button"
+              className="primary-button button-full"
+              style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "6px", marginBottom: "8px" }}
+              onClick={() => navigate(`/cases/${encodeURIComponent(storedComplaint.caseId!)}`)}
+            >
+              <span>View Case ({storedComplaint.caseId})</span>
+              <Icon name="arrow-right" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-button button-full"
+              style={{ marginBottom: "8px" }}
+              disabled={assigning}
+              onClick={handleAssignOfficer}
+            >
+              {assigning ? "Creating Case..." : "Assign BI & Create Case"}
+            </button>
+          )}
+          {assignSuccess && (
+            <div style={{ fontSize: "12px", color: "#166534", marginBottom: "8px", fontWeight: 600 }}>
+              ✓ {assignSuccess}
+            </div>
+          )}
           <button type="button" className="secondary-button button-full">Edit complaint</button>
-          <button type="button" className="primary-button button-full">Submit resolution</button>
+          <button type="button" className="secondary-button button-full">Submit resolution</button>
         </div>
       </aside>
     </div>

@@ -239,6 +239,164 @@ router.get("/complaints/:complaintId", async (req, res) => {
         res.status(500).json({ success: false, message: "Unable to load complaint." });
     }
 });
+// ── POST /api/complaints/:complaintId/assign ──────────────────────────────────
+router.post("/complaints/:complaintId/assign", async (req, res) => {
+    const complaintId = (Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : String(req.params.complaintId || "")).trim();
+    const body = req.body || {};
+    const client = await database_1.pool.connect();
+    try {
+        const complaintResult = await client.query(`SELECT * FROM complaints WHERE complaint_id = $1 LIMIT 1`, [complaintId]);
+        if (complaintResult.rowCount === 0) {
+            res.status(404).json({ success: false, message: `Complaint ${complaintId} not found.` });
+            return;
+        }
+        const complaint = complaintResult.rows[0];
+        const existingCaseResult = await client.query(`SELECT case_id FROM cases WHERE primary_complaint_id = $1
+       UNION
+       SELECT case_id FROM case_complaints WHERE complaint_id = $1
+       LIMIT 1`, [complaintId]);
+        let biOfficerId = body.officerId?.trim() || complaint.assigned_officer_id;
+        let biOfficerName = body.officerName?.trim() || complaint.assigned_officer_name;
+        let biOfficerMobile = body.officerMobile?.trim() || complaint.assigned_officer_mobile;
+        let atpOfficerId = body.atpId?.trim() || complaint.assigned_atp_id;
+        let atpOfficerName = body.atpName?.trim() || complaint.assigned_atp_name;
+        let atpOfficerMobile = body.atpMobile?.trim() || complaint.assigned_atp_mobile;
+        if (!biOfficerId || !biOfficerName) {
+            const bi = await (0, officerMapping_1.findResponsibleOfficer)(complaint.zone, complaint.block, "BI");
+            if (bi) {
+                biOfficerId = bi.officerId;
+                biOfficerName = bi.name;
+                biOfficerMobile = bi.mobile;
+            }
+        }
+        if (!atpOfficerId || !atpOfficerName) {
+            const atp = await (0, officerMapping_1.findResponsibleOfficer)(complaint.zone, complaint.block, "ATP");
+            if (atp) {
+                atpOfficerId = atp.officerId;
+                atpOfficerName = atp.name;
+                atpOfficerMobile = atp.mobile;
+            }
+        }
+        await client.query("BEGIN");
+        let caseId;
+        if (existingCaseResult.rows.length > 0) {
+            caseId = existingCaseResult.rows[0].case_id;
+            await client.query(`UPDATE complaints
+         SET assigned_officer_id = COALESCE($1, assigned_officer_id),
+             assigned_officer_name = COALESCE($2, assigned_officer_name),
+             assigned_officer_mobile = COALESCE($3, assigned_officer_mobile),
+             assigned_atp_id = COALESCE($4, assigned_atp_id),
+             assigned_atp_name = COALESCE($5, assigned_atp_name),
+             assigned_atp_mobile = COALESCE($6, assigned_atp_mobile),
+             status = 'Assigned'
+         WHERE complaint_id = $7`, [biOfficerId, biOfficerName, biOfficerMobile, atpOfficerId, atpOfficerName, atpOfficerMobile, complaintId]);
+            await client.query(`UPDATE cases
+         SET assigned_bi_id = COALESCE($1, assigned_bi_id),
+             assigned_bi_name = COALESCE($2, assigned_bi_name),
+             assigned_atp_id = COALESCE($3, assigned_atp_id),
+             assigned_atp_name = COALESCE($4, assigned_atp_name),
+             updated_at = NOW()
+         WHERE case_id = $5`, [biOfficerId, biOfficerName, atpOfficerId, atpOfficerName, caseId]);
+            await client.query("COMMIT");
+            res.json({
+                success: true,
+                message: "Complaint assigned. Existing case reused.",
+                complaintId,
+                caseId,
+                status: "Assigned",
+                assignedOfficerId: biOfficerId,
+                assignedOfficerName: biOfficerName,
+                assignedAtpId: atpOfficerId,
+                assignedAtpName: atpOfficerName,
+            });
+            return;
+        }
+        caseId = await generateCaseId();
+        await client.query(`INSERT INTO cases (
+        case_id,
+        source_type,
+        primary_complaint_id,
+        building_identity,
+        location,
+        zone,
+        block,
+        ward,
+        assigned_bi_id,
+        assigned_bi_name,
+        assigned_atp_id,
+        assigned_atp_name,
+        current_status,
+        created_at,
+        updated_at
+      ) VALUES (
+        $1,
+        'complaint',
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        'Open',
+        NOW(),
+        NOW()
+      )`, [
+            caseId,
+            complaintId,
+            complaint.title || "Residential",
+            complaint.address,
+            complaint.zone,
+            complaint.block,
+            complaint.ward || null,
+            biOfficerId,
+            biOfficerName,
+            atpOfficerId,
+            atpOfficerName,
+        ]);
+        await client.query(`INSERT INTO case_complaints (case_id, complaint_id, relationship_type, linked_at)
+       VALUES ($1, $2, 'primary', NOW())
+       ON CONFLICT DO NOTHING`, [caseId, complaintId]);
+        await client.query(`UPDATE complaints
+       SET assigned_officer_id = COALESCE($1, assigned_officer_id),
+           assigned_officer_name = COALESCE($2, assigned_officer_name),
+           assigned_officer_mobile = COALESCE($3, assigned_officer_mobile),
+           assigned_atp_id = COALESCE($4, assigned_atp_id),
+           assigned_atp_name = COALESCE($5, assigned_atp_name),
+           assigned_atp_mobile = COALESCE($6, assigned_atp_mobile),
+           status = 'Assigned'
+       WHERE complaint_id = $7`, [biOfficerId, biOfficerName, biOfficerMobile, atpOfficerId, atpOfficerName, atpOfficerMobile, complaintId]);
+        await client.query(`INSERT INTO case_status_history (
+        case_id, previous_status, new_status, changed_by_name, reason, note
+      ) VALUES ($1, NULL, 'Open', $2, 'Case created from assigned complaint', $3)`, [caseId, biOfficerName || "Operations Desk", `Promoted from complaint ${complaintId}`]);
+        await client.query("COMMIT");
+        res.status(201).json({
+            success: true,
+            message: "Complaint assigned and case created successfully.",
+            complaintId,
+            caseId,
+            status: "Assigned",
+            assignedOfficerId: biOfficerId,
+            assignedOfficerName: biOfficerName,
+            assignedAtpId: atpOfficerId,
+            assignedAtpName: atpOfficerName,
+        });
+    }
+    catch (error) {
+        await client.query("ROLLBACK");
+        console.error("[Complaint Assignment] Error:", error);
+        res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Failed to assign complaint.",
+        });
+    }
+    finally {
+        client.release();
+    }
+});
 // ── GET /api/cases ────────────────────────────────────────────────────────────
 router.get("/cases", async (_req, res) => {
     try {

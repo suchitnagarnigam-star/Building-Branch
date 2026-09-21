@@ -24,12 +24,42 @@ type CaseRow = {
   created_at: string;
 };
 
+function isCaseSolved(status?: string | null): boolean {
+  const s = (status || "").toLowerCase();
+  return (
+    s.includes("solved") ||
+    s.includes("closed") ||
+    s.includes("executed") ||
+    s.includes("sealed") ||
+    s.includes("fee paid") ||
+    s.includes("compound fee") ||
+    s.includes("completed")
+  );
+}
+
+function isCasePending(status?: string | null): boolean {
+  const s = (status || "").toLowerCase();
+  return (
+    !isCaseSolved(status) &&
+    (s.includes("notice") ||
+      s.includes("scheduled") ||
+      s.includes("pending compliance") ||
+      s.includes("pending approval") ||
+      s.includes("hearing"))
+  );
+}
+
+function isCaseActive(status?: string | null): boolean {
+  return !isCaseSolved(status) && !isCasePending(status);
+}
+
 export default function CasesPage({ navigate }: CasesPageProps) {
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [lifecycleFilter, setLifecycleFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [constFilter, setConstFilter] = useState("all");
   const [zoneFilter, setZoneFilter] = useState("all");
 
@@ -78,9 +108,16 @@ export default function CasesPage({ navigate }: CasesPageProps) {
       (c.assigned_bi_name && c.assigned_bi_name.toLowerCase().includes(q)) ||
       (c.building_identity && c.building_identity.toLowerCase().includes(q));
 
-    const matchesStatus =
-      statusFilter === "all" ||
-      c.current_status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesLifecycle =
+      lifecycleFilter === "all" ||
+      (lifecycleFilter === "active" && isCaseActive(c.current_status)) ||
+      (lifecycleFilter === "pending" && isCasePending(c.current_status)) ||
+      (lifecycleFilter === "solved" && isCaseSolved(c.current_status));
+
+    const matchesSource =
+      sourceFilter === "all" ||
+      (sourceFilter === "complaint" && (c.source_type === "complaint" || Boolean(c.primary_complaint_id))) ||
+      (sourceFilter === "proactive" && (c.source_type === "proactive_bi" || c.source_type === "proactive" || (!c.primary_complaint_id && c.source_type !== "complaint")));
 
     const actualConst = (c.construction_type || c.construction_status || "").toLowerCase();
     const matchesConst =
@@ -92,16 +129,14 @@ export default function CasesPage({ navigate }: CasesPageProps) {
       zoneFilter === "all" ||
       (c.zone && c.zone.toLowerCase() === zoneFilter.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesConst && matchesZone;
+    return matchesSearch && matchesLifecycle && matchesSource && matchesConst && matchesZone;
   });
 
   const totalCases = cases.length;
-  const recordedCount = cases.filter((c) => c.construction_type || c.construction_status).length;
+  const activeCount = cases.filter((c) => isCaseActive(c.current_status)).length;
+  const pendingCount = cases.filter((c) => isCasePending(c.current_status)).length;
+  const solvedCount = cases.filter((c) => isCaseSolved(c.current_status)).length;
   const compoundableCount = cases.filter((c) => (c.construction_type || c.construction_status) === "compoundable").length;
-  const nonCompoundableCount = cases.filter((c) => {
-    const st = c.construction_type || c.construction_status;
-    return st === "non_compoundable" || st === "partly_compoundable";
-  }).length;
 
   return (
     <div className="field-inspection-page" style={{ maxWidth: "1120px", margin: "0 auto", paddingBottom: "48px" }}>
@@ -140,22 +175,26 @@ export default function CasesPage({ navigate }: CasesPageProps) {
       </div>
 
       {/* ── STATS METRICS ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px", marginBottom: "20px" }}>
         <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
           <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Total Cases</span>
           <strong style={{ fontSize: "24px", color: "var(--text-primary)" }}>{totalCases}</strong>
         </div>
         <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
-          <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Status Recorded</span>
-          <strong style={{ fontSize: "24px", color: "var(--accent)" }}>{recordedCount}</strong>
+          <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Active Cases</span>
+          <strong style={{ fontSize: "24px", color: "var(--accent, #0284c7)" }}>{activeCount}</strong>
+        </div>
+        <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
+          <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Pending Action</span>
+          <strong style={{ fontSize: "24px", color: "#c2410c" }}>{pendingCount}</strong>
+        </div>
+        <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
+          <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Solved / Completed</span>
+          <strong style={{ fontSize: "24px", color: "#166534" }}>{solvedCount}</strong>
         </div>
         <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
           <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Compoundable</span>
-          <strong style={{ fontSize: "24px", color: "#166534" }}>{compoundableCount}</strong>
-        </div>
-        <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
-          <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Non / Partly Comp.</span>
-          <strong style={{ fontSize: "24px", color: "#c2410c" }}>{nonCompoundableCount}</strong>
+          <strong style={{ fontSize: "24px", color: "#059669" }}>{compoundableCount}</strong>
         </div>
       </div>
 
@@ -163,7 +202,7 @@ export default function CasesPage({ navigate }: CasesPageProps) {
       <section className="inspection-card" style={{ marginBottom: "20px", padding: "16px" }}>
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
           {/* Search Box */}
-          <div style={{ flex: "1 1 240px", position: "relative" }}>
+          <div style={{ flex: "1 1 220px", position: "relative" }}>
             <input
               type="text"
               placeholder="Search Case ID, location, officer..."
@@ -176,22 +215,35 @@ export default function CasesPage({ navigate }: CasesPageProps) {
             </span>
           </div>
 
-          {/* Status Filter */}
-          <div style={{ flex: "0 1 180px" }}>
+          {/* Lifecycle Status Filter */}
+          <div style={{ flex: "0 1 170px" }}>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={lifecycleFilter}
+              onChange={(e) => setLifecycleFilter(e.target.value)}
               style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border)", fontSize: "13px" }}
             >
-              <option value="all">All Case Statuses</option>
-              <option value="open">Open</option>
-              <option value="construction status recorded">Construction Recorded</option>
-              <option value="notice issued">Notice Issued</option>
+              <option value="all">All Cases</option>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="solved">Solved / Completed</option>
+            </select>
+          </div>
+
+          {/* Source Filter */}
+          <div style={{ flex: "0 1 170px" }}>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border)", fontSize: "13px" }}
+            >
+              <option value="all">All Sources</option>
+              <option value="complaint">Complaint Based</option>
+              <option value="proactive">Proactive Field Visit</option>
             </select>
           </div>
 
           {/* Construction Status Filter */}
-          <div style={{ flex: "0 1 180px" }}>
+          <div style={{ flex: "0 1 170px" }}>
             <select
               value={constFilter}
               onChange={(e) => setConstFilter(e.target.value)}
@@ -206,7 +258,7 @@ export default function CasesPage({ navigate }: CasesPageProps) {
           </div>
 
           {/* Zone Filter */}
-          <div style={{ flex: "0 1 140px" }}>
+          <div style={{ flex: "0 1 130px" }}>
             <select
               value={zoneFilter}
               onChange={(e) => setZoneFilter(e.target.value)}
@@ -241,7 +293,8 @@ export default function CasesPage({ navigate }: CasesPageProps) {
             className="secondary-button"
             onClick={() => {
               setSearch("");
-              setStatusFilter("all");
+              setLifecycleFilter("all");
+              setSourceFilter("all");
               setConstFilter("all");
               setZoneFilter("all");
             }}
@@ -276,6 +329,8 @@ export default function CasesPage({ navigate }: CasesPageProps) {
                     constBadgeStyle = { background: "#ffedd5", color: "#9a3412" };
                   }
 
+                  const isComplaintSource = c.source_type === "complaint" || Boolean(c.primary_complaint_id);
+
                   return (
                     <tr
                       key={c.case_id}
@@ -286,9 +341,23 @@ export default function CasesPage({ navigate }: CasesPageProps) {
                     >
                       <td style={{ padding: "14px 16px" }}>
                         <strong style={{ color: "var(--accent)" }}>{c.case_id}</strong>
-                        <small style={{ display: "block", color: "var(--muted)", fontSize: "11px" }}>
-                          {formatDate(c.created_at)}
-                        </small>
+                        <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
+                          <small style={{ color: "var(--muted)", fontSize: "11px" }}>
+                            {formatDate(c.created_at)}
+                          </small>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              padding: "1px 6px",
+                              borderRadius: "4px",
+                              background: isComplaintSource ? "#f3e8ff" : "#ecfdf5",
+                              color: isComplaintSource ? "#7e22ce" : "#047857",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {isComplaintSource ? "Complaint" : "Proactive"}
+                          </span>
+                        </div>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div>{c.location || "Ludhiana Area"}</div>

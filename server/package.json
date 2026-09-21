@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "node node_modules/tsx/dist/cli.mjs app.ts",
-    "build": "tsc",
+    "dev": "node node_modules/tsx/dist/cli.mjs watch app.ts",
     "build": "node ./node_modules/typescript/bin/tsc",
     "start": "node dist/app.js",
     "db:test": "node node_modules/tsx/dist/cli.mjs db/testConnection.ts"

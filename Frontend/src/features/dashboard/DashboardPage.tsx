@@ -7,6 +7,7 @@ import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
 import { complaints as MOCK_COMPLAINTS } from "../../shared/constants/mockData";
+import { getComplaintAction } from "../../shared/utils/complaintNavigation";
 
 type DashboardPageProps = {
   navigate: (route: string) => void;
@@ -26,6 +27,7 @@ type ComplaintRecord = {
   assignedAtpName?: string | null;
   status: Status;
   createdAt: string;
+  caseId?: string | null;
 };
 
 /* ─── Helpers ─── */
@@ -129,6 +131,11 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
       { zone: "Zone D", count: counts["Zone D"] },
     ];
   }, [activeComplaintsList]);
+
+  const yAxisMax = useMemo(() => {
+    const maxZoneCount = Math.max(0, ...zoneData.map((d) => Number(d.count) || 0));
+    return maxZoneCount > 0 ? Math.ceil(maxZoneCount * 1.35) : 5;
+  }, [zoneData]);
 
   // Dynamically compute exact status donut distribution
   const statusData = useMemo(() => {
@@ -278,7 +285,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
               <BarChart data={zoneData} barCategoryGap="30%" margin={{ top: 32, right: 15, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e6eb" />
                 <XAxis dataKey="zone" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} domain={[0, "dataMax + 40"]} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} domain={[0, yAxisMax]} />
                 <Tooltip cursor={{ fill: "rgba(0, 0, 0, 0.03)" }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12.5, fill: "#0f172a", fontWeight: 700, dy: -6 }}>
                   {zoneData.map((_entry, index) => {
@@ -446,31 +453,34 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             </tr>
           </thead>
           <tbody>
-            {recentComplaints.map((c) => (
-              <tr key={c.complaintId}>
-                <td className="db-table__id">{c.complaintId}</td>
-                <td>{formatDate(c.createdAt)}</td>
-                <td>{c.ward ?? "—"}</td>
-                <td>{c.zone}</td>
-                <td className="db-table__desc">{c.title || c.description || "—"}</td>
-                <td>{c.assignedOfficerName ?? "—"}</td>
-                <td>{c.assignedAtpName ?? "—"}</td>
-                <td><StatusBadge status={c.status} /></td>
-                <td>{daysBetween(c.createdAt)} days</td>
-                <td>
-                  <button
-                    type="button"
-                    className="db-table__view-btn"
-                    onClick={() => {
-                      setSelectedComplaintId(c.complaintId);
-                      navigate(`/complaints/${c.complaintId}`);
-                    }}
-                  >
-                    View →
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {recentComplaints.map((c) => {
+              const action = getComplaintAction(c);
+              return (
+                <tr key={c.complaintId}>
+                  <td className="db-table__id">{c.complaintId}</td>
+                  <td>{formatDate(c.createdAt)}</td>
+                  <td>{c.ward ?? "—"}</td>
+                  <td>{c.zone}</td>
+                  <td className="db-table__desc">{c.title || c.description || "—"}</td>
+                  <td>{c.assignedOfficerName ?? "—"}</td>
+                  <td>{c.assignedAtpName ?? "—"}</td>
+                  <td><StatusBadge status={c.status} /></td>
+                  <td>{daysBetween(c.createdAt)} days</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="db-table__view-btn"
+                      onClick={() => {
+                        setSelectedComplaintId(c.complaintId);
+                        navigate(action.route);
+                      }}
+                    >
+                      {action.label} →
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
