@@ -966,7 +966,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
               <div style={{ gridColumn: "1 / -1", marginTop: "6px" }}>
                 <button
                   type="button"
-                  className="secondary-button"
+                  className="primary-button"
                   onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/construction-status`)}
                   style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
@@ -981,7 +981,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
               </p>
               <button
                 type="button"
-                className="secondary-button"
+                className="primary-button"
                 onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/construction-status`)}
                 style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
               >

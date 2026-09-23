@@ -213,8 +213,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           <select value={block} onChange={(event) => handleBlockChange(event.target.value)}>{blocks.map((item) => <option key={item}>{item}</option>)}</select>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>{statuses.map((item) => <option key={item}>{item}</option>)}</select>
           <button className="secondary-button small-button complaints-export" type="button">
-            <Icon name="download" /> Export CSV
-          </button>
+            <Icon name="download"/>Export CSV</button>
         </div>
       </div>
 

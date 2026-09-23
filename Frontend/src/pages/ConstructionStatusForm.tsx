@@ -843,14 +843,14 @@ if (needsNonCompoundable) {
                   </button>
                   <button
                     type="button"
-                    className="secondary-button"
+                    className="primary-button"
                     onClick={() => navigate("/cases")}
                   >
                     <Icon name="list" /> Enforcement Cases
                   </button>
                   <button
                     type="button"
-                    className="secondary-button"
+                    className="primary-button"
                     onClick={() => navigate("/field-inspection")}
                   >
                     <Icon name="arrow" /> Field Inspection
