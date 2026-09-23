@@ -263,7 +263,7 @@ function InspectionCadenceSpline({
   }, [activeRange]);
 
   const width = 760;
-  const height = 240;
+  const height = 230;
   const padX = 42;
   const padY = 32;
 
@@ -299,7 +299,7 @@ function InspectionCadenceSpline({
   return (
     <div style={{ width: "100%" }}>
       {/* Header Controls with Badge Buttons matching Reference 3 */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ width: "12px", height: "12px", borderRadius: "50%", border: "2.5px solid #2563eb", background: "#ffffff" }} />
@@ -321,7 +321,7 @@ function InspectionCadenceSpline({
             type="button"
             onClick={() => setActiveRange("90d")}
             style={{
-              padding: "6px 14px",
+              padding: "5px 12px",
               borderRadius: "8px",
               border: "1px solid #e2e8f0",
               background: activeRange === "90d" ? "#0f172a" : "#ffffff",
@@ -343,7 +343,7 @@ function InspectionCadenceSpline({
             type="button"
             onClick={() => setActiveRange("30d")}
             style={{
-              padding: "6px 14px",
+              padding: "5px 12px",
               borderRadius: "8px",
               border: "1px solid #e2e8f0",
               background: activeRange === "30d" ? "#0f172a" : "#ffffff",
@@ -365,7 +365,7 @@ function InspectionCadenceSpline({
             type="button"
             onClick={() => setActiveRange("7d")}
             style={{
-              padding: "6px 14px",
+              padding: "5px 12px",
               borderRadius: "8px",
               border: "1px solid #e2e8f0",
               background: activeRange === "7d" ? "#0f172a" : "#ffffff",
@@ -387,7 +387,7 @@ function InspectionCadenceSpline({
 
       {/* SVG Canvas */}
       <div style={{ width: "100%", overflowX: "auto" }}>
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", minWidth: "600px", height: "240px", overflow: "visible" }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", minWidth: "600px", height: "230px", overflow: "visible" }}>
           <defs>
             <linearGradient id="cadenceGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#2563eb" stopOpacity="0.22" />
@@ -510,10 +510,14 @@ function OfficersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [selectedTab, setSelectedTab] = useState<"Overview" | "BI Officers" | "ATP Officers" | "Performance Analytics">("Overview");
+  // Simplified top tabs (BI and ATP moved to table filters as requested!)
+  const [selectedTab, setSelectedTab] = useState<"Overview" | "Performance Analytics">("Overview");
   const [reportingPeriod, setReportingPeriod] = useState("This Month");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedZone, setSelectedZone] = useState("All Zones");
+
+  // Designation table filter (Replaces complete tabs with simple filter buttons)
+  const [designationFilter, setDesignationFilter] = useState<"ALL" | "BI" | "ATP">("ALL");
 
   const [selectedOfficer, setSelectedOfficer] = useState<OfficerDetailsResponse | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -597,48 +601,42 @@ function OfficersPage() {
   };
 
   // Summary counts
-  const totalOfficersCount = officers.length || 24;
+  const totalOfficersCount = officers.length || 12;
   const biOfficersCount = officers.filter((o) => {
     const d = o.designation.trim().toUpperCase();
     return d === "BI" || d.includes("BI");
-  }).length || 16;
+  }).length || 8;
   const atpOfficersCount = officers.filter((o) => {
     const d = o.designation.trim().toUpperCase();
     return d === "ATP" || d.includes("ATP");
-  }).length || 8;
+  }).length || 4;
 
-  // Filter officers based on active tab
-  const tabFilteredOfficers = useMemo(() => {
-    if (selectedTab === "BI Officers") {
-      return officers.filter((o) => {
-        const d = o.designation.trim().toUpperCase();
-        return d === "BI" || d.includes("BI");
-      });
-    }
-    if (selectedTab === "ATP Officers") {
-      return officers.filter((o) => {
-        const d = o.designation.trim().toUpperCase();
-        return d === "ATP" || d.includes("ATP");
-      });
-    }
-    return officers;
-  }, [officers, selectedTab]);
-
-  // Filter by search query and zone
+  // Filter officers based on designation filter, search, and zone
   const filteredOfficers = useMemo(() => {
-    return tabFilteredOfficers.filter((officer) => {
+    return officers.filter((officer) => {
+      // 1. Designation filter (replaces tab switching)
+      if (designationFilter === "BI") {
+        const d = officer.designation.trim().toUpperCase();
+        if (!d.includes("BI")) return false;
+      } else if (designationFilter === "ATP") {
+        const d = officer.designation.trim().toUpperCase();
+        if (!d.includes("ATP")) return false;
+      }
+
+      // 2. Search filter
       const matchesSearch =
         officer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         officer.officerId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         officer.designation.toLowerCase().includes(searchQuery.toLowerCase());
 
+      // 3. Zone filter
       const matchesZone =
         selectedZone === "All Zones" ||
         officer.zone.toLowerCase() === selectedZone.toLowerCase();
 
       return matchesSearch && matchesZone;
     });
-  }, [tabFilteredOfficers, searchQuery, selectedZone]);
+  }, [officers, designationFilter, searchQuery, selectedZone]);
 
   const availableZones = useMemo(() => {
     const zones = new Set<string>();
@@ -788,23 +786,65 @@ function OfficersPage() {
   return (
     <div className="analytics-page officers-performance-page" style={{ padding: "24px 32px", maxWidth: "1600px", margin: "0 auto", fontFamily: "Inter, sans-serif" }}>
       {/* ── TOP HEADER SECTION ─────────────────────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 style={{ fontSize: "26px", fontWeight: 700, color: "var(--navy)", margin: "0 0 6px 0", letterSpacing: "-0.4px" }}>
-            Officers &amp; Performance
-          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
+            <h1 style={{ fontSize: "26px", fontWeight: 700, color: "var(--navy)", margin: 0, letterSpacing: "-0.4px" }}>
+              Officers &amp; Performance
+            </h1>
+            <span style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "3px 10px",
+              borderRadius: "14px",
+              background: "#eff6ff",
+              color: "#1d4ed8",
+              border: "1px solid #bfdbfe",
+              fontSize: "12px",
+              fontWeight: 600,
+            }}>
+              <span>👥</span> {totalOfficersCount} Active Staff ({biOfficersCount} BI • {atpOfficersCount} ATP)
+            </span>
+          </div>
           <p style={{ fontSize: "14px", color: "var(--muted)", margin: 0 }}>
             Track performance, ensure accountability, build a better Ludhiana
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#ffffff", padding: "8px 14px", borderRadius: "8px", border: "1px solid var(--border)", fontSize: "13px", color: "var(--ink)" }}>
-            <Icon name="calendar" />
+          <div
+            className="db-page__month-picker"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#ffffff",
+              padding: "7px 12px",
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              fontSize: "13px",
+              color: "var(--ink)",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
+            <span style={{ display: "inline-flex", width: "16px", height: "16px", alignItems: "center", justifyContent: "center", color: "var(--muted)", flexShrink: 0 }}>
+              <Icon name="calendar" />
+            </span>
             <select
               value={reportingPeriod}
               onChange={(e) => setReportingPeriod(e.target.value)}
-              style={{ border: "none", background: "transparent", outline: "none", cursor: "pointer", fontWeight: 500 }}
+              style={{
+                border: "none",
+                background: "transparent",
+                outline: "none",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "13px",
+                color: "var(--navy)",
+                fontFamily: "inherit",
+                paddingRight: "4px",
+              }}
             >
               <option value="This Month">This Month</option>
               <option value="Last Month">Last Month</option>
@@ -819,15 +859,17 @@ function OfficersPage() {
             onClick={handleExportReport}
             style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "8px", background: "var(--navy)", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "13px" }}
           >
-            <Icon name="download" />
+            <span style={{ display: "inline-flex", width: "15px", height: "15px", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name="download" />
+            </span>
             Export Report
           </button>
         </div>
       </div>
 
-      {/* ── MAIN TABS NAVIGATION ───────────────────────────────────────────── */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: "28px", gap: "32px" }}>
-        {(["Overview", "BI Officers", "ATP Officers", "Performance Analytics"] as const).map((tab) => (
+      {/* ── TOP TABS NAVIGATION (Simplified to Overview & Performance Analytics) ── */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: "24px", gap: "32px" }}>
+        {(["Overview", "Performance Analytics"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -862,75 +904,77 @@ function OfficersPage() {
         </div>
       )}
 
-      {/* ── SECTION 1: OVERVIEW & LIST TABS ─────────────────────────────────── */}
-      {!loading && !error && selectedTab !== "Performance Analytics" && (
-        <>
-          {/* 4 Top KPI Metric Cards (Matching media_1790014568049.png) */}
-          <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "28px" }}>
-            <div className="stat-card" style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>Total Officers</div>
-                  <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--navy)" }}>{totalOfficersCount}</div>
-                </div>
-                <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "var(--bridal-blue)", display: "grid", placeItems: "center", color: "var(--sapphire)" }}>
-                  <Icon name="users" />
-                </div>
+      {/* ── TOP KPI PERFORMANCE CARDS (Now shown directly on Overview!) ─────── */}
+      {!loading && !error && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "26px" }}>
+          <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: "11.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Clearance Rate</span>
+                <div style={{ fontSize: "26px", fontWeight: 800, color: "#10b981", marginTop: "4px" }}>92.4%</div>
               </div>
-              <div style={{ fontSize: "12px", color: "var(--success)", marginTop: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-                <span>↑ 4.3% from last month</span>
+              <div style={{ width: "38px", height: "38px", borderRadius: "8px", background: "#ecfdf5", display: "grid", placeItems: "center", color: "#10b981" }}>
+                <Icon name="check-circle" />
               </div>
             </div>
-
-            <div className="stat-card" style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>Building Inspectors (BI)</div>
-                  <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--navy)" }}>{biOfficersCount}</div>
-                </div>
-                <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "#ecfdf5", display: "grid", placeItems: "center", color: "var(--success)" }}>
-                  <Icon name="user" />
-                </div>
-              </div>
-              <div style={{ fontSize: "12px", color: "var(--success)", marginTop: "12px" }}>
-                <span>↑ 6.7% from last month</span>
-              </div>
-            </div>
-
-            <div className="stat-card" style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>Assistant Town Planners</div>
-                  <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--navy)" }}>{atpOfficersCount}</div>
-                </div>
-                <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "#fef3c7", display: "grid", placeItems: "center", color: "var(--warning)" }}>
-                  <Icon name="shield" />
-                </div>
-              </div>
-              <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "12px" }}>
-                <span>↑ 0% from last month</span>
-              </div>
-            </div>
-
-            <div className="stat-card" style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>Average Performance</div>
-                  <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--navy)" }}>76%</div>
-                </div>
-                <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "#ecfdf5", display: "grid", placeItems: "center", color: "var(--success)" }}>
-                  <Icon name="chart" />
-                </div>
-              </div>
-              <div style={{ fontSize: "12px", color: "var(--success)", marginTop: "12px" }}>
-                <span>↑ 8.2% from last month</span>
-              </div>
-            </div>
+            <span style={{ fontSize: "11.5px", color: "#16a34a", marginTop: "10px", display: "flex", alignItems: "center", gap: "4px" }}>
+              ↑ 4.1% vs benchmark
+            </span>
           </div>
 
-          {/* ── TOP 3 PERFORMING OFFICERS PODIUM (Overview Tab Only) ───────── */}
-          {selectedTab === "Overview" && topPerformers.length > 0 && (
-            <div style={{ marginBottom: "28px" }}>
+          <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: "11.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Avg Resolution Speed</span>
+                <div style={{ fontSize: "26px", fontWeight: 800, color: "#2563eb", marginTop: "4px" }}>5.2 Days</div>
+              </div>
+              <div style={{ width: "38px", height: "38px", borderRadius: "8px", background: "#eff6ff", display: "grid", placeItems: "center", color: "#2563eb" }}>
+                <Icon name="clock" />
+              </div>
+            </div>
+            <span style={{ fontSize: "11.5px", color: "#16a34a", marginTop: "10px", display: "flex", alignItems: "center", gap: "4px" }}>
+              ↓ 0.8 days faster
+            </span>
+          </div>
+
+          <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: "11.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Notice Compliance</span>
+                <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--navy)", marginTop: "4px" }}>96.8%</div>
+              </div>
+              <div style={{ width: "38px", height: "38px", borderRadius: "8px", background: "var(--bridal-blue)", display: "grid", placeItems: "center", color: "var(--sapphire)" }}>
+                <Icon name="shield" />
+              </div>
+            </div>
+            <span style={{ fontSize: "11.5px", color: "var(--muted)", marginTop: "10px", display: "flex", alignItems: "center", gap: "4px" }}>
+              Section 269/270 notices
+            </span>
+          </div>
+
+          <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: "11.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Re-inspection Velocity</span>
+                <div style={{ fontSize: "26px", fontWeight: 800, color: "#f59e0b", marginTop: "4px" }}>2.4 Days</div>
+              </div>
+              <div style={{ width: "38px", height: "38px", borderRadius: "8px", background: "#fef3c7", display: "grid", placeItems: "center", color: "#f59e0b" }}>
+                <Icon name="chart" />
+              </div>
+            </div>
+            <span style={{ fontSize: "11.5px", color: "#16a34a", marginTop: "10px", display: "flex", alignItems: "center", gap: "4px" }}>
+              Within SLA target
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION: OVERVIEW TAB (UNIFIED EXECUTIVE DASHBOARD) ────────────── */}
+      {!loading && !error && selectedTab === "Overview" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+          {/* ── TOP 3 PERFORMING OFFICERS PODIUM ───────────────────────────── */}
+          {topPerformers.length > 0 && (
+            <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div>
                   <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--navy)", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
@@ -945,7 +989,7 @@ function OfficersPage() {
                   onClick={() => setSelectedTab("Performance Analytics")}
                   style={{ background: "none", border: "none", color: "var(--sapphire)", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
                 >
-                  View All →
+                  View Full Analytics →
                 </button>
               </div>
 
@@ -970,7 +1014,6 @@ function OfficersPage() {
                   >
                     {/* Top Row: Medal Badge + Officer Info */}
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-                      {/* Badge / Ribbon */}
                       <div
                         style={{
                           width: "36px",
@@ -990,7 +1033,6 @@ function OfficersPage() {
                         {officer.badge}
                       </div>
 
-                      {/* Avatar */}
                       <div
                         style={{
                           width: "44px",
@@ -1008,7 +1050,6 @@ function OfficersPage() {
                         {officer.name.replace(/^(Sh\.|Smt\.|Dr\.|Er\.)\s*/i, "").charAt(0)}
                       </div>
 
-                      {/* Name & Title */}
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <h4 style={{ fontSize: "15px", fontWeight: 700, color: "var(--navy)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {officer.name}
@@ -1047,7 +1088,6 @@ function OfficersPage() {
                         </span>
                       </div>
 
-                      {/* Sparkline Curve */}
                       <PodiumSparkline
                         points={officer.sparkPoints}
                         strokeColor={officer.sparkColor}
@@ -1062,22 +1102,118 @@ function OfficersPage() {
             </div>
           )}
 
-          {/* ── ALL OFFICERS PERFORMANCE TABLE (Matching media_1790014568049.png) ─ */}
+          {/* ── ANALYTICS CHARTS INTEGRATED DIRECTLY IN OVERVIEW ───────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(460px, 1fr))", gap: "24px" }}>
+            {/* 1. Caseload Donut Chart */}
+            <Card style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
+              <div style={{ marginBottom: "14px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--navy)", margin: 0 }}>
+                  Caseload &amp; Violation Distribution
+                </h3>
+                <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 0" }}>
+                  Interactive breakdown of complaints across building enforcement stages
+                </p>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "14px 0" }}>
+                <DonutChart
+                  data={analyticsDonutData}
+                  size={220}
+                  strokeWidth={26}
+                  animationDuration={1.1}
+                  highlightOnHover={true}
+                  onSegmentHover={(seg) => setHoveredDonutSegment(seg ? seg.label : null)}
+                  centerContent={
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", userSelect: "none" }}>
+                      <span style={{ fontSize: "24px", fontWeight: 800, color: "var(--navy)", lineHeight: 1 }}>{displayDonutVal}</span>
+                      <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", marginTop: "3px" }}>{displayDonutLbl}</span>
+                      {activeDonutSeg && (
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: activeDonutSeg.color, marginTop: "2px" }}>[{displayDonutPct}%]</span>
+                      )}
+                    </div>
+                  }
+                />
+              </div>
+
+              {/* Legend with Value & Percent Badges */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                {analyticsDonutData.map((item) => {
+                  const pct = totalAnalyticsDonut > 0 ? ((item.value / totalAnalyticsDonut) * 100).toFixed(0) : "0";
+                  return (
+                    <div
+                      key={item.label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 8px",
+                        borderRadius: "6px",
+                        background: hoveredDonutSegment === item.label ? "#f8fafc" : "transparent",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={() => setHoveredDonutSegment(item.label)}
+                      onMouseLeave={() => setHoveredDonutSegment(null)}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: item.color }} />
+                        <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--navy)" }}>{item.label}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--navy)" }}>{item.value}</span>
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", minWidth: "30px", textAlign: "right" }}>{pct}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* 2. Statutory Competency Decagon Radar */}
+            <Card style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
+              <div style={{ marginBottom: "14px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--navy)", margin: 0 }}>
+                  Statutory Competency Radar
+                </h3>
+                <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 0" }}>
+                  10-axis radial compliance balance across field &amp; legal workflows
+                </p>
+              </div>
+
+              <div style={{ background: "#fbf8ef", borderRadius: "14px", padding: "16px", display: "flex", justifyContent: "center", border: "1px solid #ede8d8" }}>
+                <OfficerRadarChart data={municipalRadarData} size={250} />
+              </div>
+
+              {/* Insights Strip */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "14px" }}>
+                <div style={{ padding: "8px 12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", color: "var(--muted)", display: "block" }}>Highest Efficiency</span>
+                  <strong style={{ fontSize: "12.5px", color: "#16a34a" }}>Doc Integrity (95%)</strong>
+                </div>
+                <div style={{ padding: "8px 12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", color: "var(--muted)", display: "block" }}>Priority Focus</span>
+                  <strong style={{ fontSize: "12.5px", color: "#ea580c" }}>Grievance Speed (60%)</strong>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* ── ALL OFFICERS PERFORMANCE TABLE (WITH DESIGNATION FILTER PILLS) ─ */}
           <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid var(--border)", padding: "22px", boxShadow: "var(--shadow-card)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "16px" }}>
               <div>
                 <h2 style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)", margin: "0 0 4px 0" }}>All Officers Performance</h2>
                 <p style={{ fontSize: "13px", color: "var(--muted)", margin: 0 }}>Complete list of Building Branch officers with key performance metrics</p>
               </div>
 
+              {/* Search & Zone Dropdown */}
               <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                <div style={{ position: "relative", minWidth: "280px" }}>
+                <div style={{ position: "relative", minWidth: "260px" }}>
                   <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }}>
                     <Icon name="search" />
                   </span>
                   <input
                     type="text"
-                    placeholder="Search officers by name, designation or zone..."
+                    placeholder="Search officers..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -1114,9 +1250,110 @@ function OfficersPage() {
               </div>
             </div>
 
+            {/* ── DESIGNATION FILTER PILLS (Replaces separate BI & ATP tabs!) ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginRight: "4px" }}>Filter:</span>
+              
+              <button
+                type="button"
+                onClick={() => setDesignationFilter("ALL")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  border: designationFilter === "ALL" ? "1.5px solid var(--navy)" : "1px solid var(--border)",
+                  background: designationFilter === "ALL" ? "var(--navy)" : "#ffffff",
+                  color: designationFilter === "ALL" ? "#ffffff" : "var(--ink)",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>All Officers</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    background: designationFilter === "ALL" ? "rgba(255,255,255,0.2)" : "#f1f5f9",
+                    color: designationFilter === "ALL" ? "#ffffff" : "var(--muted)",
+                  }}
+                >
+                  {officers.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDesignationFilter("BI")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  border: designationFilter === "BI" ? "1.5px solid #0284c7" : "1px solid var(--border)",
+                  background: designationFilter === "BI" ? "#0284c7" : "#ffffff",
+                  color: designationFilter === "BI" ? "#ffffff" : "var(--ink)",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>Building Inspectors (BI)</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    background: designationFilter === "BI" ? "rgba(255,255,255,0.2)" : "#e0f2fe",
+                    color: designationFilter === "BI" ? "#ffffff" : "#0369a1",
+                  }}
+                >
+                  {biOfficersCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDesignationFilter("ATP")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  border: designationFilter === "ATP" ? "1.5px solid #d97706" : "1px solid var(--border)",
+                  background: designationFilter === "ATP" ? "#d97706" : "#ffffff",
+                  color: designationFilter === "ATP" ? "#ffffff" : "var(--ink)",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>Assistant Town Planners (ATP)</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    background: designationFilter === "ATP" ? "rgba(255,255,255,0.2)" : "#fef3c7",
+                    color: designationFilter === "ATP" ? "#ffffff" : "#b45309",
+                  }}
+                >
+                  {atpOfficersCount}
+                </span>
+              </button>
+            </div>
+
             {filteredOfficers.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
-                <p>No officers found matching your search or zone filter.</p>
+                <p>No officers found matching your search or filters.</p>
               </div>
             ) : (
               <div className="table-wrap">
@@ -1212,39 +1449,15 @@ function OfficersPage() {
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
 
-      {/* ── SECTION 2: PERFORMANCE ANALYTICS TAB (COMPREHENSIVE CHARTS) ───── */}
+      {/* ── SECTION: PERFORMANCE ANALYTICS TAB (EXPANDED CHARTS SUITE) ───── */}
       {!loading && !error && selectedTab === "Performance Analytics" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-          {/* Executive Performance Summary Ribbon */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-            <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase" }}>Clearance Rate</span>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: "#10b981", marginTop: "4px" }}>92.4%</div>
-              <span style={{ fontSize: "11px", color: "#16a34a", marginTop: "4px", display: "block" }}>↑ 4.1% vs benchmark</span>
-            </div>
-            <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase" }}>Avg Resolution Speed</span>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: "#2563eb", marginTop: "4px" }}>5.2 Days</div>
-              <span style={{ fontSize: "11px", color: "#16a34a", marginTop: "4px", display: "block" }}>↓ 0.8 days faster</span>
-            </div>
-            <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase" }}>Notice Compliance</span>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--navy)", marginTop: "4px" }}>96.8%</div>
-              <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px", display: "block" }}>Section 269/270 notices</span>
-            </div>
-            <div style={{ padding: "18px 20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase" }}>Re-inspection Velocity</span>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: "#f59e0b", marginTop: "4px" }}>2.4 Days</div>
-              <span style={{ fontSize: "11px", color: "#16a34a", marginTop: "4px", display: "block" }}>Within SLA target</span>
-            </div>
-          </div>
-
           {/* Row 1: Donut Caseload Distribution & Statutory Radar Decagon */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(460px, 1fr))", gap: "24px" }}>
-            {/* 1. Caseload Donut Chart (Matching media_1790015940962.png) */}
+            {/* 1. Caseload Donut Chart */}
             <Card style={{ background: "#ffffff", borderRadius: "14px", padding: "26px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
               <div style={{ marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)", margin: 0 }}>
@@ -1308,7 +1521,7 @@ function OfficersPage() {
               </div>
             </Card>
 
-            {/* 2. Statutory Competency Decagon Radar (Matching media_1790016018488.png) */}
+            {/* 2. Statutory Competency Decagon Radar */}
             <Card style={{ background: "#ffffff", borderRadius: "14px", padding: "26px", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
               <div style={{ marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)", margin: 0 }}>
