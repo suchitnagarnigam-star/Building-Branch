@@ -948,6 +948,21 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 </div>
               )}
 
+              {constructionSummary.construction_type === "partly_compoundable" && (
+                <div style={{ gridColumn: "1 / -1", background: "rgba(0,0,0,0.02)", padding: "10px 12px", borderRadius: "8px", marginTop: "4px" }}>
+                  <div style={{ display: "flex", gap: "20px", fontSize: "12px", flexWrap: "wrap" }}>
+                    <span style={{ color: constructionSummary.receipt_number ? "#166534" : "#b45309" }}>
+                      <strong>Compoundable Area:</strong>{" "}
+                      {constructionSummary.receipt_number ? `Completed ✓ (Receipt #${constructionSummary.receipt_number})` : "Pending Assessment"}
+                    </span>
+                    <span style={{ color: constructionSummary.notice_269_number ? "#166534" : "#b45309" }}>
+                      <strong>Non-Compoundable Area:</strong>{" "}
+                      {constructionSummary.notice_269_number ? `Completed ✓ (Notice #${constructionSummary.notice_269_number})` : "Pending Section 269 Notice"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div style={{ gridColumn: "1 / -1", marginTop: "6px" }}>
                 <button
                   type="button"
