@@ -1,19 +1,40 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import type { Role } from "../../shared/types";
 
 type LoginScreenProps = {
-  onLogin: (userName: string) => void;
-  onRoleChange: (nextRole: Role) => void;
+  onLogin?: (userName: string) => void;
+  onRoleChange?: (nextRole: Role) => void;
 };
 
 function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
-  const [role, setRole] = useState<Role>("Admin");
-  const [userName, setUserName] = useState("Arjun Mehta");
+  const { login } = useAuth();
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onRoleChange(role);
-    onLogin(userName.trim() || "Arjun Mehta");
+    setError(null);
+
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier || !password) {
+      setError("Please enter both identifier and password/PIN.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await login(trimmedIdentifier, password);
+      onLogin?.(trimmedIdentifier);
+      onRoleChange?.("Admin");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -29,35 +50,56 @@ function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
 
         <form onSubmit={handleSubmit} className="login-form">
           <label className="field">
-            <span>Username</span>
+            <span>Username or Phone Number</span>
             <input
               type="text"
-              value={userName}
-              onChange={(event) => setUserName(event.target.value)}
+              placeholder="e.g. admin or 90410-22742"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              disabled={isSubmitting}
+              autoComplete="username"
+              required
             />
           </label>
 
           <label className="field">
-            <span>Password</span>
-            <input type="password" defaultValue="password123" />
+            <span>Password or 6-digit PIN</span>
+            <input
+              type="password"
+              placeholder="Password or officer PIN"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={isSubmitting}
+              autoComplete="current-password"
+              required
+            />
           </label>
 
-          <label className="field">
-            <span>Designation</span>
-            <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              <option value="Operator">Operator</option>
-              <option value="Officer">Officer</option>
-              <option value="ATP">ATP</option>
-              <option value="MTP">MTP</option>
-              <option value="JC">JC</option>
-              <option value="C">C</option>
-              <option value="Admin">Admin</option>
-            </select>
-          </label>
-
-          <button type="submit" className="primary-button button-full">
-            Sign in
+          <button
+            type="submit"
+            className="primary-button button-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
+
+          {error && (
+            <div
+              style={{
+                marginTop: "14px",
+                padding: "10px 12px",
+                borderRadius: "6px",
+                backgroundColor: "#fef2f2",
+                color: "#b91c1c",
+                fontSize: "13px",
+                border: "1px solid #fecaca",
+                textAlign: "center",
+                lineHeight: "1.4",
+              }}
+            >
+              {error}
+            </div>
+          )}
         </form>
       </div>
     </div>

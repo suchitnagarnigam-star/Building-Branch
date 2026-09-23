@@ -31,11 +31,22 @@ const writeLatest = (complaint: Complaint) => {
 
 export const getStoredComplaints = (): Complaint[] => readStored();
 
+const getAuthHeader = (): Record<string, string> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const uploadExternalSource = async (files: File[]) => {
   const body = new FormData();
   files.forEach((file) => body.append("sourceImage", file, file.name));
 
-  const response = await fetch(SOURCE_UPLOAD_URL, { method: "POST", body });
+  const response = await fetch(SOURCE_UPLOAD_URL, {
+    method: "POST",
+    headers: {
+      ...getAuthHeader(),
+    },
+    body,
+  });
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok || result.filesUploaded !== files.length) {
@@ -69,7 +80,13 @@ export const submitComplaint = async (
     sourceFiles.forEach((file) => {body.append("sourceImage", file)});
     complaintImages.forEach((file) => {body.append("complaintImage", file)});
 
-    const response = await fetch(API_URL, { method: "POST", body });
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        ...getAuthHeader(),
+      },
+      body,
+    });
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) throw new Error(result.message || "Failed to submit complaint");
@@ -109,6 +126,7 @@ export const submitComplaint = async (
       : new Error("Unable to reach the complaint server. Please start the backend and try again.");
   }
 };
+
 export interface OCRImageResult {
   img_index: number;
   filename: string;
@@ -182,11 +200,10 @@ export async function extractComplaintFromSource(
     `${BASE_API_URL}/complaints/extract-source`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeader(),
       },
-
       body: JSON.stringify({
         combinedOcr,
         sourceType,
@@ -233,6 +250,9 @@ export async function processExternalSource(
     `${BASE_API_URL}/complaints/process-source`,
     {
       method: "POST",
+      headers: {
+        ...getAuthHeader(),
+      },
       body: formData,
     },
   );
