@@ -40,8 +40,6 @@ export const formatPageTitle = (route: string): string => {
     case "/complaints/mine":
     case "/complaints/pending":
       return "Complaints";
-    case "/analytics":
-      return "Analytics";
     case "/field-inspection":
       return "Field Inspections";
     case "/construction-status":
