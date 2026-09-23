@@ -25,8 +25,21 @@ import {
   createCaseDriveFolder} from "../services/driveService";
 
 import {pool} from "../db/database";
+import authRoutes from "./authRoutes";
+import { authenticateToken, requireRole } from "../middleware/auth";
 
 const router = Router();
+
+// Auth routes (public login, protected logout)
+router.use("/auth", authRoutes);
+
+// Protect all remaining routes with JWT authentication
+router.use(authenticateToken);
+
+// TODO: Governance Rule - BI cannot close their own cases.
+// Once case-close route (e.g. POST /api/cases/:caseId/close) is implemented, enforce at API layer:
+// Ensure (req.user?.role !== 'bi' || req.user?.officerId !== caseRow.assigned_bi_id).
+
 const moduleDirectory = __dirname;
 const parentDirectory = path.resolve(moduleDirectory, "..");
 const serverRoot = path.basename(parentDirectory) === "dist"
@@ -212,7 +225,10 @@ router.get("/officers", async (_req, res) => {
   }
 });
 
-router.get("/officers/roster", async (_req, res) => {
+router.get(
+  "/officers/roster",
+  requireRole("bi", "atp", "mtp", "jc", "superadmin"),
+  async (_req, res) => {
   try {
     const [officers, complaints] = await Promise.all([getOfficers(), getComplaints()]);
     res.json({
@@ -1126,12 +1142,21 @@ router.post(
         [overallCaseStatusText, status, actualCaseId]
       );
 
+      let dbOverallStatus = "in_progress";
+      if (status === "compoundable") {
+        dbOverallStatus = compoundableCompleted ? "completed" : "in_progress";
+      } else if (status === "non_compoundable") {
+        dbOverallStatus = nonCompoundableCompleted ? "completed" : "in_progress";
+      } else if (status === "partly_compoundable") {
+        dbOverallStatus = (compoundableCompleted && nonCompoundableCompleted) ? "completed" : "in_progress";
+      }
+
       await client.query(
         `UPDATE construction_status
          SET overall_status = $1,
              updated_at = NOW()
          WHERE construction_status_id = $2`,
-        [overallCaseStatusText, constructionStatusId]
+        [dbOverallStatus, constructionStatusId]
       );
 
       await client.query(
@@ -1477,6 +1502,7 @@ router.post(
 
 router.post(
   "/complaints",
+  requireRole("superadmin", "operator", "jc", "mtp", "atp", "bi"),
   handleUpload,
   async (req, res) => {
     try {
@@ -1641,6 +1667,7 @@ router.post(
 
 router.post(
   "/inspections",
+  requireRole("bi", "atp", "mtp", "jc", "superadmin"),
   handleInspectionUpload,
   async (req, res) => {
     const temporaryFiles: Express.Multer.File[] = [];

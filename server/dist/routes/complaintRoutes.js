@@ -18,7 +18,16 @@ const ocrService_1 = require("../services/ocrService");
 const claudeService_1 = require("../services/claudeService");
 const driveService_1 = require("../services/driveService");
 const database_1 = require("../db/database");
+const authRoutes_1 = __importDefault(require("./authRoutes"));
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
+// Auth routes (public login, protected logout)
+router.use("/auth", authRoutes_1.default);
+// Protect all remaining routes with JWT authentication
+router.use(auth_1.authenticateToken);
+// TODO: Governance Rule - BI cannot close their own cases.
+// Once case-close route (e.g. POST /api/cases/:caseId/close) is implemented, enforce at API layer:
+// Ensure (req.user?.role !== 'bi' || req.user?.officerId !== caseRow.assigned_bi_id).
 const moduleDirectory = __dirname;
 const parentDirectory = node_path_1.default.resolve(moduleDirectory, "..");
 const serverRoot = node_path_1.default.basename(parentDirectory) === "dist"
@@ -166,7 +175,7 @@ router.get("/officers", async (_req, res) => {
         res.status(500).json({ success: false, message: "Unable to load officers." });
     }
 });
-router.get("/officers/roster", async (_req, res) => {
+router.get("/officers/roster", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "superadmin"), async (_req, res) => {
     try {
         const [officers, complaints] = await Promise.all([(0, officerMapping_js_1.getOfficers)(), (0, complaintStorage_1.getComplaints)()]);
         res.json({
@@ -872,10 +881,20 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
              construction_status = $2,
              updated_at = NOW()
          WHERE case_id = $3`, [overallCaseStatusText, status, actualCaseId]);
+        let dbOverallStatus = "in_progress";
+        if (status === "compoundable") {
+            dbOverallStatus = compoundableCompleted ? "completed" : "in_progress";
+        }
+        else if (status === "non_compoundable") {
+            dbOverallStatus = nonCompoundableCompleted ? "completed" : "in_progress";
+        }
+        else if (status === "partly_compoundable") {
+            dbOverallStatus = (compoundableCompleted && nonCompoundableCompleted) ? "completed" : "in_progress";
+        }
         await client.query(`UPDATE construction_status
          SET overall_status = $1,
              updated_at = NOW()
-         WHERE construction_status_id = $2`, [overallCaseStatusText, constructionStatusId]);
+         WHERE construction_status_id = $2`, [dbOverallStatus, constructionStatusId]);
         await client.query(`INSERT INTO case_status_history (
            case_id, previous_status, new_status, changed_by_id, changed_by_name, reason, note
          ) VALUES ($1, $2, $3, $4, $5, 'Construction status updated via inspection', $6)`, [
@@ -1090,7 +1109,7 @@ router.post("/complaints/extract-source", async (req, res) => {
         });
     }
 });
-router.post("/complaints", handleUpload, async (req, res) => {
+router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc", "mtp", "atp", "bi"), handleUpload, async (req, res) => {
     try {
         const body = req.body;
         const files = req.files;
@@ -1209,7 +1228,7 @@ router.post("/complaints", handleUpload, async (req, res) => {
         res.status(500).json({ success: false, message: "Unable to register complaint." });
     }
 });
-router.post("/inspections", handleInspectionUpload, async (req, res) => {
+router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "superadmin"), handleInspectionUpload, async (req, res) => {
     const temporaryFiles = [];
     try {
         const body = req.body;
