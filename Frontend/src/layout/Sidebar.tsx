@@ -1,17 +1,58 @@
 import Icon from "../shared/components/Icon";
 import { NAV_ITEMS } from "../shared/constants/navigation";
-import type { Role } from "../shared/types";
 
 type SidebarProps = {
   route: string;
-  userRole: Role;
-  userName: string;
+  userRole: string;
+  userName?: string;
   navigate: (route: string) => void;
   onLogout?: () => void;
 };
 
+function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
+  const normRole = (role || "").toLowerCase();
+
+  switch (normRole) {
+    case "operator":
+      return ["/dashboard", "/complaints/new"].includes(itemRoute);
+
+    case "bi":
+      return [
+        "/dashboard",
+        "/complaints",
+        "/cases",
+        "/field-inspection",
+      ].includes(itemRoute);
+
+    case "atp":
+    case "mtp":
+      return [
+        "/dashboard",
+        "/complaints",
+        "/cases",
+        "/field-inspection",
+        "/officers",
+      ].includes(itemRoute);
+
+    case "jc":
+      return itemRoute !== "/settings";
+
+    case "superadmin":
+    case "admin":
+      return true;
+
+    default:
+      return ["/dashboard"].includes(itemRoute);
+  }
+}
+
 function Sidebar({ route, userRole, navigate, onLogout }: SidebarProps) {
-  const visibleNavItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
+  const visibleNavItems = NAV_ITEMS.filter((item) =>
+    isRouteAllowedForRole(item.route, userRole)
+  );
+
+  const normRole = (userRole || "").toLowerCase();
+  const canSeeSettings = normRole === "superadmin" || normRole === "admin";
 
   return (
     <aside className="sidebar sidebar--light">
@@ -39,14 +80,16 @@ function Sidebar({ route, userRole, navigate, onLogout }: SidebarProps) {
             className="sidebar__illustration-img"
           />
         </div>
-        <button
-          className="nav-item"
-          type="button"
-          onClick={() => navigate("/settings")}
-        >
-          <span className="nav-item__icon"><Icon name="settings" /></span>
-          <span>Settings</span>
-        </button>
+        {canSeeSettings && (
+          <button
+            className={`nav-item ${route === "/settings" ? "nav-item--active" : ""}`}
+            type="button"
+            onClick={() => navigate("/settings")}
+          >
+            <span className="nav-item__icon"><Icon name="settings" /></span>
+            <span>Settings</span>
+          </button>
+        )}
         <button
           className="nav-item"
           type="button"
