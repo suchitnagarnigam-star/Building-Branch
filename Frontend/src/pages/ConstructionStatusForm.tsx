@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Icon from "../shared/components/Icon";
-import type {
-  ConstructionStatusType,
-  CompoundableDetails,
-  NonCompoundableDetails,
-  ConstructionFormPayload,
-} from "../types/construction";
+import ConstructionStatusDropdown, {type PartlyCompoundableType,} from "../shared/components/ConstructionStatusDropdown";
+import type { ConstructionStatusType, CompoundableDetails, NonCompoundableDetails, ConstructionFormPayload,} from "../types/construction";
 
 type ConstructionStatusFormProps = {
   navigate?: (route: string) => void;
@@ -63,6 +59,21 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     if (!cleanId) {
       setCaseRecord(null);
       setCaseError("");
+      setStatus("");
+      setCompoundableType("full");
+      setCompoundable({
+        assessmentStatus: "",
+        totalCharges: "",
+        assessmentDate: "",
+        receiptNumber: "",
+        receiptDate: "",
+        receiptPhoto: null,
+      });
+      setNonCompoundable({
+        noticeNumber: "",
+        noticeDate: "",
+        noticePhoto: null,
+      });
       return;
     }
     setIsLoadingCase(true);
@@ -73,14 +84,101 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
       if (data.success && data.caseRecord) {
         setCaseRecord(data.caseRecord);
         setTargetCaseId(data.caseRecord.case_id);
+        // Initialize form state from case record construction status
+        const constStatus = data.caseRecord.construction_status;
+        setStatus(constStatus || "");
+
+        // Prefill section details if available
+        if (data.compoundable) {
+          setCompoundable({
+            assessmentStatus: data.compoundable.assessmentStatus === "assessed" ? "Assessed" : (data.compoundable.assessmentStatus || ""),
+            totalCharges: data.compoundable.totalCharges ? String(data.compoundable.totalCharges) : "",
+            assessmentDate: data.compoundable.assessmentDate ? data.compoundable.assessmentDate.split("T")[0] : "",
+            receiptNumber: data.compoundable.receiptNumber || "",
+            receiptDate: data.compoundable.receiptDate ? data.compoundable.receiptDate.split("T")[0] : "",
+            receiptPhoto: null,
+          });
+        }
+        if (data.notices && data.notices.length > 0) {
+          const sec269 = data.notices.find((n: any) => n.notice_type === "269" || n.notice_type === "SECTION_269");
+          if (sec269) {
+            setNonCompoundable({
+              noticeNumber: sec269.notice_number || "",
+              noticeDate: sec269.issued_at ? sec269.issued_at.split("T")[0] : "",
+              noticePhoto: null,
+            });
+          }
+        }
+
+        const compDone = data.compoundable?.partStatus === "completed";
+        const nonCompDone = data.nonCompoundable?.partStatus === "completed";
+
+        let receiptNo = data.compoundable?.receiptNumber || "";
+        let noticeNo = "";
+        if (data.notices && data.notices.length > 0) {
+          const sec269 = data.notices.find((n: any) => n.notice_type === "269" || n.notice_type === "SECTION_269");
+          if (sec269) noticeNo = sec269.notice_number || "";
+        }
+
+        setCasePartsState({
+          compoundableDone: compDone,
+          nonCompoundableDone: nonCompDone,
+          compoundableReceipt: receiptNo,
+          nonCompoundableNotice: noticeNo,
+        });
+
+        // Initialize compoundableType based on completed sections
+        if (constStatus === "partly_compoundable") {
+          if (compDone && !nonCompDone) {
+            setCompoundableType("non_compoundable");
+          } else if (nonCompDone && !compDone) {
+            setCompoundableType("compoundable");
+          } else {
+            setCompoundableType("full");
+          }
+        } else if (constStatus === "compoundable") {
+          setCompoundableType("compoundable");
+        } else if (constStatus === "non_compoundable") {
+          setCompoundableType("non_compoundable");
+        }
       } else {
         setCaseRecord(null);
         setCaseError(data.message || `No case found matching "${cleanId}". Please check the Case or Complaint ID.`);
+        setStatus("");
+        setCompoundableType("full");
+        setCompoundable({
+          assessmentStatus: "",
+          totalCharges: "",
+          assessmentDate: "",
+          receiptNumber: "",
+          receiptDate: "",
+          receiptPhoto: null,
+        });
+        setNonCompoundable({
+          noticeNumber: "",
+          noticeDate: "",
+          noticePhoto: null,
+        });
       }
     } catch (e) {
       console.warn("Could not load case details", e);
       setCaseRecord(null);
       setCaseError("Could not load case details. Please try again.");
+      setStatus("");
+      setCompoundableType("full");
+      setCompoundable({
+        assessmentStatus: "",
+        totalCharges: "",
+        assessmentDate: "",
+        receiptNumber: "",
+        receiptDate: "",
+        receiptPhoto: null,
+      });
+      setNonCompoundable({
+        noticeNumber: "",
+        noticeDate: "",
+        noticePhoto: null,
+      });
     } finally {
       setIsLoadingCase(false);
     }
@@ -92,6 +190,8 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
 
   // ── Construction Status details ─────────────────────────────────────────────
   const [status, setStatus] = useState<ConstructionStatusType>("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [compoundableType, setCompoundableType] = useState<PartlyCompoundableType>("full");
   const [compoundable, setCompoundable] = useState<CompoundableDetails>({
     assessmentStatus: "",
     totalCharges: "",
@@ -105,9 +205,17 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     noticeDate: "",
     noticePhoto: null,
   });
+  const [casePartsState, setCasePartsState] = useState<{
+    compoundableDone: boolean;
+    nonCompoundableDone: boolean;
+    compoundableReceipt?: string;
+    nonCompoundableNotice?: string;
+  }>({ compoundableDone: false, nonCompoundableDone: false });
 
   // ── Form State ──────────────────────────────────────────────────────────────
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({
+    compoundableType: "",
+  });
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -125,6 +233,10 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     setSubmitError("");
     setFieldErrors({});
     setSubmitSuccess(false);
+
+    if (newStatus === "partly_compoundable") {
+      setCompoundableType("full");
+    } 
   };
 
   const handleCompoundableChange = (
@@ -145,67 +257,93 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     setSubmitError("");
   };
 
-  const validate = (): boolean => {
-    const errors: Record<string, string> = {};
-    setSubmitError("");
+const validate = (): boolean => {
+  const errors: Record<string, string> = {};
+  setSubmitError("");
 
-    if (!status) {
-      errors.status = "Status of Construction is required.";
-      setFieldErrors(errors);
-      setSubmitError("Please select the Status of Construction.");
-      return false;
-    }
-
-    if (status === "compoundable" || status === "partly_compoundable") {
-      if (!compoundable.assessmentStatus) {
-        errors.assessmentStatus = "Status of Assessment is required.";
-      } else if (compoundable.assessmentStatus === "Assessed") {
-        if (!compoundable.totalCharges.trim()) {
-          errors.totalCharges = "Total Charges is required.";
-        }
-        if (!compoundable.assessmentDate) {
-          errors.assessmentDate = "Date of Assessment is required.";
-        }
-        if (!compoundable.receiptNumber.trim()) {
-          errors.receiptNumber = "Receipt No. is required.";
-        }
-        if (!compoundable.receiptDate) {
-          errors.receiptDate = "Receipt Date is required.";
-        }
-        if (!compoundable.receiptPhoto) {
-          errors.receiptPhoto = "Photo of Receipt is required.";
-        }
-      }
-    }
-
-    if (status === "non_compoundable" || status === "partly_compoundable") {
-      if (!nonCompoundable.noticeNumber.trim()) {
-        errors.noticeNumber = "Notice No. is required.";
-      }
-      if (!nonCompoundable.noticeDate) {
-        errors.noticeDate = "Date of Notice is required.";
-      }
-      if (!nonCompoundable.noticePhoto) {
-        errors.noticePhoto = "Photo of Notice is required.";
-      }
-    }
-
+  if (!status) {
+    errors.status = "Status of Construction is required.";
     setFieldErrors(errors);
+    setSubmitError("Please select the Status of Construction.");
+    return false;
+  }
 
-    if (Object.keys(errors).length > 0) {
-      if (status === "partly_compoundable") {
-        setSubmitError(
-          "Both Compoundable Part and Non-Compoundable Part are compulsory. Please complete all required fields in both sections.",
-        );
-      } else {
-        setSubmitError("Please fill in all required fields marked with *.");
+  const needsCompoundable =
+    status === "compoundable" ||
+    (status === "partly_compoundable" &&
+      (compoundableType === "full" ||
+        compoundableType === "compoundable"));
+
+  const needsNonCompoundable =
+    status === "non_compoundable" ||
+    (status === "partly_compoundable" &&
+      (compoundableType === "full" ||
+        compoundableType === "non_compoundable"));
+
+  if (
+    status === "partly_compoundable" &&
+    !compoundableType
+  ) {
+    errors.compoundableType =
+      "Please select a Partly Compoundable type.";
+  }
+
+  if (needsCompoundable) {
+    if (!compoundable.assessmentStatus) {
+      errors.assessmentStatus =
+        "Status of Assessment is required.";
+    } else if (compoundable.assessmentStatus === "Assessed") {
+      if (!compoundable.totalCharges.trim()) {
+        errors.totalCharges = "Total Charges is required.";
       }
-      return false;
+
+      if (!compoundable.assessmentDate) {
+        errors.assessmentDate =
+          "Date of Assessment is required.";
+      }
+
+      if (!compoundable.receiptNumber.trim()) {
+        errors.receiptNumber =
+          "Receipt No. is required.";
+      }
+
+      if (!compoundable.receiptDate) {
+        errors.receiptDate =
+          "Receipt Date is required.";
+      }
+
+      if (!compoundable.receiptPhoto) {
+        errors.receiptPhoto =
+          "Photo of Receipt is required.";
+      }
+    }
+  }
+
+  if (needsNonCompoundable) {
+    if (!nonCompoundable.noticeNumber.trim()) {
+      errors.noticeNumber = "Notice No. is required.";
     }
 
-    return true;
-  };
+    if (!nonCompoundable.noticeDate) {
+      errors.noticeDate = "Date of Notice is required.";
+    }
 
+    if (!nonCompoundable.noticePhoto) {
+      errors.noticePhoto = "Photo of Notice is required.";
+    }
+  }
+
+  setFieldErrors(errors);
+
+  if (Object.keys(errors).length > 0) {
+    setSubmitError(
+      "Please fill in all required fields marked with *.",
+    );
+    return false;
+  }
+
+  return true;
+};
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!targetCaseId.trim()) {
@@ -220,33 +358,87 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     try {
       const formData = new FormData();
       formData.append("status", status);
+      formData.append("compoundableType", compoundableType);
 
-      if (status === "compoundable" || status === "partly_compoundable") {
-        formData.append("assessmentStatus", compoundable.assessmentStatus);
-        if (compoundable.assessmentStatus === "Assessed") {
-          formData.append("totalCharges", compoundable.totalCharges);
-          formData.append("assessmentDate", compoundable.assessmentDate);
-          formData.append("receiptNumber", compoundable.receiptNumber);
-          formData.append("receiptDate", compoundable.receiptDate);
-          if (compoundable.receiptPhoto) {
-            formData.append("receiptPhoto", compoundable.receiptPhoto);
-          }
-        }
-      }
+const needsCompoundable =
+  status === "compoundable" ||
+  (status === "partly_compoundable" &&
+    (compoundableType === "full" ||
+      compoundableType === "compoundable"));
 
-      if (status === "non_compoundable" || status === "partly_compoundable") {
-        formData.append("noticeNumber", nonCompoundable.noticeNumber);
-        formData.append("noticeDate", nonCompoundable.noticeDate);
-        if (nonCompoundable.noticePhoto) {
-          formData.append("noticePhoto", nonCompoundable.noticePhoto);
-        }
-      }
+const needsNonCompoundable =
+  status === "non_compoundable" ||
+  (status === "partly_compoundable" &&
+    (compoundableType === "full" ||
+      compoundableType === "non_compoundable"));
+
+if (needsCompoundable) {
+  formData.append(
+    "assessmentStatus",
+    compoundable.assessmentStatus,
+  );
+
+  if (compoundable.assessmentStatus === "Assessed") {
+    formData.append(
+      "totalCharges",
+      compoundable.totalCharges,
+    );
+
+    formData.append(
+      "assessmentDate",
+      compoundable.assessmentDate,
+    );
+
+    formData.append(
+      "receiptNumber",
+      compoundable.receiptNumber,
+    );
+
+    formData.append(
+      "receiptDate",
+      compoundable.receiptDate,
+    );
+
+    if (compoundable.receiptPhoto) {
+      formData.append(
+        "receiptPhoto",
+        compoundable.receiptPhoto,
+      );
+    }
+  }
+}
+
+if (needsNonCompoundable) {
+  formData.append(
+    "noticeNumber",
+    nonCompoundable.noticeNumber,
+  );
+
+  formData.append(
+    "noticeDate",
+    nonCompoundable.noticeDate,
+  );
+
+  if (nonCompoundable.noticePhoto) {
+    formData.append(
+      "noticePhoto",
+      nonCompoundable.noticePhoto,
+    );
+  }
+}
 
       if (replyByViolator.trim()) {
         formData.append("replyByViolator", replyByViolator.trim());
       }
       if (replyPhoto) {
         formData.append("replyPhoto", replyPhoto);
+      }
+
+      if (caseRecord?.assigned_bi_id) {
+        formData.append("officerId", caseRecord.assigned_bi_id as string);
+      }
+      if (caseRecord?.assigned_bi_name) {
+        formData.append("officerName", caseRecord.assigned_bi_name as string);
       }
 
       const response = await fetch(
@@ -272,7 +464,7 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
         } else if (status === "non_compoundable") {
           constStatusPayload = { status: "non_compoundable" as const, nonCompoundable };
         } else {
-          constStatusPayload = { status: "partly_compoundable" as const, compoundable, nonCompoundable };
+          constStatusPayload = { status: "partly_compoundable" as const, compoundable, nonCompoundable, compoundableType };
         }
         onSubmitSuccess({
           replyByViolator: replyByViolator.trim() || undefined,
@@ -823,26 +1015,59 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
           </div>
           <div className="inspection-grid">
             <div className="form-field form-field--full">
-              <label htmlFor="statusSelect">
-                Status of Construction <span>*</span>
-              </label>
-              <select
-                id="statusSelect"
-                required
-                value={status}
-                onChange={(e) => handleStatusChange(e.target.value as ConstructionStatusType)}
-              >
-                <option value="">Select Status</option>
-                <option value="compoundable">Compoundable</option>
-                <option value="partly_compoundable">Partly Compoundable</option>
-                <option value="non_compoundable">Non-Compoundable</option>
-              </select>
+              <ConstructionStatusDropdown
+                selectedStatus={status}
+                onStatusChange={handleStatusChange}
+                selectedPartlyType={compoundableType}
+                onPartlyTypeChange={(type) =>{
+                  setCompoundableType(type);
+                  setSubmitError("");
+                  setSubmitSuccess(false);
+                }}
+                isOpen={isOpen}
+                onOpenChange={setIsOpen}
+              />
               {fieldErrors.status && <small className="field-error">{fieldErrors.status}</small>}
+
+              {status === "partly_compoundable" && casePartsState.compoundableDone && !casePartsState.nonCompoundableDone && (
+                <div style={{ marginTop: "12px", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", fontSize: "13px", color: "#166534", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ display: "inline-flex", width: "16px", height: "16px", flexShrink: 0, alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="check-circle" />
+                  </span>
+                  <span>
+                    <strong>Compoundable Section Completed ✓</strong>
+                    {casePartsState.compoundableReceipt ? ` (Receipt #${casePartsState.compoundableReceipt})` : ""}. Section B (Non-Compoundable Details) is pending. The form below is auto-selected for Section B.
+                  </span>
+                </div>
+              )}
+
+              {status === "partly_compoundable" && casePartsState.nonCompoundableDone && !casePartsState.compoundableDone && (
+                <div style={{ marginTop: "12px", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", fontSize: "13px", color: "#166534", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ display: "inline-flex", width: "16px", height: "16px", flexShrink: 0, alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="check-circle" />
+                  </span>
+                  <span>
+                    <strong>Non-Compoundable Section Completed ✓</strong>
+                    {casePartsState.nonCompoundableNotice ? ` (Section 269 Notice #${casePartsState.nonCompoundableNotice})` : ""}. Section A (Compoundable Details) is pending. The form below is auto-selected for Section A.
+                  </span>
+                </div>
+              )}
+
+              {status === "partly_compoundable" && casePartsState.compoundableDone && casePartsState.nonCompoundableDone && (
+                <div style={{ marginTop: "12px", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", fontSize: "13px", color: "#166534", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ display: "inline-flex", width: "16px", height: "16px", flexShrink: 0, alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="check-circle" />
+                  </span>
+                  <span>
+                    <strong>Both Compoundable and Non-Compoundable Sections Completed ✓</strong>.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        {/* ── DETAILS SECTIONS BASED ON CONSTRUCTION STATUS ── */}
+        {/* ── DETAILS SECTIONS BASED ON CONSTRUCTION STATUS AND TYPE ── */}
         {status === "compoundable" && (
           <>
             {renderCompoundableFields("02", "Compoundable Details")}
@@ -859,9 +1084,28 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
 
         {status === "partly_compoundable" && (
           <>
-            {renderCompoundableFields("02", "SECTION A — Compoundable Part")}
-            {renderNonCompoundableFields("03", "SECTION B — Non-Compoundable Part")}
-            {renderReplyByViolatorFields("04")}
+            {/* ── DETAILS SECTIONS BASED ON CONSTRUCTION TYPE ── */}
+            {compoundableType === "full" && (
+              <>
+                {renderCompoundableFields("02", "SECTION A — Compoundable Part")}
+                {renderNonCompoundableFields("03", "SECTION B — Non-Compoundable Part")}
+                {renderReplyByViolatorFields("04")}
+              </>
+            )}
+
+            {compoundableType === "compoundable" && (
+              <>
+                {renderCompoundableFields("02", "SECTION A — Compoundable Part")}
+                {renderReplyByViolatorFields("03")}
+              </>
+            )}
+
+            {compoundableType === "non_compoundable" && (
+              <>
+                {renderNonCompoundableFields("02", "SECTION B — Non-Compoundable Part")}
+                {renderReplyByViolatorFields("03")}
+              </>
+            )}
           </>
         )}
 

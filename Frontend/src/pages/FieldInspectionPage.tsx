@@ -676,7 +676,6 @@ const submitInspection = async (
                   {[
                     { id: "complaint", label: "Complaint Based" },
                     { id: "field_visit", label: "Proactive Visit" },
-                    { id: "case", label: "Existing Case" },
                   ].map((item) => (
                     <label className={`choice-card choice-card--compact ${sourceOfReport === item.id ? "choice-card--selected" : ""}`} key={item.id}>
                       <input
@@ -845,7 +844,6 @@ const submitInspection = async (
                 {[
                   { id: "complaint", label: "Complaint Based" },
                   { id: "field_visit", label: "Proactive Visit" },
-                  { id: "case", label: "Existing Case" },
                 ].map((item) => (
                   <label className={`choice-card choice-card--compact ${sourceOfReport === item.id ? "choice-card--selected" : ""}`} key={item.id}>
                     <input

@@ -624,6 +624,16 @@ router.get("/cases/:caseId", async (req, res) => {
         [actualCaseId]
       );
 
+      const partsResult = await pool.query(
+        `SELECT * FROM construction_parts WHERE construction_status_id IN (
+          SELECT construction_status_id FROM construction_status WHERE LOWER(case_id) = LOWER($1) ORDER BY created_at DESC LIMIT 1
+        )`,
+        [actualCaseId]
+      );
+
+      const compoundablePart = partsResult.rows.find(p => p.part_type === 'compoundable');
+      const nonCompoundablePart = partsResult.rows.find(p => p.part_type === 'non_compoundable');
+
       res.json({
         success: true,
         caseRecord,
@@ -632,6 +642,18 @@ router.get("/cases/:caseId", async (req, res) => {
         notices: noticesResult.rows,
         violatorReplies: repliesResult.rows,
         statusHistory: historyResult.rows,
+        compoundable: compoundablePart ? {
+          partStatus: compoundablePart.part_status,
+          assessmentStatus: compoundablePart.assessment_status,
+          totalCharges: compoundablePart.total_charges,
+          assessmentDate: compoundablePart.assessment_date,
+          receiptNumber: compoundablePart.receipt_number,
+          receiptDate: compoundablePart.receipt_date,
+        } : null,
+        nonCompoundable: nonCompoundablePart ? {
+          partStatus: nonCompoundablePart.part_status,
+          noticeId: nonCompoundablePart.notice_id,
+        } : null,
       });
       return;
     }
@@ -673,26 +695,54 @@ router.get("/cases/:caseId/construction-status", async (req, res) => {
   const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
 
   try {
+    // Fetch construction summary
     const summaryResult = await pool.query(
       "SELECT * FROM case_construction_summary WHERE LOWER(case_id) = LOWER($1) ORDER BY construction_status_id DESC LIMIT 1",
       [caseId]
     );
 
+    // Fetch notices (Section 269)
     const noticesResult = await pool.query(
       "SELECT * FROM notices WHERE LOWER(case_id) = LOWER($1) AND notice_type = '269' ORDER BY created_at DESC",
       [caseId]
     );
 
+    // Fetch violator replies
     const repliesResult = await pool.query(
       "SELECT * FROM violator_replies WHERE LOWER(case_id) = LOWER($1) ORDER BY reply_date DESC, created_at DESC",
       [caseId]
     );
+
+    // Fetch construction parts (compoundable and non_compoundable sections)
+    const partsResult = await pool.query(
+      `SELECT * FROM construction_parts WHERE construction_status_id IN (
+        SELECT construction_status_id FROM construction_status WHERE case_id = $1 ORDER BY created_at DESC LIMIT 1
+      )`,
+      [caseId]
+    );
+
+    // Organize parts by type
+    const compoundablePart = partsResult.rows.find(p => p.part_type === 'compoundable');
+    const nonCompoundablePart = partsResult.rows.find(p => p.part_type === 'non_compoundable');
 
     res.json({
       success: true,
       constructionSummary: summaryResult.rows[0] || null,
       notices: noticesResult.rows,
       violatorReplies: repliesResult.rows,
+      // Section-level state for PHASE 3
+      compoundable: compoundablePart ? {
+        partStatus: compoundablePart.part_status,
+        assessmentStatus: compoundablePart.assessment_status,
+        totalCharges: compoundablePart.total_charges,
+        assessmentDate: compoundablePart.assessment_date,
+        receiptNumber: compoundablePart.receipt_number,
+        receiptDate: compoundablePart.receipt_date,
+      } : null,
+      nonCompoundable: nonCompoundablePart ? {
+        partStatus: nonCompoundablePart.part_status,
+        noticeId: nonCompoundablePart.notice_id,
+      } : null,
     });
   } catch (error) {
     console.error(`[Cases] Error fetching construction status for ${caseId}:`, error);
@@ -834,10 +884,40 @@ router.post(
 
       await client.query("BEGIN");
 
-      // 3. Insert or update construction_status (one per case)
-      const overallStatus = status === "compoundable" ? "completed" : "in_progress";
-      const officerId = body.officerId?.trim() || "BI-001";
-      const officerName = body.officerName?.trim() || "Sonia Mehta";
+      // 3. Resolve assigned BI officer details for this case
+      let officerId = body.officerId?.trim();
+      let officerName = body.officerName?.trim();
+
+      if ((!officerId || !officerName) && caseCheck.rows.length > 0) {
+        const caseRow = caseCheck.rows[0];
+        officerId = officerId || caseRow.assigned_bi_id || caseRow.assigned_officer_id;
+        officerName = officerName || caseRow.assigned_bi_name || caseRow.assigned_officer_name;
+
+        // If not directly on case, check linked primary complaint
+        if ((!officerId || !officerName) && caseRow.primary_complaint_id) {
+          const cmpRes = await client.query(
+            "SELECT assigned_officer_id, assigned_officer_name FROM complaints WHERE complaint_id = $1 LIMIT 1",
+            [caseRow.primary_complaint_id]
+          );
+          if (cmpRes.rows.length > 0) {
+            officerId = officerId || cmpRes.rows[0].assigned_officer_id;
+            officerName = officerName || cmpRes.rows[0].assigned_officer_name;
+          }
+        }
+
+        // If still not found, resolve from roster mapping using case zone & block
+        if ((!officerId || !officerName) && (caseRow.zone || caseRow.block)) {
+          const bi = await findResponsibleOfficer(caseRow.zone, caseRow.block, "BI");
+          if (bi) {
+            officerId = officerId || bi.officerId;
+            officerName = officerName || bi.name;
+          }
+        }
+      }
+
+      // Fallback defaults if no assignment found anywhere
+      officerId = officerId || "BI-001";
+      officerName = officerName || "Sonia Mehta";
 
       const csInsert = await client.query(
         `INSERT INTO construction_status (case_id, construction_type, overall_status, created_by_id, created_by_name, updated_at)
@@ -849,15 +929,33 @@ router.post(
            created_by_name = EXCLUDED.created_by_name,
            updated_at = NOW()
          RETURNING construction_status_id`,
-        [actualCaseId, status, overallStatus, officerId, officerName]
+        [actualCaseId, status, "in_progress", officerId, officerName]
       );
       const constructionStatusId = csInsert.rows[0].construction_status_id;
 
-      // Clean existing construction parts for this status
-      await client.query("DELETE FROM construction_parts WHERE construction_status_id = $1", [constructionStatusId]);
+      // Fetch existing parts to preserve previously completed section state
+      const existingPartsRes = await client.query(
+        `SELECT * FROM construction_parts WHERE construction_status_id = $1`,
+        [constructionStatusId]
+      );
+      const existingCompoundable = existingPartsRes.rows.find(p => p.part_type === 'compoundable');
+      const existingNonCompoundable = existingPartsRes.rows.find(p => p.part_type === 'non_compoundable');
 
-      // 4. Handle Compoundable / Partly Compoundable
-      if (status === "compoundable" || status === "partly_compoundable") {
+      let compoundableCompleted = existingCompoundable?.part_status === 'completed';
+      let nonCompoundableCompleted = existingNonCompoundable?.part_status === 'completed';
+
+      const compoundableType = body.compoundableType?.trim() || "full";
+
+      const processCompoundable =
+        status === "compoundable" ||
+        (status === "partly_compoundable" && (compoundableType === "full" || compoundableType === "compoundable"));
+
+      const processNonCompoundable =
+        status === "non_compoundable" ||
+        (status === "partly_compoundable" && (compoundableType === "full" || compoundableType === "non_compoundable"));
+
+      // 4. Handle Compoundable section
+      if (processCompoundable) {
         const rawAssessment = body.assessmentStatus?.trim().toLowerCase();
         const assessmentStatus = rawAssessment === "pending" ? "pending" : "assessed";
         const totalCharges = body.totalCharges ? parseFloat(body.totalCharges) : null;
@@ -865,15 +963,30 @@ router.post(
         const receiptNumber = body.receiptNumber?.trim() || null;
         const receiptDate = body.receiptDate?.trim() || null;
 
+        const partStatus = assessmentStatus === "assessed" ? "completed" : "pending";
+
         await client.query(
           `INSERT INTO construction_parts (
-             construction_status_id, part_type, part_status, assessment_status,
-             total_charges, assessment_date, receipt_number, receipt_date,
-             receipt_file_name, receipt_drive_file_id, receipt_drive_file_url,
-             created_by_id, created_by_name
-           ) VALUES ($1, 'compoundable', 'completed', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+              construction_status_id, part_type, part_status, assessment_status,
+              total_charges, assessment_date, receipt_number, receipt_date,
+              receipt_file_name, receipt_drive_file_id, receipt_drive_file_url,
+              created_by_id, created_by_name
+            ) VALUES ($1, 'compoundable', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           ON CONFLICT (construction_status_id, part_type) DO UPDATE SET
+              part_status = EXCLUDED.part_status,
+              assessment_status = EXCLUDED.assessment_status,
+              total_charges = EXCLUDED.total_charges,
+              assessment_date = EXCLUDED.assessment_date,
+              receipt_number = EXCLUDED.receipt_number,
+              receipt_date = EXCLUDED.receipt_date,
+              receipt_file_name = EXCLUDED.receipt_file_name,
+              receipt_drive_file_id = EXCLUDED.receipt_drive_file_id,
+              receipt_drive_file_url = EXCLUDED.receipt_drive_file_url,
+              updated_at = NOW()
+            RETURNING construction_part_id`,
           [
             constructionStatusId,
+            partStatus,
             assessmentStatus,
             totalCharges,
             assessmentDate,
@@ -886,13 +999,19 @@ router.post(
             officerName
           ]
         );
+
+        compoundableCompleted = (partStatus === "completed");
       }
 
-      // 5. Handle Non-Compoundable / Partly Compoundable (Section 269 Notice)
+      // 5. Handle Non-Compoundable section
       let notice269Id: number | null = null;
-      if (status === "non_compoundable" || status === "partly_compoundable") {
-        const noticeNumber = body.noticeNumber?.trim() || `MCL/SEC269/${Date.now().toString().slice(-6)}`;
-        const noticeDate = body.noticeDate?.trim() || new Date().toISOString();
+      const rawNoticeNumber = body.noticeNumber?.trim();
+      const rawNoticeDate = body.noticeDate?.trim();
+      const hasNoticeData = Boolean(rawNoticeNumber || rawNoticeDate || noticePhoto);
+
+      if (processNonCompoundable && (status === "non_compoundable" || hasNoticeData)) {
+        const noticeNumber = rawNoticeNumber || `MCL/SEC269/${Date.now().toString().slice(-6)}`;
+        const noticeDate = rawNoticeDate || new Date().toISOString();
 
         const noticeInsert = await client.query(
           `INSERT INTO notices (
@@ -915,13 +1034,21 @@ router.post(
         );
         notice269Id = noticeInsert.rows[0].notice_id;
 
+        const nonCompoundablePartStatus = "completed";
+
         await client.query(
           `INSERT INTO construction_parts (
-             construction_status_id, part_type, part_status, notice_id,
-             created_by_id, created_by_name
-           ) VALUES ($1, 'non_compoundable', 'in_progress', $2, $3, $4)`,
-          [constructionStatusId, notice269Id, officerId, officerName]
+              construction_status_id, part_type, part_status, notice_id,
+              created_by_id, created_by_name
+            ) VALUES ($1, 'non_compoundable', $2, $3, $4, $5)
+           ON CONFLICT (construction_status_id, part_type) DO UPDATE SET
+              part_status = EXCLUDED.part_status,
+              notice_id = EXCLUDED.notice_id,
+              updated_at = NOW()`,
+          [constructionStatusId, nonCompoundablePartStatus, notice269Id, officerId, officerName]
         );
+
+        nonCompoundableCompleted = true;
       }
 
       // 6. Violator Reply (if text or photo provided)
@@ -963,27 +1090,61 @@ router.post(
         }
       }
 
-      // 7. Update Case status
+      // 7. Calculate real current_status and history note based on section completion
+      let overallCaseStatusText = "In Progress";
+      let historyNote = "";
+
+      if (status === "compoundable") {
+        overallCaseStatusText = compoundableCompleted ? "Compoundable Assessment Completed" : "Assessment Pending";
+        historyNote = `Status recorded as compoundable. ${compoundableCompleted ? "Compoundable assessment completed." : "Assessment pending."}`;
+      } else if (status === "non_compoundable") {
+        overallCaseStatusText = nonCompoundableCompleted ? "Notice 269 Issued" : "Notice Pending";
+        historyNote = `Status recorded as non_compoundable. Section 269 Notice issued.`;
+      } else if (status === "partly_compoundable") {
+        if (compoundableCompleted && nonCompoundableCompleted) {
+          overallCaseStatusText = "Partly Compoundable — Both Areas Handled";
+          historyNote = "Status recorded as partly_compoundable. Compoundable part completed. Non-Compoundable part completed. Both areas handled.";
+        } else if (compoundableCompleted && !nonCompoundableCompleted) {
+          overallCaseStatusText = "Pending Non-Compoundable Area";
+          historyNote = "Status recorded as partly_compoundable. Compoundable part completed. Non-Compoundable part pending.";
+        } else if (nonCompoundableCompleted && !compoundableCompleted) {
+          overallCaseStatusText = "Pending Compoundable Area";
+          historyNote = "Status recorded as partly_compoundable. Non-Compoundable part completed (Section 269 Notice Issued). Compoundable part pending.";
+        } else {
+          overallCaseStatusText = "Partly Compoundable — In Progress";
+          historyNote = "Status recorded as partly_compoundable. Both areas pending.";
+        }
+      }
+
+      // 8. Update Case status & construction_status overall_status
       await client.query(
         `UPDATE cases
-         SET current_status = 'Construction Status Recorded',
-             construction_status = $1,
+         SET current_status = $1,
+             construction_status = $2,
              updated_at = NOW()
-         WHERE case_id = $2`,
-        [status, actualCaseId]
+         WHERE case_id = $3`,
+        [overallCaseStatusText, status, actualCaseId]
       );
 
-      // 8. Insert Case Status History
+      await client.query(
+        `UPDATE construction_status
+         SET overall_status = $1,
+             updated_at = NOW()
+         WHERE construction_status_id = $2`,
+        [overallCaseStatusText, constructionStatusId]
+      );
+
       await client.query(
         `INSERT INTO case_status_history (
            case_id, previous_status, new_status, changed_by_id, changed_by_name, reason, note
-         ) VALUES ($1, $2, 'Construction Status Recorded', $3, $4, 'Construction status updated via inspection', $5)`,
+         ) VALUES ($1, $2, $3, $4, $5, 'Construction status updated via inspection', $6)`,
         [
           actualCaseId,
           previousStatus,
+          overallCaseStatusText,
           officerId,
           officerName,
-          `Status recorded as ${status}. ${status.includes("compoundable") ? "Assessment & compoundable details filed. " : ""}${status.includes("non_compoundable") ? "Section 269 notice recorded. " : ""}`
+          historyNote,
         ]
       );
 

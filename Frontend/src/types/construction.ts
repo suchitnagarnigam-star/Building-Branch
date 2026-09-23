@@ -4,6 +4,8 @@ export type ConstructionStatusType =
   | "non_compoundable"
   | "";
 
+export type PartlyCompoundableType = "full" | "compoundable" | "non_compoundable";  
+
 export interface CompoundableDetails {
   assessmentStatus: string;
   totalCharges: string;
@@ -32,6 +34,7 @@ export type ConstructionStatusPayload =
       status: "partly_compoundable";
       compoundable: CompoundableDetails;
       nonCompoundable: NonCompoundableDetails;
+      compoundableType: PartlyCompoundableType;
     };
 
 export interface ConstructionFormPayload {
