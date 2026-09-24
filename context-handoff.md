@@ -1,17 +1,17 @@
 # MCL Building Branch (MCL-BB) — Context Handoff & Progress Report
 
-**Date:** September 23, 2026  
-**Repository:** MCL-BB (`d:\Projects\MCL\MCL-BB`)  
-**Active Branch:** `ad-dev` (synced with `origin/ad-dev`)  
+**Date:** September 24, 2026  
+**Repository:** MCL-BB (`/mnt/Data/1YUVRAJ/program/MCL/building branch`)  
+**Active Branch:** `uv-dev`  
 **Target Milestone:** Full Enforcement Lifecycle Automation, Statutory Data Persistence, and Live Operations Analytics
 
 ---
 
 ## 1. Executive Summary
 
-The **MCL Building Branch (MCL-BB)** system automates the statutory building violation lifecycle for the Pune Municipal Corporation (PMC) under the PMC Act 1976.
+The **MCL Building Branch (MCL-BB)** system automates the statutory building violation lifecycle for the Municipal Corporation of Ludhiana (MCL) under the PMC Act 1976.
 
-To date, the core workflow from **Complaint Intake** (manual & AI-extracted document upload), **BI Assignment**, **Complaint-to-Case Promotion**, **Field Inspection & Geotagged Evidence**, **Section 270 Notice Issuance**, **Dual Case/Complaint Construction Status Intake**, **Independent Section-Level Construction Processing (Compoundable vs Non-Compoundable)**, and **Violator Reply Recording** has been implemented with backend database persistence in PostgreSQL and evidence hosting in Google Drive.
+To date, the core workflow from **JWT Authentication & Role Security (Phase 1 & Phase 2)**, **Complaint Intake** (manual & AI-extracted document upload), **BI Assignment**, **Complaint-to-Case Promotion**, **Field Inspection & Geotagged Evidence**, **Section 270 Notice Issuance**, **Dual Case/Complaint Construction Status Intake**, **Independent Section-Level Construction Processing (Compoundable vs Non-Compoundable)**, **Violator Reply Recording**, and **Role-Based Nav Filtering** has been implemented with backend database persistence in PostgreSQL and evidence hosting in Google Drive.
 
 This document outlines **what has been accomplished so far**, **the current state of the codebase**, and **what remains to be completed** to reach full production and demo readiness.
 
@@ -19,7 +19,17 @@ This document outlines **what has been accomplished so far**, **the current stat
 
 ## 2. Progress Breakdown: What Has Been Done Till Now
 
-### 2.1 Backend Architecture & Database Schema (PostgreSQL)
+### 2.1 Authentication & Security (Phase 1 & Phase 2)
+- **Database Migrations (`server/migrations/001_create_users_table.sql`)**: Created `users` table (`user_id`, `username`, `phone_number`, `password_hash`, `role`, `is_locked`, `failed_attempts`, `locked_until`) and linked FK to `officers` table.
+- **Bcrypt PIN Seeding (`server/migrations/seedUsers.ts`)**: Built idempotent user seeding script hashing officer phone number PINs and admin password.
+- **Backend JWT Auth (`server/services/authService.ts` & `server/middleware/auth.ts`)**: Implemented JWT signing/verification, lockout logic (5 failed attempts -> 15 min lock), and `authenticateToken` / `requireRole` middleware.
+- **Auth API Routes (`server/routes/authRoutes.ts`)**: Endpoints `POST /api/auth/login` and `POST /api/auth/logout`.
+- **Frontend Auth Context (`Frontend/src/context/AuthContext.tsx`)**: React Context provider managing `user`, `token`, `login()`, `logout()`, `localStorage` persistence (`mcl_token`, `mcl_user`), and a global `fetch` interceptor auto-attaching `Authorization: Bearer <token>` to relative `/api` and absolute URL API calls.
+- **Real Login UI (`Frontend/src/features/auth/LoginScreen.tsx`)**: Full Login screen handling phone/PIN (officer) and username/password (admin) logins with error/lockout messaging.
+- **Role-Based Route Guards & Nav Filtering**: `App.tsx` guards routes by user role (`operator`, `bi`, `atp`, `mtp`, `jc`, `superadmin`); `Sidebar.tsx` dynamically filters nav items per role.
+- **Obsolete Analytics Page Removed**: Deleted redundant `AnalyticsPage.tsx` component and removed `/analytics` route & nav item as performance metrics are consolidated into Dashboard and Officers roster views.
+
+### 2.2 Backend Architecture & Database Schema (PostgreSQL)
 - **Database Connection & SSL (`server/db/database.ts`)**: Built PostgreSQL client pool with SSL connection handling, transaction support, and fallback capabilities.
 - **Statutory Database Tables**:
   - `complaints`: Stores citizen complaints, registration source, block, zone, ward, address, BI/ATP assignments, status, timestamps, Google Drive URLs.

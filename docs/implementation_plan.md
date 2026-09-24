@@ -6,9 +6,10 @@
 Align the codebase with the master product direction: two separate BI workflows (complaint resolution update vs. proactive field visit), PostgreSQL DB schema, status state machine, Section 270/269 notice workflow, delay flagging, and real operational data analytics.
 
 > [!NOTE]
-> **Status Checkpoint (2026-09-19):**
-> - **Phase 0 (DB Schema)**: Defined tables (`cases`, `field_visits`, `visit_evidence`, `notices`).
-> - **Phase 2 (Live Backend Integration)**: Dynamic Dashboard stats, zone charts, pipeline stages, recent complaints table, and CSV report export fully implemented.
+> **Status Checkpoint (2026-09-24):**
+> - **Phase 0 (DB Schema)**: Defined statutory tables (`cases`, `field_visits`, `visit_evidence`, `notices`, `users`, `officers`).
+> - **Phase 1 (Backend Auth Foundation)**: SQL schema migration (`users` & `officers`), idempotent `seedUsers.ts` bcrypt migration script, JWT signing/verification service (`authService.ts`), auth & role middleware (`auth.ts`), `/api/auth/login` and `/api/auth/logout` endpoints, protected API endpoints.
+> - **Phase 2 (Frontend Auth Wiring & Nav Cleanup)**: React `AuthContext` with JWT login/logout, `localStorage` persistence (`mcl_token`, `mcl_user`), global `fetch` interceptor auto-attaching Bearer token headers, real `LoginScreen.tsx` (phone/PIN and admin login), role-based route guards in `App.tsx`, role-filtered `Sidebar.tsx` navigation, and removal of redundant `/analytics` page.
 > - **Phase 4a (Full Field Visit Backend)**: `POST /api/inspections` backend endpoint, Google Drive inspection folders, evidence storage, and Section 270 notice recording fully implemented in `server/routes/complaintRoutes.ts`.
 
 ---
