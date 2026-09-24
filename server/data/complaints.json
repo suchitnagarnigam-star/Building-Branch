@@ -1,0 +1,111 @@
+[
+  {
+    "complaintId": "MCL-BB-0001",
+    "registrationSource": "manual",
+    "citizenName": "Arshdeep Kaur",
+    "phoneNumber": "9876543210",
+    "zone": "Zone D",
+    "block": "Block 34",
+    "address": "sarabha nagar road",
+    "title": "illegal building",
+    "description": "unauthorized building floor",
+    "attachments": [
+      {
+        "fileName": "unauthorized building.jpg",
+        "fileType": "image/jpeg",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788534897787-343264.jpg"
+      }
+    ],
+    "assignedOfficerId": "OFF-011",
+    "assignedOfficerName": "Sh. Kuljeet Mangat",
+    "assignedOfficerMobile": "98153-88860",
+    "assignedAtpId": "OFF-009",
+    "assignedAtpName": "Sh. Raj Kumar",
+    "assignedAtpMobile": "9814245882",
+    "status": "Registered",
+    "createdAt": "2026-09-04T15:14:57.796Z"
+  },
+  {
+    "complaintId": "MCL-BB-0002",
+    "registrationSource": "manual",
+    "citizenName": "sxdcfvgbnm",
+    "phoneNumber": "9876543210",
+    "zone": "Zone A",
+    "block": "Block 4",
+    "address": "zxcvbn",
+    "title": "wertyjkl",
+    "description": "zwexdcfvghbj",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-09-03 145657.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788535635036-657428.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-003",
+    "assignedOfficerName": "Sh. Harminder Makkar",
+    "assignedOfficerMobile": "88722-22000",
+    "assignedAtpId": "OFF-001",
+    "assignedAtpName": "Sh. Kapil Dev",
+    "assignedAtpMobile": "90410-22742",
+    "status": "Registered",
+    "createdAt": "2026-09-04T15:27:15.044Z"
+  },
+  {
+    "complaintId": "MCL-BB-0003",
+    "registrationSource": "manual",
+    "citizenName": "abc",
+    "phoneNumber": "9876543219",
+    "zone": "Zone B",
+    "block": "Block 30",
+    "address": "wsedrftgyhujioxcvbnm",
+    "title": "sdfghjksedfghjx",
+    "description": "ssdfxghjklkzsfdghjkzfghjb",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-01 224943.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788540057858-443676.png"
+      },
+      {
+        "fileName": "Screenshot 2026-08-02 151446.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788540057863-243719.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-006",
+    "assignedOfficerName": "Sh. Paul Parneet",
+    "assignedOfficerMobile": "70875-47807",
+    "assignedAtpId": "OFF-004",
+    "assignedAtpName": "Sh. Nirwan",
+    "assignedAtpMobile": "95927-35111",
+    "status": "Registered",
+    "createdAt": "2026-09-04T16:40:57.876Z"
+  },
+  {
+    "complaintId": "MCL-BB-0004",
+    "registrationSource": "manual",
+    "citizenName": "Raman Kumar",
+    "phoneNumber": "9876543210",
+    "zone": "Zone B",
+    "block": "Block 23",
+    "address": "dfvgbhnj",
+    "title": "zsxdfcgvhbjkml",
+    "description": "asdxfcgvhbjnkml,",
+    "attachments": [
+      {
+        "fileName": "Screenshot 2026-08-08 130443.png",
+        "fileType": "image/png",
+        "filePath": "D:\\Projects\\MCL\\MCL-BB\\server\\uploads\\1788543523124-148252.png"
+      }
+    ],
+    "assignedOfficerId": "OFF-006",
+    "assignedOfficerName": "Sh. Paul Parneet",
+    "assignedOfficerMobile": "70875-47807",
+    "assignedAtpId": "OFF-004",
+    "assignedAtpName": "Sh. Nirwan",
+    "assignedAtpMobile": "95927-35111",
+    "status": "Registered",
+    "createdAt": "2026-09-04T17:38:43.131Z"
+  }
+]

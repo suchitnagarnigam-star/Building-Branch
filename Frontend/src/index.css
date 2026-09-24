@@ -1,0 +1,95 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  /* Government Ops Palette Tokens */
+  --midnight: #0b1957;
+  --lace: #f7f4ed;
+  --petal: #e8d9ed;
+  --bridal-blue: #e9f3ff;
+  --sapphire: #426bc2;
+  --lavender: #d2b3db;
+
+  /* App System Mapping */
+  --navy: var(--midnight);
+  --navy-light: #162975;
+  --slate: var(--lace);
+  --white: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #0b1957;
+  --accent-light: var(--bridal-blue);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --neutral-status: #64748b;
+  --shadow-card: 0 1px 3px rgba(11, 25, 87, 0.06), 0 1px 2px rgba(11, 25, 87, 0.04);
+  --shadow-dropdown: 0 4px 16px rgba(11, 25, 87, 0.12);
+  --shadow-modal: 0 12px 40px rgba(11, 25, 87, 0.24);
+
+  /* shadcn UI Variable Mapping */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted-foreground: #64748b;
+  --primary: #0b1957;
+  --primary-foreground: #ffffff;
+  --ring: #2563eb;
+  --radius: 0.75rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Inter", Arial, sans-serif;
+  background: var(--lace);
+  color: var(--ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  background: none;
+  border: none;
+}
+
+/* Custom scrollbars - only visible when overflowing */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

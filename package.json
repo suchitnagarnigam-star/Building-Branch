@@ -1,0 +1,11 @@
+{
+  "name": "mcl-building-branch",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MCL Building Branch Application",
+  "scripts": {
+    "dev:frontend": "npm --prefix Frontend run dev",
+    "dev:server": "npm --prefix server run dev",
+    "dev:full": "node -e \"const { spawn } = require('child_process'); spawn('npm', ['--prefix', 'server', 'run', 'dev'], { stdio: 'inherit', shell: true }); spawn('npm', ['--prefix', 'Frontend', 'run', 'dev'], { stdio: 'inherit', shell: true });\""
+  }
+}
