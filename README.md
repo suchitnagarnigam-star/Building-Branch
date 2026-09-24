@@ -6,6 +6,7 @@ MCL-BB is an internal complaint-management application for the Municipal Corpora
 
 - Frontend: React 19, TypeScript, Vite, custom CSS
 - Backend: Node.js, Express 5, TypeScript
+- Authentication: JWT (JSON Web Tokens), bcrypt PIN/password hashing, AuthContext with global fetch interceptor
 - Database: PostgreSQL through `pg`
 - Development runtime: `tsx`
 - File storage: Google Drive API (per-complaint folders & file uploads; temporary staging in `server/uploads/`)
@@ -45,8 +46,8 @@ flowchart TD
     VF -- "No" --> CR["Continue / Record Inspection Status"]
     VF -- "Yes" --> I270["Issue 270 Notice"]
     I270 --> S270["Status: 270 Issued"]
-    S270 --> D3["3 Days Given to Violator"]
-    D3 --> VR["Violator Reply"]
+    D3["3 Days Given to Violator"] --> VR["Violator Reply"]
+    S270 --> D3
 
     %% Reply & Review
     VR --> SR["Store Reply + Reply Date + Evidence if provided"]
@@ -170,6 +171,7 @@ Processing endpoints:
 
 ## Main routes
 
+- `/login`
 - `/dashboard`
 - `/complaints/new`
 - `/complaints/new/extracted`
@@ -183,13 +185,14 @@ Processing endpoints:
 - `/cases/:caseId/construction-status`
 - `/construction-status`
 - `/field-inspection`
-- `/analytics`
 - `/officers`
 - `/settings`
 
 ## Backend API
 
-- `GET /api/complaints` (includes subqueried `caseId`)
+- `POST /api/auth/login` (JWT authentication & PIN verification)
+- `POST /api/auth/logout`
+- `GET /api/complaints` (requires Bearer token; includes subqueried `caseId`)
 - `GET /api/complaints/:complaintId`
 - `GET /api/complaints/:complaintId/files`
 - `GET /api/complaints/:complaintId/files/:fileId`

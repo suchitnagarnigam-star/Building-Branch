@@ -5,10 +5,11 @@ Internal operations and enforcement portal for Municipal Corporation Ludhiana's 
 ## Technology Stack
 
 - **Framework**: React 19, TypeScript, Vite
-- **Routing**: Custom hash-based router (`src/shared/hooks/useRouter.ts`)
+- **Authentication**: JWT authentication (`AuthContext.tsx`), `useAuth` hook, global fetch interceptor auto-attaching Bearer token headers, localStorage persistence
+- **Routing**: Custom hash-based router (`src/shared/hooks/useRouter.ts`) with role-based route guards in `App.tsx`
 - **Styling**: Custom CSS design system (`src/App.css`) tailored with a municipal dark-blue theme
 - **Icons**: SVG icon sprites (`public/icons.svg`) and Lucide-compatible icon components
-- **API Client**: Fetch-based REST service with session storage and local caching fallback (`src/services/complaintApi.ts`)
+- **API Client**: Fetch-based REST service with Bearer token authentication headers (`src/services/complaintApi.ts`)
 
 ---
 
@@ -16,8 +17,8 @@ Internal operations and enforcement portal for Municipal Corporation Ludhiana's 
 
 The frontend uses an application shell pattern:
 - **Header (`src/layout/Topbar.tsx`)**: User profile badge, live date/time indicator, font size controls, and breadcrumbs.
-- **Sidebar (`src/layout/Sidebar.tsx`)**: Fixed vertical navigation on desktop screens (`> 768px`) with MCL insignia and municipal illustration (`ludhiana-illustration.png`). On mobile (`<= 768px`), automatically adapts into a fixed bottom navigation bar.
-- **Main View (`src/App.tsx`)**: Central hash router matching active routes and hydrating views.
+- **Sidebar (`src/layout/Sidebar.tsx`)**: Fixed vertical navigation on desktop screens (`> 768px`) with MCL insignia and municipal illustration (`ludhiana-illustration.png`), filtering visible routes based on backend user role (`operator`, `bi`, `atp`, `mtp`, `jc`, `superadmin`). On mobile (`<= 768px`), automatically adapts into a fixed bottom navigation bar.
+- **Main View (`src/App.tsx`)**: Central hash router matching active routes, enforcing authenticated state & role permissions, and hydrating views.
 
 ---
 
@@ -25,6 +26,7 @@ The frontend uses an application shell pattern:
 
 | Route | Component | Description |
 | :--- | :--- | :--- |
+| `#/login` | `LoginScreen.tsx` | JWT authentication login screen supporting officer phone/PIN and admin login |
 | `#/dashboard` | `DashboardPage.tsx` | Operational KPIs, Zone complaint distribution, Case pipeline progress, CSV report export |
 | `#/complaints` | `ComplaintsPage.tsx` | Categorized complaint list (Active/Unassigned, Assigned/Converted, Resolved) with zone filters & case links |
 | `#/complaints/new` | `ComplaintFormPage.tsx` | Dual-mode intake: manual entry form and external document upload |
@@ -37,7 +39,6 @@ The frontend uses an application shell pattern:
 | `#/construction-status` | `ConstructionStatusPage.tsx` | Dual-lookup intake form with `-- Choose an Existing Case or enter Complaint ID --` prompt |
 | `#/field-inspection` | `FieldInspectionPage.tsx` | BI field visit report: GPS geolocation, photos, building classification, and Section 270 notice recording |
 | `#/officers` | `OfficersPage.tsx` | Roster directory showing assigned BI and ATP officers across Zones and Blocks |
-| `#/analytics` | `AnalyticsPage.tsx` | Enforcement analytics and delay-tracking dashboard |
 | `#/settings` | `SettingsPage.tsx` | Profile, system preferences, and root font-size display scaling controls (85%-115%) |
 
 ---
