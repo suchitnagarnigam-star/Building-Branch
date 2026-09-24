@@ -14,6 +14,7 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
 
   switch (normRole) {
     case "operator":
+      return ["/dashboard", "/complaints/new", "/analytics"].includes(itemRoute);
       return ["/dashboard", "/complaints/new"].includes(itemRoute);
 
     case "bi":
@@ -22,6 +23,7 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
         "/complaints",
         "/cases",
         "/field-inspection",
+        "/analytics",
       ].includes(itemRoute);
 
     case "atp":
@@ -32,6 +34,7 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
         "/cases",
         "/field-inspection",
         "/officers",
+        "/analytics",
       ].includes(itemRoute);
 
     case "jc":
@@ -42,6 +45,7 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
       return true;
 
     default:
+      return ["/dashboard", "/analytics"].includes(itemRoute);
       return ["/dashboard"].includes(itemRoute);
   }
 }

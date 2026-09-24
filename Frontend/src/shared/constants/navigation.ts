@@ -9,6 +9,7 @@ export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Rol
   { label: "Construction Status", route: "/construction-status", icon: "edit", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Notices", route: "/notices", icon: "file", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Officers", route: "/officers", icon: "users", roles: ["Admin", "ATP", "MTP", "JC", "C"] },
+  { label: "Analytics", route: "/analytics", icon: "chart", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
 ];
 
 export const statusConfig: Record<Status, { tone: string; text: string }> = {
@@ -40,6 +41,8 @@ export const formatPageTitle = (route: string): string => {
     case "/complaints/mine":
     case "/complaints/pending":
       return "Complaints";
+    case "/analytics":
+      return "Analytics";
     case "/field-inspection":
       return "Field Inspections";
     case "/construction-status":

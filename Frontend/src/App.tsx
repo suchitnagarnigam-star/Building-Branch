@@ -87,6 +87,7 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
   }
 
   // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
+  // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
   return true;
 };
 
