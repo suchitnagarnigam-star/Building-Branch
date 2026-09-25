@@ -51,6 +51,8 @@ export const formatPageTitle = (route: string): string => {
       return "Officers";
     case "/settings":
       return "Settings";
+    case "/users":
+      return "User Management";
     case "/cases":
       return "Cases";
     case "/notices":

@@ -29,6 +29,7 @@ import ExtractedComplaintPage from "./features/complaints/ExtractedComplaintPage
 // Other pages
 import OfficersPage from "./features/officers/OfficersPage";
 import SettingsPage from "./features/settings/SettingsPage";
+import UsersPage from "./features/users/UsersPage";
 
 // Case workflow
 import CasesPage from "./pages/CasesPage";
@@ -84,6 +85,11 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
   // /settings → allowed: superadmin
   if (currentRoute === "/settings" || currentRoute.startsWith("/settings/")) {
     return ["superadmin", "admin"].includes(normRole);
+  }
+
+  // /users → allowed: superadmin only
+  if (currentRoute === "/users" || currentRoute.startsWith("/users/")) {
+    return normRole === "superadmin";
   }
 
   // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
@@ -293,6 +299,11 @@ function App() {
     // Settings
     if (route === "/settings") {
       return <SettingsPage />;
+    }
+
+    // User Management (superadmin)
+    if (route === "/users") {
+      return <UsersPage />;
     }
 
     // Coming soon placeholders

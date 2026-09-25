@@ -14,8 +14,7 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
 
   switch (normRole) {
     case "operator":
-      return ["/dashboard", "/complaints/new", "/analytics"].includes(itemRoute);
-      return ["/dashboard", "/complaints/new"].includes(itemRoute);
+      return ["/dashboard", "/complaints/new", "/complaints", "/analytics"].includes(itemRoute);
 
     case "bi":
       return [
@@ -57,6 +56,7 @@ function Sidebar({ route, userRole, navigate, onLogout }: SidebarProps) {
 
   const normRole = (userRole || "").toLowerCase();
   const canSeeSettings = normRole === "superadmin" || normRole === "admin";
+  const isSuperAdmin = normRole === "superadmin";
 
   return (
     <aside className="sidebar sidebar--light">
@@ -84,6 +84,16 @@ function Sidebar({ route, userRole, navigate, onLogout }: SidebarProps) {
             className="sidebar__illustration-img"
           />
         </div>
+        {isSuperAdmin && (
+          <button
+            className={`nav-item ${route === "/users" ? "nav-item--active" : ""}`}
+            type="button"
+            onClick={() => navigate("/users")}
+          >
+            <span className="nav-item__icon"><Icon name="users" /></span>
+            <span>User Management</span>
+          </button>
+        )}
         {canSeeSettings && (
           <button
             className={`nav-item ${route === "/settings" ? "nav-item--active" : ""}`}
