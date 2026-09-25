@@ -116,6 +116,10 @@ function App() {
 
   // Role-based route guard enforcement: redirect to "/" silently if not allowed
   useEffect(() => {
+    if (route === "/analytics") {
+      navigate("/dashboard");
+      return;
+    }
     if (user && !isRoutePermittedForRole(route, user.role)) {
       navigate("/");
     }
