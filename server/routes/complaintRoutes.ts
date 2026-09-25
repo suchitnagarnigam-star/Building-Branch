@@ -291,9 +291,14 @@ router.get("/officers/:officerId", async (req, res) => {
   }
 });
 
-router.get("/complaints", async (_req, res) => {
+router.get("/complaints", async (req, res) => {
   try {
-    res.json({ success: true, complaints: await getComplaints() });
+    const role = (req.user?.role || "").toLowerCase();
+    const userId = req.user?.userId;
+    const complaints = role === "operator" && userId
+      ? await getComplaints(userId)
+      : await getComplaints();
+    res.json({ success: true, complaints });
   } catch (error) {
     console.error("Error loading complaints:", error);
     res.status(500).json({ success: false, message: "Unable to load complaints." });
@@ -302,7 +307,12 @@ router.get("/complaints", async (_req, res) => {
 
 router.get("/complaints/:complaintId", async (req, res) => {
   try {
-    const complaint = (await getComplaints()).find(
+    const role = (req.user?.role || "").toLowerCase();
+    const userId = req.user?.userId;
+    const complaints = role === "operator" && userId
+      ? await getComplaints(userId)
+      : await getComplaints();
+    const complaint = complaints.find(
       (item) => item.complaintId === req.params.complaintId,
     );
     if (!complaint) {
@@ -1635,6 +1645,7 @@ router.post(
         assignedAtpMobile:    atp?.mobile     ?? null,
         status:               "Registered" as const,
         createdAt:            new Date().toISOString(),
+        submittedByUserId:    req.user?.userId ?? null,
       };
 
       await saveComplaint(complaint);
