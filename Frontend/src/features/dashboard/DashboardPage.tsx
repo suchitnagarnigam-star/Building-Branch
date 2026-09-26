@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
 } from "recharts";
-import { DonutChart, type DonutChartSegment } from "@/components/ui/donut-chart";
 import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
-import { getComplaintAction } from "../../shared/utils/complaintNavigation";
 
 type DashboardPageProps = {
   navigate: (route: string) => void;
@@ -15,82 +21,77 @@ type DashboardPageProps = {
 };
 
 /* ─── Types ─── */
-type ComplaintRecord = {
-  complaintId: string;
-  citizenName: string;
-  title?: string;
-  description?: string;
-  zone: string;
-  block: string;
-  ward?: string | null;
-  assignedOfficerName: string | null;
-  assignedAtpName?: string | null;
-  status: Status;
-  createdAt: string;
-  caseId?: string | null;
-};
-
-interface AnalyticsOverview {
-  stats: {
-    total: number;
-    open: number;
-    resolved: number;
-    inspections: number;
+interface DashboardData {
+  kpi: {
+    totalComplaints: number;
+    totalFieldVisits: number;
+    linkedFieldVisits: number;
+    standaloneFieldVisits: number;
+    totalCases: number;
+    resolvedCases: number;
   };
-  zones: { zone: string; count: number }[];
-  statuses: { status: string; count: number }[];
-  pipeline: {
-    registered: number;
-    assigned: number;
-    fieldVisits: number;
-    casesCreated: number;
+  complaintStatus: { status: string; count: number }[];
+  zoneDistribution: { zone: string; count: number }[];
+  enforcement: {
     notices270: number;
     notices269: number;
-    resolved: number;
+    standaloneFieldVisits: number;
   };
-  recentComplaints: ComplaintRecord[];
+  needsAttention: {
+    complaintsNoFieldVisit: number;
+    notices270Expired: number;
+    violatorRepliesPending: number;
+    casesNoNotice: number;
+  };
+  recentComplaints: {
+    complaintId: string;
+    zone: string;
+    status: Status;
+    createdAt: string;
+    ageDays: number;
+    caseId?: string | null;
+  }[];
 }
 
-const INITIAL_DATA: AnalyticsOverview = {
-  stats: { total: 0, open: 0, resolved: 0, inspections: 0 },
-  zones: [],
-  statuses: [],
-  pipeline: {
-    registered: 0,
-    assigned: 0,
-    fieldVisits: 0,
-    casesCreated: 0,
+const INITIAL_DATA: DashboardData = {
+  kpi: {
+    totalComplaints: 0,
+    totalFieldVisits: 0,
+    linkedFieldVisits: 0,
+    standaloneFieldVisits: 0,
+    totalCases: 0,
+    resolvedCases: 0,
+  },
+  complaintStatus: [],
+  zoneDistribution: [],
+  enforcement: {
     notices270: 0,
     notices269: 0,
-    resolved: 0,
+    standaloneFieldVisits: 0,
+  },
+  needsAttention: {
+    complaintsNoFieldVisit: 0,
+    notices270Expired: 0,
+    violatorRepliesPending: 0,
+    casesNoNotice: 0,
   },
   recentComplaints: [],
 };
 
-/* ─── Helpers ─── */
-function daysBetween(dateStr: string): number {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  return Math.max(0, Math.floor(diff / 86400000));
-}
-
-function formatDate(dateStr: string): string {
-  const parsed = new Date(dateStr);
-  if (isNaN(parsed.getTime())) return dateStr;
-  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(parsed);
-}
-
-const currentMonth = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(new Date());
+const currentMonth = new Intl.DateTimeFormat("en-IN", {
+  month: "short",
+  year: "numeric",
+}).format(new Date());
 
 /* ─── Component ─── */
 function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps) {
-  const [data, setData] = useState<AnalyticsOverview>(INITIAL_DATA);
-  const [hoveredDonutSegment, setHoveredDonutSegment] = useState<string | null>(null);
+  const [data, setData] = useState<DashboardData>(INITIAL_DATA);
 
   useEffect(() => {
     let active = true;
     fetch(`${API_BASE_URL}/analytics/overview`)
       .then(async (response) => {
-        const result = (await response.json()) as { success?: boolean } & AnalyticsOverview;
+        const result = (await response.json()) as { success?: boolean } & DashboardData;
         if (!response.ok || !result.success) {
           throw new Error("Unable to load analytics.");
         }
@@ -110,14 +111,114 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
     };
   }, []);
 
-  const stats = data.stats;
+  // 1. KPI cards mapping
+  const kpiCards = [
+    {
+      label: "TOTAL COMPLAINTS",
+      value: data.kpi.totalComplaints,
+      accent: "blue",
+      icon: "file",
+      subtitle: null,
+    },
+    {
+      label: "FIELD VISITS",
+      value: data.kpi.totalFieldVisits,
+      accent: "green",
+      icon: "pin",
+      subtitle: `${data.kpi.linkedFieldVisits} complaint-linked · ${data.kpi.standaloneFieldVisits} standalone`,
+    },
+    {
+      label: "TOTAL CASES",
+      value: data.kpi.totalCases,
+      accent: "orange",
+      icon: "folder",
+      subtitle: null,
+    },
+    {
+      label: "RESOLVED",
+      value: data.kpi.resolvedCases,
+      accent: "purple",
+      icon: "check-circle",
+      subtitle: null,
+    },
+  ];
 
-  // Normalized complaints by zone: ensure canonical Zone A, B, C, D order
+  // 2. Complaint Status horizontal bars
+  const complaintStatusData = useMemo(() => {
+    const regItem = data.complaintStatus.find(
+      (s) => (s.status || "").toLowerCase() === "registered"
+    );
+    const assItem = data.complaintStatus.find(
+      (s) => (s.status || "").toLowerCase() === "assigned"
+    );
+
+    return [
+      {
+        label: "Registered",
+        sublabel: "awaiting action",
+        count: regItem ? Number(regItem.count) : 0,
+        color: "#c25e40",
+      },
+      {
+        label: "Assigned",
+        sublabel: "field visit done",
+        count: assItem ? Number(assItem.count) : 0,
+        color: "#10b981",
+      },
+    ];
+  }, [data.complaintStatus]);
+
+  const statusXMax = useMemo(() => {
+    const maxVal = Math.max(0, ...complaintStatusData.map((d) => d.count));
+    return maxVal > 0 ? Math.ceil((maxVal * 1.35) / 5) * 5 : 20;
+  }, [complaintStatusData]);
+
+  // 3. Needs Attention items
+  const attentionItems = useMemo(
+    () => [
+      {
+        label: "Complaints with no field visit yet",
+        count: data.needsAttention.complaintsNoFieldVisit,
+        priorityLevel: "HIGH" as const,
+        dotColor: "#ef4444",
+        route: "/complaints",
+      },
+      {
+        label: "Section 270 notices past reply deadline",
+        count: data.needsAttention.notices270Expired,
+        priorityLevel: "MEDIUM" as const,
+        dotColor: "#ea580c",
+        route: "/notices",
+      },
+      {
+        label: "Violator replies awaiting ATP review",
+        count: data.needsAttention.violatorRepliesPending,
+        priorityLevel: "MEDIUM" as const,
+        dotColor: "#f59e0b",
+        route: "/cases",
+      },
+      {
+        label: "Cases with no notice issued yet",
+        count: data.needsAttention.casesNoNotice,
+        priorityLevel: "LOW" as const,
+        dotColor: "#eab308",
+        route: "/cases",
+      },
+    ],
+    [data.needsAttention]
+  );
+
+  // 4. Normalized complaints by zone
   const zoneData = useMemo(() => {
     const canonical = ["Zone A", "Zone B", "Zone C", "Zone D"];
-    const countMap: Record<string, number> = { "Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0 };
+    const countMap: Record<string, number> = {
+      "Zone A": 0,
+      "Zone B": 0,
+      "Zone C": 0,
+      "Zone D": 0,
+    };
 
-    data.zones.forEach((z) => {
+    data.zoneDistribution.forEach((z) => {
       const raw = (z.zone || "").trim();
       let key = "Zone A";
       if (raw.includes("B") || raw === "Zone-B") key = "Zone B";
@@ -129,106 +230,52 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
     });
 
     return canonical.map((zone) => ({ zone, count: countMap[zone] }));
-  }, [data.zones]);
+  }, [data.zoneDistribution]);
 
   const yAxisMax = useMemo(() => {
     const maxZoneCount = Math.max(0, ...zoneData.map((d) => Number(d.count) || 0));
-    return maxZoneCount > 0 ? Math.ceil(maxZoneCount * 1.35) : 5;
+    return maxZoneCount > 0 ? Math.ceil(maxZoneCount * 1.35) : 10;
   }, [zoneData]);
-
-  // Aggregate statuses into standard 4 lifecycle categories
-  const statusData = useMemo(() => {
-    let reg = 0;
-    let ass = 0;
-    let inp = 0;
-    let res = 0;
-
-    data.statuses.forEach((s) => {
-      const name = (s.status || "").toLowerCase();
-      const count = Number(s.count) || 0;
-      if (name === "registered") reg += count;
-      else if (name === "assigned") ass += count;
-      else if (name.includes("approved") || name.includes("closed") || name.includes("resolved")) res += count;
-      else inp += count;
-    });
-
-    return [
-      { name: "Registered", value: reg, color: "#3b82f6" },
-      { name: "Assigned", value: ass, color: "#c25e40" },
-      { name: "In Progress", value: inp, color: "#d97706" },
-      { name: "Resolved", value: res, color: "#10b981" },
-    ];
-  }, [data.statuses]);
-
-  const statusTotal = statusData.reduce((sum, d) => sum + d.value, 0);
-
-  const donutSegments: DonutChartSegment[] = useMemo(() => [
-    { label: "Registered", value: statusData[0].value, color: "#3b82f6" },
-    { label: "Assigned", value: statusData[1].value, color: "#ea580c" },
-    { label: "In Progress", value: statusData[2].value, color: "#d97706" },
-    { label: "Resolved", value: statusData[3].value, color: "#10b981" },
-  ], [statusData]);
-
-  const activeDonutSeg = donutSegments.find((s) => s.label === hoveredDonutSegment);
-  const displayDonutVal = activeDonutSeg ? activeDonutSeg.value : statusTotal;
-  const displayDonutLbl = activeDonutSeg ? activeDonutSeg.label : "TOTAL CASES";
-  const displayDonutPct = activeDonutSeg && statusTotal > 0 ? Math.round((activeDonutSeg.value / statusTotal) * 100) : 100;
-
-  // Real pipeline stage counts from backend analytics
-  const pipeline = useMemo(() => [
-    { stage: "Complaint Registered", icon: "file", count: data.pipeline.registered, bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Assigned", icon: "users", count: data.pipeline.assigned, bg: "#ffedd5", color: "#ea580c" },
-    { stage: "Field Visit", icon: "pin", count: data.pipeline.fieldVisits, bg: "#fee2e2", color: "#c25e40" },
-    { stage: "Case Created", icon: "file", count: data.pipeline.casesCreated, bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Notice 270", icon: "file", count: data.pipeline.notices270, bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Notice 269", icon: "file", count: data.pipeline.notices269, bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Resolution", icon: "check", count: data.pipeline.resolved, bg: "#d1fae5", color: "#059669" },
-  ], [data.pipeline]);
-
-  const statCards = [
-    { label: "TOTAL COMPLAINTS", value: stats.total, accent: "blue", icon: "list" },
-    { label: "OPEN / ACTIVE", value: stats.open, accent: "orange", icon: "folder" },
-    { label: "RESOLVED THIS MONTH", value: stats.resolved, accent: "green", icon: "check-circle" },
-    { label: "FIELD INSPECTIONS", value: stats.inspections, accent: "teal", icon: "pin" },
-  ];
 
   const handleExportReport = () => {
     const rows = [
       ["Building Branch Summary Report", currentMonth],
       ["Generated On", new Date().toLocaleString()],
       [],
-      ["Metric", "Value"],
-      ["Total Complaints", stats.total],
-      ["Open / Active Cases", stats.open],
-      ["Resolved This Month", stats.resolved],
-      ["Field Inspections", stats.inspections],
+      ["KPI Metrics", "Value"],
+      ["Total Complaints", data.kpi.totalComplaints],
+      ["Total Field Visits", data.kpi.totalFieldVisits],
+      ["Linked Field Visits", data.kpi.linkedFieldVisits],
+      ["Standalone Field Visits", data.kpi.standaloneFieldVisits],
+      ["Total Cases", data.kpi.totalCases],
+      ["Resolved Cases", data.kpi.resolvedCases],
       [],
-      ["Zone Summary"],
-      ["Zone", "Complaint Count"],
+      ["Enforcement Activity", "Count"],
+      ["Section 270 Notices Issued", data.enforcement.notices270],
+      ["Section 269 Notices Issued", data.enforcement.notices269],
+      ["Standalone Field Visits", data.enforcement.standaloneFieldVisits],
+      [],
+      ["Needs Attention", "Count", "Priority"],
+      ...attentionItems.map((item) => [item.label, item.count, item.priorityLevel]),
+      [],
+      ["Zone Summary", "Count"],
       ...zoneData.map((z) => [z.zone, z.count]),
       [],
-      ["Case Status Summary"],
-      ["Status", "Count", "Percentage"],
-      ...statusData.map((s) => [s.name, s.value, `${statusTotal > 0 ? ((s.value / statusTotal) * 100).toFixed(1) : 0}%`]),
-      [],
       ["Recent Complaints"],
-      ["Complaint ID", "Citizen Name", "Title", "Zone", "Block", "Status", "Date"],
-      ...data.recentComplaints.map((c) => [
-        c.complaintId,
-        c.citizenName || "N/A",
-        c.title || "N/A",
-        c.zone,
-        c.block,
-        c.status,
-        c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "N/A",
-      ]),
+      ["Complaint ID", "Zone", "Status", "Age (Days)"],
+      ...data.recentComplaints.map((c) => [c.complaintId, c.zone, c.status, c.ageDays ?? 0]),
     ];
 
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      rows.map((e) => e.map((cell) => `"${cell}"`).join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Building_Branch_Report_${currentMonth.replace(/\s+/g, "_")}.csv`);
+    link.setAttribute(
+      "download",
+      `Building_Branch_Report_${currentMonth.replace(/\s+/g, "_")}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -241,7 +288,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         <div>
           <div className="db-page__workspace">WORKSPACE</div>
           <h1 className="db-page__title">Building Branch Dashboard</h1>
-          <p className="db-page__subtitle">Municipal Corporation Ludhiana • Building Permission &amp; Enforcement Operations</p>
+          <p className="db-page__subtitle">
+            Municipal Corporation Ludhiana • Building Permission &amp; Enforcement Operations
+          </p>
         </div>
         <div className="db-page__actions">
           <button
@@ -259,9 +308,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Row 1: KPI cards */}
       <div className="db-stats">
-        {statCards.map((card) => (
+        {kpiCards.map((card) => (
           <div className="db-stat-card" key={card.label}>
             <div className={`db-stat-card__icon db-stat-card__icon--${card.accent}`}>
               <Icon name={card.icon} />
@@ -269,34 +318,240 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             <div className="db-stat-card__body">
               <div className="db-stat-card__label">{card.label}</div>
               <div className="db-stat-card__value">{card.value.toLocaleString()}</div>
+              {card.subtitle && (
+                <div className="db-stat-card__subtitle">{card.subtitle}</div>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Charts row */}
+      {/* Row 2: Complaint Status & Enforcement Activity */}
       <div className="db-charts">
-        {/* Bar chart */}
+        {/* Left: Complaint Status horizontal bar chart */}
+        <div className="db-chart-card">
+          <div className="db-chart-card__header">
+            <div>
+              <h3 className="db-chart-card__title">Complaint Status</h3>
+              <p className="db-chart-card__subtitle">
+                Distribution of complaints across current status
+              </p>
+            </div>
+          </div>
+          <div className="db-chart-card__body">
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart
+                layout="vertical"
+                data={complaintStatusData}
+                margin={{ top: 20, right: 35, left: 10, bottom: 5 }}
+                barSize={22}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e4e6eb" />
+                <XAxis
+                  type="number"
+                  domain={[0, statusXMax]}
+                  tick={{ fontSize: 11, fill: "#6b7280" }}
+                  axisLine={{ stroke: "#e2e8f0" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  width={110}
+                  tick={({ x, y, payload }) => {
+                    const item = complaintStatusData.find((d) => d.label === payload.value);
+                    const posX = (Number(x) || 0) - 8;
+                    const posY = Number(y) || 0;
+                    return (
+                      <g transform={`translate(${posX},${posY})`}>
+                        <text
+                          textAnchor="end"
+                          fill="#0f172a"
+                          fontSize="12.5"
+                          fontWeight="700"
+                          dy="-2"
+                        >
+                          {item?.label}
+                        </text>
+                        <text
+                          textAnchor="end"
+                          fill="#64748b"
+                          fontSize="10.5"
+                          fontWeight="400"
+                          dy="12"
+                        >
+                          {item?.sublabel}
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
+                <Tooltip cursor={{ fill: "rgba(0, 0, 0, 0.03)" }} />
+                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  {complaintStatusData.map((entry, index) => (
+                    <Cell key={`status-cell-${index}`} fill={entry.color} />
+                  ))}
+                  <LabelList
+                    dataKey="count"
+                    position="right"
+                    style={{ fontSize: "13px", fontWeight: "700", fill: "#0f172a" }}
+                    offset={8}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Right: Enforcement Activity list panel */}
+        <div className="db-chart-card">
+          <div className="db-chart-card__header">
+            <div>
+              <h3 className="db-chart-card__title">Enforcement Activity</h3>
+              <p className="db-chart-card__subtitle">Key enforcement actions for this month</p>
+            </div>
+          </div>
+          <div className="db-chart-card__body">
+            <div className="db-enforcement-list">
+              <div className="db-enforcement-item">
+                <div className="db-enforcement-left">
+                  <span className="db-enforcement-dot" style={{ backgroundColor: "#f59e0b" }} />
+                  <span className="db-enforcement-label">Section 270 Notices issued</span>
+                </div>
+                <span className="db-enforcement-count">
+                  {data.enforcement.notices270.toLocaleString()}
+                </span>
+              </div>
+              <div className="db-enforcement-item">
+                <div className="db-enforcement-left">
+                  <span className="db-enforcement-dot" style={{ backgroundColor: "#ef4444" }} />
+                  <span className="db-enforcement-label">Section 269 Notices issued</span>
+                </div>
+                <span className="db-enforcement-count">
+                  {data.enforcement.notices269.toLocaleString()}
+                </span>
+              </div>
+              <div className="db-enforcement-item">
+                <div className="db-enforcement-left">
+                  <span className="db-enforcement-dot" style={{ backgroundColor: "#2563eb" }} />
+                  <span className="db-enforcement-label">Standalone Field Visits</span>
+                </div>
+                <span className="db-enforcement-count">
+                  {data.enforcement.standaloneFieldVisits.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Needs Attention full-width table */}
+      <div className="db-attention-card">
+        <div className="db-attention-card__header">
+          <div className="db-attention-card__icon">⚠️</div>
+          <div>
+            <h3 className="db-attention-card__title">Needs Attention</h3>
+            <p className="db-attention-card__subtitle">
+              Key items requiring Building Branch attention
+            </p>
+          </div>
+        </div>
+        <table className="db-attention-table">
+          <thead>
+            <tr>
+              <th>ITEM</th>
+              <th>COUNT</th>
+              <th>PRIORITY</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attentionItems.map((item) => (
+              <tr key={item.label}>
+                <td>
+                  <div className="db-attention-item-cell">
+                    <span
+                      className="db-attention-dot"
+                      style={{ backgroundColor: item.dotColor }}
+                    />
+                    <span>{item.label}</span>
+                  </div>
+                </td>
+                <td>
+                  <strong style={{ fontSize: "14px", color: "var(--midnight)" }}>
+                    {item.count.toLocaleString()}
+                  </strong>
+                </td>
+                <td>
+                  <span
+                    className={`db-attention-badge db-attention-badge--${item.priorityLevel.toLowerCase()}`}
+                  >
+                    {item.priorityLevel}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="db-table__view-btn"
+                    onClick={() => navigate(item.route)}
+                  >
+                    View →
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Row 4: Complaints by Zone & Recent Complaints */}
+      <div className="db-charts">
+        {/* Left: Bar chart */}
         <div className="db-chart-card">
           <div className="db-chart-card__header">
             <div>
               <h3 className="db-chart-card__title">Complaints by Zone</h3>
-              <p className="db-chart-card__subtitle">Current distribution across municipal zones</p>
+              <p className="db-chart-card__subtitle">
+                Total complaints in each municipal zone
+              </p>
             </div>
-            <select className="db-chart-card__select">
-              <option>This Month</option>
-            </select>
           </div>
           <div className="db-chart-card__body">
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={zoneData} barCategoryGap="30%" margin={{ top: 32, right: 15, left: -10, bottom: 5 }}>
+              <BarChart
+                data={zoneData}
+                barCategoryGap="30%"
+                margin={{ top: 32, right: 15, left: -10, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e6eb" />
-                <XAxis dataKey="zone" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} domain={[0, yAxisMax]} />
+                <XAxis
+                  dataKey="zone"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#6b7280" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#6b7280" }}
+                  domain={[0, yAxisMax]}
+                />
                 <Tooltip cursor={{ fill: "rgba(0, 0, 0, 0.03)" }} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12.5, fill: "#0f172a", fontWeight: 700, dy: -6 }}>
+                <Bar
+                  dataKey="count"
+                  radius={[4, 4, 0, 0]}
+                  label={{
+                    position: "top",
+                    fontSize: 12.5,
+                    fill: "#0f172a",
+                    fontWeight: 700,
+                    dy: -6,
+                  }}
+                >
                   {zoneData.map((_entry, index) => {
-                    const colors = ["#3b82f6", "#c26d53", "#10b981", "#64748b"];
+                    const colors = ["#2563eb", "#c25e40", "#10b981", "#64748b"];
                     return <Cell key={`zone-cell-${index}`} fill={colors[index % colors.length]} />;
                   })}
                 </Bar>
@@ -305,190 +560,72 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
           </div>
         </div>
 
-        {/* Donut chart */}
-        <div className="db-chart-card">
-          <div className="db-chart-card__header">
+        {/* Right: Recent Complaints table */}
+        <div className="db-recent-card" style={{ marginBottom: 0 }}>
+          <div className="db-recent-card__header">
             <div>
-              <h3 className="db-chart-card__title">Case Status</h3>
-              <p className="db-chart-card__subtitle">Distribution of cases across current status</p>
+              <h3 className="db-recent-card__title">Recent Complaints</h3>
+              <p className="db-recent-card__subtitle">
+                Latest complaints requiring Building Branch attention
+              </p>
             </div>
-            <select className="db-chart-card__select">
-              <option>This Month</option>
-            </select>
+            <button
+              type="button"
+              className="db-link-btn"
+              onClick={() => navigate("/complaints")}
+            >
+              View All →
+            </button>
           </div>
-          <div className="db-chart-card__body db-chart-card__body--donut" style={{ display: "flex", alignItems: "center", justifyContent: "space-around", flexWrap: "wrap", gap: "16px", minHeight: "240px", padding: "12px 16px" }}>
-            <div style={{ cursor: "pointer" }} onClick={() => navigate("/cases")}>
-              <DonutChart
-                data={donutSegments}
-                size={210}
-                strokeWidth={26}
-                animationDuration={1.1}
-                animationDelayPerSegment={0.06}
-                highlightOnHover={true}
-                onSegmentHover={(seg) => setHoveredDonutSegment(seg ? seg.label : null)}
-                centerContent={
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textAlign: "center",
-                      userSelect: "none",
-                    }}
-                  >
-                    <span style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>
-                      {displayDonutVal.toLocaleString()}
-                    </span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", letterSpacing: "0.05em", marginTop: "3px", textTransform: "uppercase" }}>
-                      {displayDonutLbl}
-                    </span>
-                    {activeDonutSeg && (
-                      <span style={{ fontSize: "11px", fontWeight: 700, color: activeDonutSeg.color, marginTop: "2px" }}>
-                        [{displayDonutPct}%]
-                      </span>
-                    )}
-                  </div>
-                }
-              />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "190px" }}>
-              {donutSegments.map((item) => {
-                const pct = statusTotal > 0 ? ((item.value / statusTotal) * 100).toFixed(1) : "0";
-                const isHovered = hoveredDonutSegment === item.label;
-                return (
-                  <div
-                    key={item.label}
-                    className="db-legend-item"
-                    style={{
-                      background: isHovered ? "#f1f5f9" : "transparent",
-                      borderRadius: "6px",
-                      padding: "4px 8px",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={() => setHoveredDonutSegment(item.label)}
-                    onMouseLeave={() => setHoveredDonutSegment(null)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate("/cases");
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: item.color, flexShrink: 0 }} />
-                      <span className="db-legend-item__name">{item.label}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span className="db-legend-item__value">{item.value.toLocaleString()}</span>
-                      <span className="db-legend-item__pct">{pct}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Case Pipeline */}
-      <div className="db-pipeline-card">
-        <div className="db-pipeline-card__header">
-          <div>
-            <h3 className="db-pipeline-card__title">Case Pipeline</h3>
-            <p className="db-pipeline-card__subtitle">From complaint to resolution — tracking progress and accountability</p>
-          </div>
-          <button type="button" className="db-link-btn" onClick={() => navigate("/cases")}>
-            View Details <Icon name="arrow-right" />
-          </button>
-        </div>
-        <div className="db-pipeline">
-          {pipeline.map((step, i) => (
-            <div className="db-pipeline__step-wrap" key={step.stage}>
-              <div className="db-pipeline__step">
-                <div
-                  className="db-pipeline__step-icon"
-                  style={{
-                    backgroundColor: step.bg ?? "#dbeafe",
-                    color: step.color ?? "#2563eb",
-                  }}
-                >
-                  <Icon name={step.icon} />
-                </div>
-                <div className="db-pipeline__step-label">{step.stage}</div>
-                <div className="db-pipeline__step-count">{step.count.toLocaleString()}</div>
-              </div>
-              {i < pipeline.length - 1 && <div className="db-pipeline__arrow">→</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Complaints */}
-      <div className="db-recent-card">
-        <div className="db-recent-card__header">
-          <div>
-            <h3 className="db-recent-card__title">Recent Complaints</h3>
-            <p className="db-recent-card__subtitle">Latest complaints requiring Building Branch attention</p>
-          </div>
-          <button type="button" className="db-link-btn" onClick={() => navigate("/complaints")}>
-            View All <Icon name="arrow-right" />
-          </button>
-        </div>
-        <table className="db-table">
-          <thead>
-            <tr>
-              <th>COMPLAINT ID</th>
-              <th>DATE</th>
-              <th>WARD</th>
-              <th>ZONE</th>
-              <th>COMPLAINT</th>
-              <th>ASSIGNED BI</th>
-              <th>ATP</th>
-              <th>STATUS</th>
-              <th>AGE</th>
-              <th>ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.recentComplaints.length === 0 ? (
+          <table className="db-table">
+            <thead>
               <tr>
-                <td colSpan={10} style={{ textAlign: "center", padding: "24px", color: "var(--muted)" }}>
-                  No complaints found
-                </td>
+                <th>COMPLAINT ID</th>
+                <th>ZONE</th>
+                <th>STATUS</th>
+                <th>AGE (DAYS)</th>
+                <th>ACTION</th>
               </tr>
-            ) : (
-              data.recentComplaints.map((c) => {
-                const action = getComplaintAction(c);
-                return (
+            </thead>
+            <tbody>
+              {data.recentComplaints.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{ textAlign: "center", padding: "24px", color: "var(--muted)" }}
+                  >
+                    No complaints found
+                  </td>
+                </tr>
+              ) : (
+                data.recentComplaints.map((c) => (
                   <tr key={c.complaintId}>
                     <td className="db-table__id">{c.complaintId}</td>
-                    <td>{formatDate(c.createdAt)}</td>
-                    <td>{c.ward ?? "—"}</td>
                     <td>{c.zone}</td>
-                    <td className="db-table__desc">{c.title || c.description || "—"}</td>
-                    <td>{c.assignedOfficerName ?? "—"}</td>
-                    <td>{c.assignedAtpName ?? "—"}</td>
-                    <td><StatusBadge status={c.status} /></td>
-                    <td>{daysBetween(c.createdAt)} days</td>
+                    <td>
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td>{c.ageDays ?? 0}</td>
                     <td>
                       <button
                         type="button"
                         className="db-table__view-btn"
                         onClick={() => {
                           setSelectedComplaintId(c.complaintId);
-                          navigate(action.route);
+                          navigate(
+                            c.caseId ? `/cases/${c.caseId}` : `/complaints/${c.complaintId}`
+                          );
                         }}
                       >
-                        {action.label} →
+                        View →
                       </button>
                     </td>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
