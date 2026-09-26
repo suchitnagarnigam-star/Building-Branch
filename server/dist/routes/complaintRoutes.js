@@ -1244,10 +1244,11 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
         const sourceOfReport = body.sourceOfReport?.trim();
         const inspectionOutcome = body.inspectionOutcome?.trim();
         if (inspectionOutcome !== "no_violation" &&
-            inspectionOutcome !== "violation_found") {
+            inspectionOutcome !== "violation_found" &&
+            inspectionOutcome !== "complete_violated") {
             res.status(400).json({
                 success: false,
-                message: "inspectionOutcome must be no_violation or violation_found.",
+                message: "inspectionOutcome must be no_violation, violation_found, or complete_violated.",
             });
             return;
         }
@@ -1452,10 +1453,13 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 return;
             }
         }
+        else if (inspectionOutcome === "complete_violated") {
+            // Complete & Violated no longer requires or processes notices during inspection submission.
+        }
         else if (hasNoticeData) {
             res.status(400).json({
                 success: false,
-                message: "A Section 270 notice can only be recorded when violation is found.",
+                message: "A notice can only be recorded when violation is found or complete & violated.",
             });
             return;
         }
@@ -1498,7 +1502,8 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
          * A proactive field inspection starts a case.
          */
         let caseId = null;
-        if (inspectionOutcome === "violation_found") {
+        if (inspectionOutcome === "violation_found" ||
+            inspectionOutcome === "complete_violated") {
             caseId = await generateCaseId();
             const caseSourceType = sourceOfReport === "complaint"
                 ? "complaint"
@@ -1506,6 +1511,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
             const primaryComplaintId = sourceOfReport === "complaint"
                 ? complaintId
                 : null;
+            const initialCaseStatus = "Open";
             await database_1.pool.query(`
             INSERT INTO cases (
               case_id,
@@ -1541,7 +1547,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
               $12,
               $13,
               $14,
-              'Open',
+              $15,
               NOW(),
               NOW()
             )
@@ -1560,6 +1566,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 reportingOfficer.name,
                 atp?.officerId ?? null,
                 atp?.name ?? null,
+                initialCaseStatus,
             ]);
             /*
              * Link complaint-based violations to the case.
@@ -1726,8 +1733,9 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
    * - notice photo exists
    * - inspection is case-based
    */
-        if (hasNoticeData) {
+        if (hasNoticeData && inspectionOutcome !== "complete_violated") {
             const uploadedNotice = await (0, driveService_1.uploadInspectionNoticeFile)(parentType, parentId, visitId, noticePhotos[0]);
+            const noticeType = "270";
             await database_1.pool.query(`
       INSERT INTO notices (
         case_id,
@@ -1744,7 +1752,6 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
       )
       VALUES (
         $1,
-        '270',
         $2,
         $3,
         $4,
@@ -1752,11 +1759,13 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
         $6,
         $7,
         $8,
-        $9::jsonb,
+        $9,
+        $10::jsonb,
         NOW()
       )
     `, [
                 caseId,
+                noticeType,
                 body.noticeNumber.trim(),
                 reportingOfficer.officerId,
                 reportingOfficer.name,
@@ -1767,6 +1776,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 JSON.stringify({
                     source: "field_inspection",
                     visitId,
+                    inspectionOutcome,
                 }),
             ]);
         }

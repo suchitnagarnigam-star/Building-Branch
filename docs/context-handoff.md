@@ -1,149 +1,77 @@
 # MCL Building Branch (MCL-BB) — Context Handoff & Progress Report
 
-**Date:** September 23, 2026  
+**Date:** September 26, 2026  
 **Repository:** MCL-BB (`d:\Projects\MCL\MCL-BB`)  
 **Active Branch:** `ad-dev` (synced with `origin/ad-dev`)  
-**Target Milestone:** Full Enforcement Lifecycle Automation, Statutory Data Persistence, and Live Operations Analytics
+**Target Milestone:** Full Enforcement Lifecycle Automation, Role-Based Access Control, Statutory Persistence, and Live Operations Analytics
 
 ---
 
 ## 1. Executive Summary
 
-The **MCL Building Branch (MCL-BB)** system automates the statutory building violation lifecycle for the Pune Municipal Corporation (PMC) under the PMC Act 1976.
+The **MCL Building Branch (MCL-BB)** system automates the statutory building violation enforcement lifecycle for the Pune Municipal Corporation (PMC) under the PMC Act 1976.
 
-To date, the core workflow from **Complaint Intake** (manual & AI-extracted document upload), **BI Assignment**, **Complaint-to-Case Promotion**, **Field Inspection & Geotagged Evidence**, **Section 270 Notice Issuance**, **Dual Case/Complaint Construction Status Intake**, **Independent Section-Level Construction Processing (Compoundable vs Non-Compoundable)**, and **Violator Reply Recording** has been implemented with backend database persistence in PostgreSQL and evidence hosting in Google Drive.
-
-This document outlines **what has been accomplished so far**, **the current state of the codebase**, and **what remains to be completed** to reach full production and demo readiness.
+The platform covers the entire pipeline: **Complaint Intake** (manual & AI-extracted OCR document review), **BI/ATP Assignment**, **Complaint-to-Case Promotion**, **Field Inspection & Geotagged Evidence Capture**, **Statutory Notice Generation (Section 270 & Section 269)**, **Granular Section-Level Construction Processing (Compoundable vs Non-Compoundable)**, **Violator Reply Logging**, and **Role-Based Authentication (JWT & PIN)** backed by PostgreSQL and Google Drive file storage.
 
 ---
 
 ## 2. Progress Breakdown: What Has Been Done Till Now
 
-### 2.1 Backend Architecture & Database Schema (PostgreSQL)
-- **Database Connection & SSL (`server/db/database.ts`)**: Built PostgreSQL client pool with SSL connection handling, transaction support, and fallback capabilities.
-- **Statutory Database Tables**:
-  - `complaints`: Stores citizen complaints, registration source, block, zone, ward, address, BI/ATP assignments, status, timestamps, Google Drive URLs.
-  - `cases`: Tracks formal enforcement cases (`CASE-XXXXXXXXXXXX`), primary complaint linkage, assigned BI & ATP officers, current status, and overall construction status.
+### 2.1 Authentication & Security (JWT & RBAC)
+- **Database Schema**: Created `users` and `officers` tables with bcrypt PIN hashing, designation mapping (`Operator`, `BI`, `ATP`, `MTP`, `JC`, `Superadmin`), and seed scripts.
+- **Backend Auth & Middleware**: Implemented `POST /api/auth/login`, `GET /api/auth/me`, JWT generation/verification, and `authorizeRole(...)` middleware protecting mutating routes.
+- **Frontend Auth Integration**:
+  - `AuthContext.tsx`: Manages authentication state, token persistence in `localStorage`, and an automatic Bearer token interceptor on all API calls.
+  - `LoginPage.tsx`: Integrated real PIN-based authentication with lockout timers and inline error feedback.
+  - Role-based route guards in `App.tsx` and dynamic navigation filtering in `Sidebar.tsx`.
+
+### 2.2 Statutory Backend Architecture & PostgreSQL Persistence
+- **Database Engine (`server/db/database.ts`)**: PostgreSQL connection pool with SSL handling, transaction helpers, and migration scripts.
+- **Statutory Tables**:
+  - `complaints`: Citizen complaints, registration source, block, zone, ward, address, BI/ATP assignments, Google Drive URLs.
+  - `cases`: Enforcement cases (`CASE-XXXXXXXXXXXX`), primary complaint linkage, assigned officers, overall lifecycle status.
   - `case_complaints`: Junction table mapping multiple complaints to a single enforcement case.
-  - `field_visits`: Stores field inspection metadata, device GPS coordinates (`latitude`, `longitude`, `accuracy`), building classification, violator details, and visit date.
-  - `visit_evidence`: Geotagged evidence photo attachments mapped to field visits.
-  - `notices`: Stores Section 270(1) and Section 269 statutory notices with notice numbers, notice dates, area portions, notice types, and Google Drive document URLs.
-  - `construction_statuses`: Tracks case-level construction status (`compoundable`, `partly_compoundable`, `non_compoundable`) and overall operational status.
-  - `construction_parts`: Granular tracking of section-level completion (`compoundable` area and `non_compoundable` area) with `part_status` (`pending`, `completed`, `in_progress`), `assessment_status` (`pending`, `assessed`), total charges, receipt number, receipt date, receipt photo, and notice links. Includes `ON CONFLICT (construction_status_id, part_type)` upsert support for independent section progression.
-  - `violator_replies`: Captures violator reply text, submission date, evidence URLs, and review status.
-  - `case_status_history`: Complete audit logging tracking `previous_status`, `new_status`, `changed_by_id`, `changed_by_name`, `reason`, `note`, and `created_at`.
+  - `field_visits` & `visit_evidence`: Field inspection records with device GPS coordinates (`latitude`, `longitude`, `accuracy`), building classifications, violator details, and photo evidence.
+  - `notices`: Section 270(1) and Section 269 notices with statutory numbers, notice dates, and document links.
+  - `construction_statuses` & `construction_parts`: Section-level status tracking (`compoundable` vs `non_compoundable`) with independent `part_status`, assessment charges, receipt metadata, and `ON CONFLICT` upsert safety.
+  - `violator_replies`: Violator reply statements, submission timestamps, evidence files, and review statuses.
+  - `case_status_history`: Audit logging of status transitions with actor IDs, reasons, and timestamps.
   - `officers`: Roster mapping BI and ATP officers to assigned zones and blocks.
 
-### 2.2 Backend APIs (`server/routes/complaintRoutes.ts`)
-- **Complaint Ingestion**:
-  - `POST /api/complaints`: Dual-mode complaint registration (manual vs AI-extracted document review) with Google Drive evidence upload and PostgreSQL persistence.
-  - `POST /api/complaints/process-source`: OCR document processing using Mistral OCR API for PDF and image sources.
-  - `POST /api/complaints/extract-source`: AI structured extraction using Anthropic Claude 3.5 Sonnet to parse unstructured news/email text into structured complaint fields.
-  - `GET /api/complaints` & `GET /api/complaints/:complaintId`: Complaint listing (with subqueried case IDs) and hydrated detail views.
-  - `GET /api/complaints/:complaintId/files`: Direct fetching of Google Drive attachment metadata.
-- **Case & Inspection Management**:
-  - `POST /api/complaints/:complaintId/assign`: Transactional promotion of a complaint into an enforcement Case (`CASE-XXXXXXXXXXXX`), creating primary case links and updating status.
-  - `GET /api/cases`: Fetch enforcement cases with multi-criteria filtering (status, source, zone, search).
-  - `GET /api/cases/:caseId`: Detailed case view fetching linked complaints, assigned officers, notices, violator replies, construction parts state, and audit history.
-  - `POST /api/inspections`: BI field inspection endpoint capturing device GPS geolocation, violator information, geotagged photos, Section 270 notice details, and automatic case creation for proactive field visits.
-- **Statutory Construction Status Processing**:
-  - `GET /api/cases/:caseId/construction-status`: Reads construction status, section completion states (`compoundable` and `nonCompoundable`), notices, violator replies.
-  - `POST /api/cases/:caseId/construction-status`: Multipart endpoint supporting compoundable area assessment (charges, receipt #, receipt date, receipt photo), non-compoundable Section 269 notice issuance, violator reply logging, and independent section status evaluation (marking cases complete only when both sections are resolved for partly compoundable cases).
+### 2.3 Backend API Endpoints (`server/routes/complaintRoutes.ts`)
+- **Complaint Ingestion**: `POST /api/complaints`, `POST /api/complaints/process-source` (Mistral OCR), `POST /api/complaints/extract-source` (Claude 3.5 Sonnet extraction), `GET /api/complaints`, `GET /api/complaints/:id`.
+- **Case Promotion & Lookup**: `POST /api/complaints/:id/assign` (promotes complaint to `CASE-XXXXXXXXXXXX`), `GET /api/cases` (multi-criteria search/filter), `GET /api/cases/:id` (fully hydrated case record).
+- **Field Inspections**: `POST /api/inspections` supporting outcome branches:
+  - `no_violation`: Closes or updates complaint without escalation.
+  - `violation_found`: Records Section 270 notice, captures geotagged evidence, and automatically creates an enforcement case.
+  - `complete_violated`: Supports inspection of completed illegal structures (bypasses Section 270 notice stage, moving directly to 3-day reply period and Construction Status workflow).
+- **Statutory Construction Processing**: `GET /api/cases/:id/construction-status` and `POST /api/cases/:id/construction-status` supporting compoundable penalty assessment, Section 269 notice issuance, violator replies, and dual-section resolution logic.
 
-### 2.3 Frontend Capabilities (`Frontend/src/`)
-- **Application Shell & Navigation**:
-  - `App.tsx`: Hash-based router (`useRouter.ts`) with role selection context and screen routing.
-  - `Sidebar.tsx` & `Topbar.tsx`: Desktop fixed sidebar offset and mobile fixed bottom bar; Topbar header with user role selection and text scaling controls.
-  - `App.css`: Responsive CSS grid/flex layout, glassmorphism UI elements, dark mode aesthetics, and dynamic viewport scaling.
-- **Complaint Workflows**:
-  - `ComplaintFormPage.tsx` & `ExtractedComplaintPage.tsx`: Manual registration form & AI document extraction review interface with direct prefilling.
-  - `ComplaintDetailPage.tsx`: Hydrated complaint detail screen with Google Drive file previews, promoted case file banner, and direct BI assignment action trigger.
-  - `ComplaintsPage.tsx`: Categorized complaint listing (`All`, `Active/Unassigned`, `Assigned/Converted`, `Closed`) with direct links to Case files.
-- **Field Inspection & Violation Reporting**:
-  - `FieldInspectionPage.tsx`: Proactive and complaint-driven field inspection form with browser Geolocation API integration, officer block-to-zone auto-filtering, geotagged evidence capture, and Section 270 notice recording.
-- **Case Management & Statutory Processing**:
-  - `CasesPage.tsx`: Enforcement case registry with lifecycle status tabs (`All`, `Active`, `Pending`, `Solved/Completed`), source filters, and direct action triggers.
-  - `ConstructionStatusForm.tsx`: Dual-lookup statutory construction status interface (lookup by `CASE-XXXX` or `CMP-XXXX`), featuring dynamic tabs for Compoundable Assessment, Non-Compoundable Section 269 Notice, and Violator Reply, section completion badges, file uploads, and backend persistence feedback.
-- **User Preference & Scaling Controls**:
-  - `Topbar.tsx`: Functional text scaling popover slider (85% to 115%) with step presets and root font-size scaling.
-  - `SettingsPage.tsx`: Application display scaling settings with `localStorage` persistence.
-  - `OfficersPage.tsx`: Officer performance roster view matching modern UI reference design.
+### 2.4 Frontend Pages & User Experience (`Frontend/src/`)
+- **Complaint Management**: `ComplaintFormPage.tsx` (manual entry), `ExtractedComplaintPage.tsx` (AI OCR document intake), `ComplaintsPage.tsx` (tabbed registry), `ComplaintDetailPage.tsx` (evidence previews & assignment trigger).
+- **Field Inspections**: `FieldInspectionPage.tsx` with browser Geolocation API GPS capture, outcome selection, auto-filtered officer dropdowns, and Section 270/269 notice attachments.
+- **Statutory Processing & Cases**: `CasesPage.tsx` (lifecycle filters), `CaseDetailPage.tsx` (audit timeline, evidence gallery, outcome chips), `ConstructionStatusForm.tsx` (dual lookup by `CASE-XXXX` or `CMP-XXXX`, dynamic section tabs, receipt uploads).
+- **Consolidated Analytics & UI Polish**:
+  - Removed redundant `AnalyticsPage.tsx` to streamline the user journey; central overview and officer performance are consolidated in `DashboardPage.tsx` and `OfficersPage.tsx`.
+  - `OfficersPage.tsx`: Officer roster with interactive sparklines, inspection cadence spline charts, statutory competency radar, and monthly performance breakdown.
+  - `Topbar.tsx` & `SettingsPage.tsx`: Dynamic viewport text-scaling popover slider (85%–115%) with `localStorage` persistence.
 
 ---
 
-## 3. What Is Left: Remaining Work & Technical Gaps
+## 3. What Is Left: Remaining Tasks & Implementation Gaps
 
-The remaining tasks have been categorized by priority based on the unified implementation plan (`plan.md`):
-
-```mermaid
-flowchart TD
-    A[Current State: Phase 5 Integration Complete] --> B[Phase 1 Cleanup: API Base URL Centralization]
-    B --> C[Phase 3 & 4: Workflow State Machine & Validation]
-    C --> D[Phase 4 & 5: Violator Reply Review & ATP Case Closure Modal]
-    D --> E[Phase 6: Live Operational Analytics Backend]
-    E --> F[Phase 7 & 8: Role Security, E2E Testing & Demo Data]
-```
-
-### High Priority (Immediate Next Steps)
-
-1. **Centralize API Base URLs (`Phase 1 / Phase 5`)**:
-   - **Current Gap**: Multiple components (`complaintApi.ts`, `FieldInspectionPage.tsx`, `OfficersPage.tsx`, `CasesPage.tsx`, `CaseDetailPage.tsx`, `ConstructionStatusForm.tsx`) use hardcoded `http://localhost:5000/api` strings.
-   - **Required Action**: Create a central API utility (`Frontend/src/shared/utils/apiConfig.ts`) that exports `API_BASE_URL` using `import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api"` and update all fetch calls.
-   - **Files**: `Frontend/src/shared/utils/apiConfig.ts`, `Frontend/src/services/complaintApi.ts`, and page components.
-
-2. **Workflow State Machine Domain Service (`Phase 3`)**:
-   - **Current Gap**: Workflow transitions are partially handled inline in SQL queries without explicit state-machine validation against `workflow.pdf`.
-   - **Required Action**: Implement a dedicated `workflowService.ts` / `STATUS_TRANSITIONS.ts` on the backend to enforce strict transition rules, valid prerequisites (e.g. non-compoundable area cannot advance without Section 269 notice, partly compoundable requires both areas handled), and role-based permissions.
-   - **Files**: `server/services/workflowService.ts`, `server/routes/complaintRoutes.ts`.
-
-3. **Violator Reply Review & Decision Endpoint (`Phase 4 & Phase 5`)**:
-   - **Current Gap**: Violator replies are saved under construction status, but there is no explicit ATP/BI review action endpoint to evaluate replies (`Valid -> Resolve/Close Case` vs `Invalid -> Advance to Construction Classification`).
-   - **Required Action**: Create `POST /api/cases/:caseId/review-reply` backend endpoint and add a "Review Violator Reply" card/modal in `CaseDetailPage.tsx`.
-   - **Files**: `server/routes/complaintRoutes.ts`, `Frontend/src/pages/CaseDetailPage.tsx`.
-
-4. **ATP Statutory Case Closure Modal (`Phase 4 & Phase 5`)**:
-   - **Current Gap**: ATP authority to close cases from any stage requires a formal close modal with mandatory `closingDescription` and optional evidence upload.
-   - **Required Action**: Implement `POST /api/cases/:caseId/close` endpoint on the backend and build the close case modal in `CaseDetailPage.tsx`.
-   - **Files**: `server/routes/complaintRoutes.ts`, `Frontend/src/pages/CaseDetailPage.tsx`.
-
-5. **Live Analytics API Integration (`Phase 6`)**:
-   - **Current Gap**: `DashboardPage.tsx` and `AnalyticsPage.tsx` rely on mock data for KPI summary cards, zone charts, and officer performance tables.
-   - **Required Action**: Implement `GET /api/analytics/overview` and `GET /api/analytics/officers` using live SQL queries (`COUNT(cases)`, average resolution time from `case_status_history`, officer workload breakdown) and hook them into `DashboardPage.tsx` and `AnalyticsPage.tsx`.
-   - **Files**: `server/routes/complaintRoutes.ts`, `Frontend/src/pages/DashboardPage.tsx`, `Frontend/src/pages/AnalyticsPage.tsx`.
-
-### Medium Priority (Security & Data Auditing)
-
-6. **Role-Based Authorization Middleware (`Phase 7`)**:
-   - **Current Gap**: API endpoints currently receive officer IDs/roles in body parameters rather than validating token-based headers or middleware constraints.
-   - **Required Action**: Implement role validation middleware (`authorizeRole(["BI", "ATP", "JC", "MTP"])`) for mutating routes (`/assign`, `/inspections`, `/construction-status`, `/close`).
-   - **Files**: `server/middleware/auth.ts`, `server/routes/complaintRoutes.ts`.
-
-7. **Git Repository Index Cleanup (`Phase 1`)**:
-   - **Current Gap**: `server/dist` files are currently modified in working tree and tracked in Git.
-   - **Required Action**: Remove build artifacts from Git tracking, verify `.gitignore` excludes `server/dist/` and `server/node_modules/`, create `Frontend/.env.example` and `server/.env.example`.
-
----
-
-## 4. Summary Matrix of File Status
-
-| Component | File Path | Current Status | Remaining Work |
+| Priority | Task | Description | Target Files |
 | :--- | :--- | :--- | :--- |
-| **Backend Core** | `server/app.ts` | Fully operational express app | Add CORS env config |
-| **Database Pool** | `server/db/database.ts` | Full schema & tables created | Add versioned migration table |
-| **Backend Routes** | `server/routes/complaintRoutes.ts` | Intake, assign, inspect, construction status active | Add `/close`, `/review-reply`, `/analytics` |
-| **Storage Service** | `server/services/complaintStorage.ts` | Postgres complaint persistence active | Connect audit log helpers |
-| **Drive Service** | `server/services/driveService.ts` | Google Drive folder & upload active | Add error retry logic |
-| **Frontend Shell** | `Frontend/src/App.tsx` | Hash routing & view state active | Connect live notification counts |
-| **Construction Form** | `Frontend/src/pages/ConstructionStatusForm.tsx` | Dual lookup, tabs, section badges active | Connect central API config |
-| **Case Detail Page** | `Frontend/src/pages/CaseDetailPage.tsx` | Case timeline & info active | Add ATP Close Case Modal & Reply Review |
-| **Dashboard** | `Frontend/src/pages/DashboardPage.tsx` | UI calibrated with headroom formula | Replace mock stats with live analytics API |
-| **Analytics** | `Frontend/src/pages/AnalyticsPage.tsx` | Page UI layout ready | Connect to backend `/api/analytics` |
+| **High** | **1. Centralize API Base URLs** | Replace remaining hardcoded `http://localhost:5000/api` strings across components with `API_BASE_URL` from a single config file (`VITE_API_BASE_URL`). | `Frontend/src/shared/utils/apiConfig.ts`, `complaintApi.ts`, component files |
+| **High** | **2. ATP Case Closure Endpoint & Modal** | Add `POST /api/cases/:caseId/close` backend route (with statutory closing reason, actor tracking, and evidence upload) and build the Close Case modal in `CaseDetailPage.tsx`. | `server/routes/complaintRoutes.ts`, `Frontend/src/pages/CaseDetailPage.tsx` |
+| **High** | **3. Violator Reply Review Workflow** | Create `POST /api/cases/:caseId/review-reply` to record ATP/BI evaluation of violator replies (`Valid -> Close Case` vs `Invalid -> Advance to Demolition / Section 269`) with a review UI card in `CaseDetailPage.tsx`. | `server/routes/complaintRoutes.ts`, `Frontend/src/pages/CaseDetailPage.tsx` |
+| **Medium** | **4. Workflow State Machine Domain Service** | Implement strict transition validation (`workflowService.ts` / `STATUS_TRANSITIONS.ts`) enforcing statutory prerequisites (e.g. non-compoundable requires Section 269, partly compoundable requires both sections resolved). | `server/services/workflowService.ts`, `server/routes/complaintRoutes.ts` |
+| **Medium** | **5. Live Operational Analytics API** | Implement `GET /api/analytics/overview` and `GET /api/analytics/officers` using real PostgreSQL aggregation queries (`COUNT(cases)`, average resolution time, officer workload) to feed `DashboardPage.tsx`. | `server/routes/complaintRoutes.ts`, `Frontend/src/pages/DashboardPage.tsx` |
+| **Low** | **6. Git & Build Hygiene** | Untrack build artifacts (`server/dist/`, `server/node_modules/`) from git tracking and ensure `.env.example` templates exist for both frontend and backend. | `.gitignore`, `Frontend/.env.example`, `server/.env.example` |
 
 ---
 
-## 5. Verification & Build Commands
-
-To verify the current codebase locally:
+## 4. Verification & Build Commands
 
 ```powershell
 # 1. Frontend Build Verification
@@ -154,7 +82,7 @@ npm run build
 cd ..\server
 npm run build
 
-# 3. Running Dev Environment
+# 3. Dev Server Launch
 # Terminal 1 (Frontend):
 cd Frontend
 npm run dev
@@ -166,11 +94,17 @@ npm run dev
 
 ---
 
-## 6. Next Steps Checklist for Developer
+## 5. Summary Matrix of Key Components
 
-- [ ] 1. Create `Frontend/src/shared/utils/apiConfig.ts` and refactor all frontend `fetch()` calls to use `API_BASE_URL`.
-- [ ] 2. Implement `POST /api/cases/:caseId/close` endpoint and add the ATP Close Case modal in `CaseDetailPage.tsx`.
-- [ ] 3. Implement `POST /api/cases/:caseId/review-reply` endpoint for joint ATP/BI reply evaluation.
-- [ ] 4. Build `GET /api/analytics/overview` and `GET /api/analytics/officers` live SQL endpoints.
-- [ ] 5. Connect `DashboardPage.tsx` and `AnalyticsPage.tsx` to the live analytics APIs.
-- [ ] 6. Untrack `server/dist/` and `server/node_modules/` in Git.
+| Component | File Path | Current Status | Next Action |
+| :--- | :--- | :--- | :--- |
+| **Auth Service & Routes** | `server/routes/authRoutes.ts` | Complete (JWT + PIN + RBAC) | None |
+| **Database Pool & Schema** | `server/db/database.ts` | Complete with migrations & seeders | Add migration version table |
+| **Enforcement Routes** | `server/routes/complaintRoutes.ts` | Intake, assign, inspect, construction status active | Add `/close`, `/review-reply`, `/analytics` |
+| **Auth Context & Interceptor** | `Frontend/src/context/AuthContext.tsx` | Complete (Bearer token attached) | None |
+| **App Shell & Routing** | `Frontend/src/App.tsx` | Role-based route guards active | Connect real-time alert badge counts |
+| **Field Inspection Form** | `Frontend/src/pages/FieldInspectionPage.tsx` | GPS, photos, outcome branching active | Ensure central API config usage |
+| **Construction Status Form**| `Frontend/src/pages/ConstructionStatusForm.tsx` | Dual lookup & section tabs active | Ensure central API config usage |
+| **Case Detail View** | `Frontend/src/pages/CaseDetailPage.tsx` | Timeline, metadata, evidence active | Add Close Case & Review Reply modals |
+| **Dashboard** | `Frontend/src/pages/DashboardPage.tsx` | Layout & UI complete | Connect to live `GET /api/analytics/overview` |
+| **Officers Performance** | `Frontend/src/pages/OfficersPage.tsx` | Sparklines, charts & radar complete | Connect to live `GET /api/analytics/officers` |

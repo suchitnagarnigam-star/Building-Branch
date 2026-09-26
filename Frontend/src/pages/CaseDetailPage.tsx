@@ -194,7 +194,9 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
 
   // Active visit and notice derivation
   const latestVisit = visits[0] || null;
-  const notice270 = notices.find((n) => n.notice_type === "270" || String(n.notice_type).includes("270")) || notices[0] || null;
+  const isCompleteViolated = latestVisit?.inspection_outcome === "complete_violated";
+  const notice270 = isCompleteViolated ? null : (notices.find((n) => n.notice_type === "270" || String(n.notice_type).includes("270")) || notices[0] || null);
+  const notice269 = notices.find((n) => n.notice_type === "269" || String(n.notice_type).includes("269")) || null;
   const hasReply = violatorReplies.length > 0;
   const hasConstruction = Boolean(constructionSummary || caseRecord.construction_status);
 
@@ -264,7 +266,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gridTemplateColumns: isCompleteViolated ? "repeat(4, 1fr)" : "repeat(5, 1fr)",
             gap: "10px",
           }}
         >
@@ -302,41 +304,42 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>Inspection</div>
           </div>
 
-          {/* Step 02: 270 Notice */}
-          <div
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: "8px",
-              padding: "12px 14px",
-              background: "#ffffff",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: "8px",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)" }}>02</span>
-              <span
-                style={{
-                  background: notice270 ? "#dcfce7" : "#f1f5f9",
-                  color: notice270 ? "#166534" : "#64748b",
-                  fontSize: "10px",
-                  fontWeight: 600,
-                  padding: "2px 6px",
-                  borderRadius: "9999px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "3px",
-                }}
-              >
-                {notice270 ? "✓ Completed" : "Pending"}
-              </span>
+          {!isCompleteViolated && (
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                padding: "12px 14px",
+                background: "#ffffff",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", color: "var(--muted)" }}>02</span>
+                <span
+                  style={{
+                    background: notice270 ? "#dcfce7" : "#f1f5f9",
+                    color: notice270 ? "#166534" : "#64748b",
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    padding: "2px 6px",
+                    borderRadius: "9999px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "3px",
+                  }}
+                >
+                  {notice270 ? "✓ Completed" : "Pending"}
+                </span>
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>270 Notice</div>
             </div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>270 Notice</div>
-          </div>
+          )}
 
-          {/* Step 03: 3-Day Reply Period (Current highlight) */}
+          {/* 3-Day Reply Period */}
           <div
             style={{
               border: hasReply ? "1px solid #e2e8f0" : "1.5px solid #f59e0b",
@@ -350,7 +353,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)" }}>03</span>
+              <span style={{ fontSize: "11px", color: "var(--muted)" }}>{isCompleteViolated ? "02" : "03"}</span>
               <span
                 style={{
                   background: hasReply ? "#dcfce7" : "#fef3c7",
@@ -370,7 +373,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>3-Day Reply Period</div>
           </div>
 
-          {/* Step 04: Construction Status */}
+          {/* Construction Status */}
           <div
             style={{
               border: "1px solid #e2e8f0",
@@ -387,7 +390,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             title="Click to view or record construction status"
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", color: "var(--muted)" }}>04</span>
+              <span style={{ fontSize: "11px", color: "var(--muted)" }}>{isCompleteViolated ? "03" : "04"}</span>
               <span
                 style={{
                   background: hasConstruction ? "#dcfce7" : "#f1f5f9",
@@ -407,7 +410,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>Construction Status</div>
           </div>
 
-          {/* Step 05: Demolition */}
+          {/* Demolition */}
           <div
             style={{
               border: "1px dashed #cbd5e1",
@@ -422,11 +425,11 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", color: "#94a3b8" }}>05</span>
+              <span style={{ fontSize: "11px", color: "#94a3b8" }}>{isCompleteViolated ? "04" : "05"}</span>
               <span
                 style={{
-                  background: "#f1f5f9",
-                  color: "#94a3b8",
+                  background: notice269 ? "#dcfce7" : "#f1f5f9",
+                  color: notice269 ? "#166534" : "#94a3b8",
                   fontSize: "10px",
                   fontWeight: 600,
                   padding: "2px 6px",
@@ -436,10 +439,10 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                   gap: "3px",
                 }}
               >
-                🔒 Locked
+                {notice269 ? "✓ Completed" : "🔒 Locked"}
               </span>
             </div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "#94a3b8" }}>Demolition</div>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: notice269 ? "var(--ink)" : "#94a3b8" }}>Demolition / 269</div>
           </div>
         </div>
       </section>
@@ -617,8 +620,16 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 <div>
                   <span
                     style={{
-                      background: latestVisit.inspection_outcome === "violation_found" ? "#fee2e2" : "#dcfce7",
-                      color: latestVisit.inspection_outcome === "violation_found" ? "#dc2626" : "#166534",
+                      background: latestVisit.inspection_outcome === "violation_found" 
+                        ? "#fee2e2" 
+                        : latestVisit.inspection_outcome === "complete_violated"
+                        ? "#ffedd5"
+                        : "#dcfce7",
+                      color: latestVisit.inspection_outcome === "violation_found" 
+                        ? "#dc2626" 
+                        : latestVisit.inspection_outcome === "complete_violated"
+                        ? "#ea580c"
+                        : "#166534",
                       fontSize: "11px",
                       fontWeight: 600,
                       padding: "2px 8px",
@@ -626,7 +637,11 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                       display: "inline-block",
                     }}
                   >
-                    {latestVisit.inspection_outcome === "violation_found" ? "Violation Found" : "No Violation"}
+                    {latestVisit.inspection_outcome === "violation_found" 
+                      ? "Violation Found" 
+                      : latestVisit.inspection_outcome === "complete_violated"
+                      ? "Complete & Violated"
+                      : "No Violation"}
                   </span>
                 </div>
               </div>
@@ -718,7 +733,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
           )}
         </section>
 
-        {/* ── CARD 3: Section 270 Notice Information ── */}
+        {/* ── CARD 3: Notice Information (Section 270 or 269) ── */}
         <section
           style={{
             background: "var(--white, #ffffff)",
@@ -731,79 +746,142 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px", fontWeight: 700, color: "var(--ink)" }}>
               <span>⚠️</span>
-              <span>Section 270 Notice Information</span>
+              <span>{isCompleteViolated ? (notice269 ? "Section 269 Notice Information" : "Notice Status (Complete & Violated)") : "Section 270 Notice Information"}</span>
             </div>
             <span
               style={{
                 fontSize: "11px",
-                background: notice270 ? "#fef3c7" : "#f1f5f9",
-                color: notice270 ? "#b45309" : "#64748b",
+                background: (isCompleteViolated ? notice269 : notice270) ? "#fef3c7" : "#f1f5f9",
+                color: (isCompleteViolated ? notice269 : notice270) ? "#b45309" : "#64748b",
                 padding: "2px 8px",
                 borderRadius: "9999px",
                 fontWeight: 600,
               }}
             >
-              {notice270 ? "Notice Issued" : "Not Issued"}
+              {isCompleteViolated ? (notice269 ? "Notice 269 Issued" : "No 270 Required") : (notice270 ? "Notice Issued" : "Not Issued")}
             </span>
           </div>
 
-          {notice270 ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px 20px",
-                fontSize: "13px",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Number</div>
-                <div style={{ fontWeight: 600, color: "var(--ink)" }}>{notice270.notice_number || "—"}</div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Date</div>
-                <div style={{ fontWeight: 600, color: "var(--ink)" }}>{formatDate(notice270.issued_at)}</div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Issued By</div>
-                <div style={{ fontWeight: 600, color: "var(--ink)" }}>{notice270.issued_by_name || caseRecord.assigned_bi_name || "Assigned BI"}</div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Section</div>
-                <div style={{ fontWeight: 600, color: "var(--ink)" }}>PMC Section {notice270.notice_type || "270"}</div>
-              </div>
-
-              {notice270.drive_file_url && (
-                <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
-                  <a
-                    href={notice270.drive_file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      background: "var(--white, #ffffff)",
-                      border: "1px solid var(--border, #e2e8f0)",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: 500,
-                      color: "var(--ink)",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <span>📄</span>
-                    <span>View Notice Document ({notice270.notice_number || "File"})</span>
-                  </a>
+          {isCompleteViolated ? (
+            notice269 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "16px 20px",
+                  fontSize: "13px",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Number</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{notice269.notice_number || "—"}</div>
                 </div>
-              )}
-            </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Date</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{formatDate(notice269.issued_at)}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Issued By</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{notice269.issued_by_name || caseRecord.assigned_bi_name || "Assigned BI"}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Section</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>PMC Section 269 (Demolition / Sealing)</div>
+                </div>
+
+                {notice269.drive_file_url && (
+                  <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
+                    <a
+                      href={notice269.drive_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "var(--white, #ffffff)",
+                        border: "1px solid var(--border, #e2e8f0)",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <span>📄</span>
+                      <span>View Notice Document ({notice269.notice_number || "File"})</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>
+                This is a <strong>Complete & Violated</strong> case. Per statutory rules, Section 270 notice is omitted. The case proceeds directly through the 3-day reply period to Construction Status and applicable Section 269 enforcement action.
+              </p>
+            )
           ) : (
-            <p style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>No Section 270 notice issued yet for this case.</p>
+            notice270 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "16px 20px",
+                  fontSize: "13px",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Number</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{notice270.notice_number || "—"}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Date</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{formatDate(notice270.issued_at)}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Issued By</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{notice270.issued_by_name || caseRecord.assigned_bi_name || "Assigned BI"}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Section</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>PMC Section {notice270.notice_type || "270"}</div>
+                </div>
+
+                {notice270.drive_file_url && (
+                  <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
+                    <a
+                      href={notice270.drive_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "var(--white, #ffffff)",
+                        border: "1px solid var(--border, #e2e8f0)",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <span>📄</span>
+                      <span>View Notice Document ({notice270.notice_number || "File"})</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>No Section 270 notice issued yet for this case.</p>
+            )
           )}
         </section>
 

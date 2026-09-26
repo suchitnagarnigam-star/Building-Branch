@@ -24,7 +24,7 @@ type Coordinates = {
   capturedAt: string;
 };
 
-type InspectionOutcome = "no_violation" | "violation_found" | "";
+type InspectionOutcome = "no_violation" | "violation_found" | "complete_violated" | "";
 type ComplaintLookup = {
   complaintId: string;
   assignedOfficerId: string | null;
@@ -86,7 +86,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState("");
 
-  const [inspectionOutcome, setInspectionOutcome] = useState<"no_violation"|"violation_found"|"">(
+  const [inspectionOutcome, setInspectionOutcome] = useState<"no_violation"|"violation_found"|"complete_violated"|"">(
     () => (initialCaseId ? "violation_found" : ""),
   );
   const [complaintId, setComplaintId] = useState("");
@@ -298,11 +298,11 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
       setComplaintLookup(null);
       setComplaintError("");
     } else {
-      setInspectionOutcome("");
+      setInspectionOutcome("violation_found");
       setNoticeNumber("");
       setNoticeDate("");
       setNoticePhoto(null);
-      setNoticeOpen(false);
+      setNoticeOpen(true);
       setExistingCaseId("");
       setCaseLookup(null);
       setCaseError("");
@@ -360,7 +360,7 @@ const submitInspection = async (
   setSubmitError("");
 
   const effectiveInspectionOutcome =
-    sourceOfReport === "field_visit" || sourceOfReport === "case"
+    sourceOfReport === "case"
       ? "violation_found"
       : inspectionOutcome;
   setInspectionOutcome(effectiveInspectionOutcome);
@@ -584,7 +584,7 @@ const submitInspection = async (
       );
     });
 
-    // only send notice when it is complete and valid.
+    // send notice when violation is found.
     if (effectiveInspectionOutcome === "violation_found" && noticePhoto) {
       formData.append(
         "noticeNumber",
@@ -617,7 +617,11 @@ const submitInspection = async (
     /*
      * Successful submission.
      */
-    navigate("/dashboard");
+    if (result.caseId) {
+      navigate(`/cases/${encodeURIComponent(result.caseId)}`);
+    } else {
+      navigate("/dashboard");
+    }
 
   } catch (error) {
 
@@ -936,23 +940,29 @@ const submitInspection = async (
           </div>
         </section>
 
-        {isComplaintMode && <section className="inspection-card">
+        {(sourceOfReport === "complaint" || sourceOfReport === "field_visit") && <section className="inspection-card">
           <div className="inspection-card__header"><span className="inspection-card__number">03</span><h2>Inspection Outcome</h2></div>
           <div className="form-field form-field--full">
             <div className="choice-grid choice-grid--inline compact-choice-grid">
-              <label className={`choice-card choice-card--compact ${inspectionOutcome === "no_violation" ? "choice-card--selected" : ""}`}>
-                <input type="radio" name="inspectionOutcome" value="no_violation" checked={inspectionOutcome === "no_violation"} onChange={() => handleOutcomeChange("no_violation")} />
-                <span><strong>No Violation</strong></span>
-              </label>
+              {sourceOfReport === "complaint" && (
+                <label className={`choice-card choice-card--compact ${inspectionOutcome === "no_violation" ? "choice-card--selected" : ""}`}>
+                  <input type="radio" name="inspectionOutcome" value="no_violation" checked={inspectionOutcome === "no_violation"} onChange={() => handleOutcomeChange("no_violation")} />
+                  <span><strong>No Violation</strong></span>
+                </label>
+              )}
               <label className={`choice-card choice-card--compact ${inspectionOutcome === "violation_found" ? "choice-card--selected" : ""}`}>
                 <input type="radio" name="inspectionOutcome" value="violation_found" checked={inspectionOutcome === "violation_found"} onChange={() => handleOutcomeChange("violation_found")} />
                 <span><strong>Violation Found</strong></span>
+              </label>
+              <label className={`choice-card choice-card--compact ${inspectionOutcome === "complete_violated" ? "choice-card--selected" : ""}`}>
+                <input type="radio" name="inspectionOutcome" value="complete_violated" checked={inspectionOutcome === "complete_violated"} onChange={() => handleOutcomeChange("complete_violated")} />
+                <span><strong>Complete & Violated</strong></span>
               </label>
             </div>
           </div>
         </section>}
         <section className="inspection-card">
-          <div className="inspection-card__header compact-header"><span className="inspection-card__number">{isComplaintMode ? "04" : "03"}</span><h2>Details</h2></div>
+          <div className="inspection-card__header compact-header"><span className="inspection-card__number">{sourceOfReport === "complaint" || sourceOfReport === "field_visit" ? "04" : "03"}</span><h2>Details</h2></div>
           <div className="inspection-grid">
             <div className="form-field form-field--full"><label>Building Type <span>*</span></label><div className="building-type-grid">{["Residential", "Commercial", "Industrial", "Other"].map((type) => <label className={`building-type ${buildingType === type ? "building-type--selected" : ""}`} key={type}><input type="radio" name="buildingType" value={type} required checked={buildingType === type} onChange={(event) => setBuildingType(event.target.value)} /><span>{type}</span></label>)}</div></div>
             {buildingType === "Other" && <div className="form-field form-field--full"><label htmlFor="otherBuildingType">Specify Building Type <span>*</span></label><input id="otherBuildingType" required value={otherBuildingType} onChange={(event) => setOtherBuildingType(event.target.value)} placeholder="Enter building type" /></div>}
@@ -963,7 +973,7 @@ const submitInspection = async (
         </section>
 
         <section className="inspection-card">
-          <div className="inspection-card__header"><span className="inspection-card__number">05</span><h2>Evidence</h2></div>
+          <div className="inspection-card__header"><span className="inspection-card__number">{sourceOfReport === "complaint" || sourceOfReport === "field_visit" ? "05" : "04"}</span><h2>Evidence</h2></div>
           <div className="form-field"><label>Photos <span>*</span></label><div className="photo-dropzone"><Icon name="upload" /><strong>Add photos</strong><div className="photo-dropzone__actions"><button type="button" className="secondary-button" onClick={() => photoCameraInputRef.current?.click()}>Capture</button><button type="button" className="secondary-button" onClick={() => photoUploadInputRef.current?.click()}>Upload</button></div><input ref={photoCameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={addPhotos} /><input ref={photoUploadInputRef} type="file" accept="image/*" multiple hidden onChange={addPhotos} /></div>{photos.length > 0 && <div className="photo-list">{photos.map((photo, index) => <div className="photo-item" key={`${photo.name}-${photo.lastModified}-${index}`}><img src={URL.createObjectURL(photo)} alt="" /><span>{photo.name}</span><button type="button" aria-label={`Remove ${photo.name}`} onClick={() => setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Icon name="close" /></button></div>)}</div>}</div>
         </section>
 
@@ -983,6 +993,8 @@ const submitInspection = async (
             </div>}
           </section>
         )}
+
+
 
        <div className="inspection-actions">
           {submitError && (

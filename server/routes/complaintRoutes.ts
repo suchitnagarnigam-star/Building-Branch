@@ -1705,12 +1705,13 @@ router.post(
         
       if (
         inspectionOutcome !== "no_violation" &&
-        inspectionOutcome !== "violation_found"
+        inspectionOutcome !== "violation_found" &&
+        inspectionOutcome !== "complete_violated"
       ) {
         res.status(400).json({
           success: false,
           message:
-            "inspectionOutcome must be no_violation or violation_found.",
+            "inspectionOutcome must be no_violation, violation_found, or complete_violated.",
          });
          return;
        }  
@@ -2013,11 +2014,13 @@ if (inspectionOutcome === "violation_found") {
     });
     return;
   }
+} else if (inspectionOutcome === "complete_violated") {
+  // Complete & Violated no longer requires or processes notices during inspection submission.
 } else if (hasNoticeData) {
   res.status(400).json({
     success: false,
     message:
-      "A Section 270 notice can only be recorded when violation is found.",
+      "A notice can only be recorded when violation is found or complete & violated.",
   });
   return;
 }
@@ -2084,7 +2087,8 @@ if (inspectionOutcome === "violation_found") {
         | null = null;
 
       if (
-        inspectionOutcome === "violation_found"
+        inspectionOutcome === "violation_found" ||
+        inspectionOutcome === "complete_violated"
       ) {
         caseId = await generateCaseId();
 
@@ -2096,6 +2100,8 @@ if (inspectionOutcome === "violation_found") {
           sourceOfReport === "complaint"
             ? complaintId
             : null;
+
+        const initialCaseStatus = "Open";
 
         await pool.query(
           `
@@ -2133,7 +2139,7 @@ if (inspectionOutcome === "violation_found") {
               $12,
               $13,
               $14,
-              'Open',
+              $15,
               NOW(),
               NOW()
             )
@@ -2153,6 +2159,7 @@ if (inspectionOutcome === "violation_found") {
             reportingOfficer.name,
             atp?.officerId ?? null,
             atp?.name ?? null,
+            initialCaseStatus,
           ],
         );
 
@@ -2381,7 +2388,7 @@ if (inspectionOutcome === "violation_found") {
  * - notice photo exists
  * - inspection is case-based
  */
-if (hasNoticeData) {
+if (hasNoticeData && inspectionOutcome !== "complete_violated") {
   const uploadedNotice =
     await uploadInspectionNoticeFile(
       parentType,
@@ -2389,6 +2396,8 @@ if (hasNoticeData) {
       visitId,
       noticePhotos[0],
     );
+
+  const noticeType = "270";
 
   await pool.query(
     `
@@ -2407,7 +2416,6 @@ if (hasNoticeData) {
       )
       VALUES (
         $1,
-        '270',
         $2,
         $3,
         $4,
@@ -2415,12 +2423,14 @@ if (hasNoticeData) {
         $6,
         $7,
         $8,
-        $9::jsonb,
+        $9,
+        $10::jsonb,
         NOW()
       )
     `,
     [
       caseId,
+      noticeType,
       body.noticeNumber!.trim(),
       reportingOfficer.officerId,
       reportingOfficer.name,
@@ -2431,6 +2441,7 @@ if (hasNoticeData) {
       JSON.stringify({
         source: "field_inspection",
         visitId,
+        inspectionOutcome,
       }),
     ],
   );
