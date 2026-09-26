@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Icon from "../../shared/components/Icon";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
+import { useCountUp } from "../../shared/hooks/useCountUp";
 
 export type OfficerAnalyticsRecord = {
   officerId: string;
@@ -122,7 +123,7 @@ function OfficersPage() {
     document.body.removeChild(link);
   };
 
-  // Summary counts
+  // 1. Summary counts & Animated KPI values
   const totalOfficersCount = officers.length;
   const biOfficersCount = officers.filter((o) => {
     const d = (o.designation || "").trim().toUpperCase();
@@ -132,11 +133,69 @@ function OfficersPage() {
     const d = (o.designation || "").trim().toUpperCase();
     return d === "ATP" || d.includes("ATP");
   }).length;
+  const totalCasesAssigned = officers.reduce((sum, o) => sum + (o.casesAssigned || 0), 0);
+  const avgCasesPerOfficer =
+    totalOfficersCount > 0
+      ? parseFloat((totalCasesAssigned / totalOfficersCount).toFixed(1))
+      : 0;
+
+  const animTotalOfficers = useCountUp(totalOfficersCount);
+  const animBiOfficers = useCountUp(biOfficersCount);
+  const animAtpOfficers = useCountUp(atpOfficersCount);
+  const animAvgCases = useCountUp(avgCasesPerOfficer);
+
+  const kpiCards = [
+    {
+      label: "TOTAL OFFICERS",
+      value: animTotalOfficers,
+      accent: "blue",
+      icon: "users",
+      subtitle: "Active personnel",
+    },
+    {
+      label: "BUILDING INSPECTORS",
+      value: animBiOfficers,
+      accent: "green",
+      icon: "pin",
+      subtitle: "Field enforcement",
+    },
+    {
+      label: "ATP OFFICERS",
+      value: animAtpOfficers,
+      accent: "orange",
+      icon: "folder",
+      subtitle: "Town planning",
+    },
+    {
+      label: "AVG CASES / OFFICER",
+      value: animAvgCases,
+      accent: "purple",
+      icon: "file",
+      subtitle: "Workload average",
+    },
+  ];
+
+  // 2. Top Performers Podium (Ranked by casesAssigned DESC, fieldVisits DESC)
+  const topPerformers = useMemo(() => {
+    if (officers.length === 0) return [];
+    const sorted = [...officers].sort((a, b) => {
+      if ((b.casesAssigned || 0) !== (a.casesAssigned || 0)) {
+        return (b.casesAssigned || 0) - (a.casesAssigned || 0);
+      }
+      return (b.fieldVisits || 0) - (a.fieldVisits || 0);
+    });
+    return sorted.slice(0, 3);
+  }, [officers]);
+
+  // Max cases for workload bar calculation
+  const maxCases = useMemo(() => {
+    return Math.max(1, ...officers.map((o) => o.casesAssigned || 0));
+  }, [officers]);
 
   // Filter officers based on designation, search, and zone
   const filteredOfficers = useMemo(() => {
     return officers.filter((officer) => {
-      // 1. Designation filter
+      // Designation filter
       if (designationFilter === "BI") {
         const d = (officer.designation || "").trim().toUpperCase();
         if (!d.includes("BI")) return false;
@@ -145,14 +204,14 @@ function OfficersPage() {
         if (!d.includes("ATP")) return false;
       }
 
-      // 2. Search filter
+      // Search filter
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         (officer.name || "").toLowerCase().includes(q) ||
         (officer.officerId || "").toLowerCase().includes(q) ||
         (officer.designation || "").toLowerCase().includes(q);
 
-      // 3. Zone filter
+      // Zone filter
       const matchesZone =
         selectedZone === "All Zones" ||
         (officer.zone || "").toLowerCase() === selectedZone.toLowerCase() ||
@@ -169,6 +228,12 @@ function OfficersPage() {
     });
     return Array.from(zones).sort();
   }, [officers]);
+
+  // Active drawer stats helper
+  const activeDrawerOfficerRecord = useMemo(() => {
+    if (!selectedOfficer) return null;
+    return officers.find((o) => o.officerId === selectedOfficer.officer.officerId) ?? null;
+  }, [selectedOfficer, officers]);
 
   return (
     <div
@@ -250,7 +315,95 @@ function OfficersPage() {
         </button>
       </div>
 
-      {/* ── FILTER CONTROLS BAR ────────────────────────────────────────────── */}
+      {/* ── 1. KPI CARDS ROW (RESTORED WITH LIVE METRICS) ────────────────────── */}
+      <div className="db-stats">
+        {kpiCards.map((card) => (
+          <div className="db-stat-card" key={card.label}>
+            <div className={`db-stat-card__icon db-stat-card__icon--${card.accent}`}>
+              <Icon name={card.icon} />
+            </div>
+            <div className="db-stat-card__body">
+              <div className="db-stat-card__label">{card.label}</div>
+              <div className="db-stat-card__value">{card.value.toLocaleString()}</div>
+              {card.subtitle && (
+                <div className="db-stat-card__subtitle">{card.subtitle}</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── 2. TOP PERFORMERS PODIUM (RESTORED WITH REAL CASES / VISITS) ───────── */}
+      {topPerformers.length > 0 && (
+        <div style={{ marginBottom: "24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+            <span style={{ color: "#d97706", display: "flex" }}>
+              <Icon name="trophy" />
+            </span>
+            <h2
+              style={{
+                fontSize: "16px",
+                fontWeight: 700,
+                color: "var(--midnight)",
+                margin: 0,
+              }}
+            >
+              Top Enforcement Officers
+            </h2>
+            <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+              Ranked by active cases &amp; field inspections
+            </span>
+          </div>
+
+          <div className="officer-podium-grid">
+            {topPerformers.map((officer, index) => {
+              const rank = index + 1;
+              const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
+
+              return (
+                <div
+                  key={officer.officerId}
+                  className={`officer-podium-card officer-podium-card--${rank}`}
+                >
+                  <div className="officer-podium-header">
+                    <span className="officer-podium-badge">{medal}</span>
+                    <span className="officer-podium-zone">
+                      {officer.zone ? (officer.zone.startsWith("Zone") ? officer.zone : `Zone ${officer.zone}`) : "Zone"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="officer-podium-name">{officer.name}</h3>
+                    <p className="officer-podium-desig">{officer.designation}</p>
+                  </div>
+
+                  <div className="officer-podium-hero">
+                    <span className="officer-podium-hero-val">{officer.casesAssigned}</span>
+                    <span className="officer-podium-hero-lbl">Cases Assigned</span>
+                  </div>
+
+                  <div className="officer-podium-stats">
+                    <div className="officer-podium-stat-item">
+                      <span className="officer-podium-stat-val">{officer.fieldVisits}</span>
+                      <span className="officer-podium-stat-lbl">Visits</span>
+                    </div>
+                    <div className="officer-podium-stat-item">
+                      <span className="officer-podium-stat-val">{officer.noticesIssued}</span>
+                      <span className="officer-podium-stat-lbl">Notices</span>
+                    </div>
+                    <div className="officer-podium-stat-item">
+                      <span className="officer-podium-stat-val">{officer.casesAssigned}</span>
+                      <span className="officer-podium-stat-lbl">Cases</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 3. FILTER CONTROLS BAR ─────────────────────────────────────────── */}
       <div
         style={{
           background: "#fff",
@@ -303,7 +456,6 @@ function OfficersPage() {
 
         {/* Right: Designation Tabs & Zone Dropdown */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          {/* Designation pills */}
           <div
             style={{
               display: "inline-flex",
@@ -336,7 +488,6 @@ function OfficersPage() {
             ))}
           </div>
 
-          {/* Zone filter dropdown */}
           <select
             value={selectedZone}
             onChange={(e) => setSelectedZone(e.target.value)}
@@ -392,7 +543,7 @@ function OfficersPage() {
         </div>
       )}
 
-      {/* ── OFFICERS ROSTER TABLE ─────────────────────────────────────────── */}
+      {/* ── 4. OFFICERS ROSTER TABLE WITH PROPORTIONAL WORKLOAD BARS ─────────── */}
       {!loading && !error && (
         <div
           style={{
@@ -412,7 +563,7 @@ function OfficersPage() {
                 <th style={{ textAlign: "center" }}>FIELD VISITS</th>
                 <th style={{ textAlign: "center" }}>NOTICES ISSUED</th>
                 <th style={{ textAlign: "center" }}>CASES ASSIGNED</th>
-                <th style={{ textAlign: "center" }}>ACTIVITY</th>
+                <th style={{ textAlign: "center", minWidth: "150px" }}>WORKLOAD &amp; ACTIVITY</th>
                 <th style={{ textAlign: "right" }}>ACTION</th>
               </tr>
             </thead>
@@ -438,14 +589,19 @@ function OfficersPage() {
                       ? "Low"
                       : "Inactive";
 
-                  const badgeStyle =
+                  const badgeColor =
                     activityLabel === "High"
-                      ? { bg: "#dcfce7", color: "#166534" }
+                      ? "#16a34a"
                       : activityLabel === "Medium"
-                      ? { bg: "#eff6ff", color: "#1d4ed8" }
+                      ? "#2563eb"
                       : activityLabel === "Low"
-                      ? { bg: "#fef3c7", color: "#92400e" }
-                      : { bg: "#f1f5f9", color: "#64748b" };
+                      ? "#ea580c"
+                      : "#94a3b8";
+
+                  const fillPct = Math.min(
+                    Math.round(((officer.casesAssigned || 0) / maxCases) * 100),
+                    100
+                  );
 
                   return (
                     <tr key={officer.officerId}>
@@ -517,19 +673,29 @@ function OfficersPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "3px 10px",
-                            borderRadius: "12px",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            background: badgeStyle.bg,
-                            color: badgeStyle.color,
-                          }}
-                        >
-                          {activityLabel}
-                        </span>
+                        {/* Workload Progress Bar + Activity Label */}
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                          <div className="officer-workload-track" style={{ width: "70px" }}>
+                            <div
+                              className="officer-workload-fill"
+                              style={{
+                                width: `${fillPct}%`,
+                                backgroundColor: badgeColor,
+                              }}
+                            />
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              color: badgeColor,
+                              minWidth: "44px",
+                              textAlign: "left",
+                            }}
+                          >
+                            {activityLabel}
+                          </span>
+                        </div>
                       </td>
                       <td style={{ textAlign: "right" }}>
                         <button
@@ -549,7 +715,7 @@ function OfficersPage() {
         </div>
       )}
 
-      {/* ── RIGHT-SIDE OFFICER PROFILE DRAWER ──────────────────────────────── */}
+      {/* ── 5. RIGHT-SIDE OFFICER PROFILE DRAWER ────────────────────────────── */}
       {(detailsLoading || detailsError || selectedOfficer) && (
         <div
           style={{
@@ -722,6 +888,90 @@ function OfficersPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Real Statutory Workload Mini-Cards */}
+                {activeDrawerOfficerRecord && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "12px",
+                        background: "#f8fafc",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--muted)",
+                          display: "block",
+                          textTransform: "uppercase",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Field Visits
+                      </span>
+                      <strong style={{ fontSize: "18px", color: "var(--midnight)" }}>
+                        {activeDrawerOfficerRecord.fieldVisits || 0}
+                      </strong>
+                    </div>
+                    <div
+                      style={{
+                        padding: "12px",
+                        background: "#f8fafc",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--muted)",
+                          display: "block",
+                          textTransform: "uppercase",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Notices
+                      </span>
+                      <strong style={{ fontSize: "18px", color: "var(--midnight)" }}>
+                        {activeDrawerOfficerRecord.noticesIssued || 0}
+                      </strong>
+                    </div>
+                    <div
+                      style={{
+                        padding: "12px",
+                        background: "#f8fafc",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--muted)",
+                          display: "block",
+                          textTransform: "uppercase",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Cases
+                      </span>
+                      <strong style={{ fontSize: "18px", color: "var(--midnight)" }}>
+                        {activeDrawerOfficerRecord.casesAssigned || 0}
+                      </strong>
+                    </div>
+                  </div>
+                )}
 
                 {/* Assigned Blocks */}
                 <div>

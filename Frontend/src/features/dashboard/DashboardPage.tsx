@@ -14,6 +14,7 @@ import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
+import { useCountUp } from "../../shared/hooks/useCountUp";
 
 type DashboardPageProps = {
   navigate: (route: string) => void;
@@ -111,32 +112,37 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
     };
   }, []);
 
-  // 1. KPI cards mapping
+  // 1. KPI cards mapping with animated values
+  const animatedTotalComplaints = useCountUp(data.kpi.totalComplaints);
+  const animatedTotalFieldVisits = useCountUp(data.kpi.totalFieldVisits);
+  const animatedTotalCases = useCountUp(data.kpi.totalCases);
+  const animatedResolvedCases = useCountUp(data.kpi.resolvedCases);
+
   const kpiCards = [
     {
       label: "TOTAL COMPLAINTS",
-      value: data.kpi.totalComplaints,
+      value: animatedTotalComplaints,
       accent: "blue",
       icon: "file",
       subtitle: null,
     },
     {
       label: "FIELD VISITS",
-      value: data.kpi.totalFieldVisits,
+      value: animatedTotalFieldVisits,
       accent: "green",
       icon: "pin",
       subtitle: `${data.kpi.linkedFieldVisits} complaint-linked · ${data.kpi.standaloneFieldVisits} standalone`,
     },
     {
       label: "TOTAL CASES",
-      value: data.kpi.totalCases,
+      value: animatedTotalCases,
       accent: "orange",
       icon: "folder",
       subtitle: null,
     },
     {
       label: "RESOLVED",
-      value: data.kpi.resolvedCases,
+      value: animatedResolvedCases,
       accent: "purple",
       icon: "check-circle",
       subtitle: null,
@@ -332,7 +338,10 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         <div className="db-chart-card">
           <div className="db-chart-card__header">
             <div>
-              <h3 className="db-chart-card__title">Complaint Status</h3>
+              <h3 className="db-chart-card__title">
+                <span className="db-section-header-icon"><Icon name="file-text" /></span>
+                Complaint Status
+              </h3>
               <p className="db-chart-card__subtitle">
                 Distribution of complaints across current status
               </p>
@@ -409,7 +418,10 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         <div className="db-chart-card">
           <div className="db-chart-card__header">
             <div>
-              <h3 className="db-chart-card__title">Enforcement Activity</h3>
+              <h3 className="db-chart-card__title">
+                <span className="db-section-header-icon" style={{ color: "#ea580c" }}><Icon name="shield" /></span>
+                Enforcement Activity
+              </h3>
               <p className="db-chart-card__subtitle">Key enforcement actions for this month</p>
             </div>
           </div>
@@ -450,7 +462,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
       {/* Row 3: Needs Attention full-width table */}
       <div className="db-attention-card">
         <div className="db-attention-card__header">
-          <div className="db-attention-card__icon">⚠️</div>
+          <div className="db-attention-card__icon">
+            <Icon name="alert-triangle" />
+          </div>
           <div>
             <h3 className="db-attention-card__title">Needs Attention</h3>
             <p className="db-attention-card__subtitle">
@@ -512,7 +526,10 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         <div className="db-chart-card">
           <div className="db-chart-card__header">
             <div>
-              <h3 className="db-chart-card__title">Complaints by Zone</h3>
+              <h3 className="db-chart-card__title">
+                <span className="db-section-header-icon" style={{ color: "#10b981" }}><Icon name="pin" /></span>
+                Complaints by Zone
+              </h3>
               <p className="db-chart-card__subtitle">
                 Total complaints in each municipal zone
               </p>
@@ -564,7 +581,10 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
         <div className="db-recent-card" style={{ marginBottom: 0 }}>
           <div className="db-recent-card__header">
             <div>
-              <h3 className="db-recent-card__title">Recent Complaints</h3>
+              <h3 className="db-recent-card__title">
+                <span className="db-section-header-icon" style={{ color: "#64748b" }}><Icon name="clock" /></span>
+                Recent Complaints
+              </h3>
               <p className="db-recent-card__subtitle">
                 Latest complaints requiring Building Branch attention
               </p>

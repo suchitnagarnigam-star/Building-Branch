@@ -3154,6 +3154,29 @@ textarea {
   font-size: 12px;
 }
 
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Stat cards */
 .db-stats {
   display: grid;
@@ -3168,22 +3191,36 @@ textarea {
   gap: 14px;
   background: #fff;
   border: 1px solid var(--border);
-  border-left: 4px solid var(--midnight);
+  border-top: 3.5px solid #3b82f6;
+  border-left: none;
   border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(11, 25, 87, 0.07);
-  padding: 20px;
+  box-shadow: 0 2px 10px rgba(11, 25, 87, 0.05);
+  padding: 18px 20px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: fadeInUp 0.4s ease-out both;
 }
 
 .db-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 18px rgba(11, 25, 87, 0.12);
+  box-shadow: 0 4px 18px rgba(11, 25, 87, 0.1);
 }
 
-.db-stat-card:nth-child(1) { border-left-color: #2563eb; }
-.db-stat-card:nth-child(2) { border-left-color: #ea580c; }
-.db-stat-card:nth-child(3) { border-left-color: #16a34a; }
-.db-stat-card:nth-child(4) { border-left-color: #0d9488; }
+.db-stat-card:nth-child(1) {
+  border-top-color: #3b82f6;
+  animation-delay: 0ms;
+}
+.db-stat-card:nth-child(2) {
+  border-top-color: #10b981;
+  animation-delay: 80ms;
+}
+.db-stat-card:nth-child(3) {
+  border-top-color: #f97316;
+  animation-delay: 160ms;
+}
+.db-stat-card:nth-child(4) {
+  border-top-color: #8b5cf6;
+  animation-delay: 240ms;
+}
 
 .db-stat-card__icon {
   width: 44px;
@@ -3200,23 +3237,28 @@ textarea {
 }
 
 .db-stat-card__icon--blue {
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(59, 130, 246, 0.1);
   color: #2563eb;
 }
 
 .db-stat-card__icon--orange {
-  background: rgba(234, 88, 12, 0.12);
+  background: rgba(249, 115, 22, 0.1);
   color: #ea580c;
 }
 
 .db-stat-card__icon--green {
-  background: rgba(22, 163, 74, 0.12);
-  color: #16a34a;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
 .db-stat-card__icon--teal {
-  background: rgba(20, 184, 166, 0.12);
+  background: rgba(20, 184, 166, 0.1);
   color: #0d9488;
+}
+
+.db-stat-card__icon--purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
 }
 
 .db-stat-card__body {
@@ -3224,38 +3266,20 @@ textarea {
 }
 
 .db-stat-card__label {
-  font-size: 11px;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 
 .db-stat-card__value {
-  font-size: 28px;
+  font-size: 2.25rem;
   font-weight: 700;
   color: var(--midnight);
   line-height: 1.1;
-}
-
-.db-stat-card__change {
-  font-size: 12px;
-  font-weight: 500;
-  margin-top: 6px;
-}
-
-.db-stat-card__change--up {
-  color: #16a34a;
-}
-
-.db-stat-card__change--down {
-  color: #dc2626;
-}
-
-.db-stat-card__change-text {
-  color: var(--muted);
-  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 .db-stat-card__subtitle {
@@ -3266,13 +3290,186 @@ textarea {
   white-space: nowrap;
 }
 
-.db-stat-card__icon--purple {
-  background: rgba(139, 92, 246, 0.12);
-  color: #7c3aed;
+/* Staggered slide in for Needs Attention */
+.db-attention-table tbody tr {
+  animation: slideInRight 0.35s ease-out both;
+}
+.db-attention-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.db-attention-table tbody tr:nth-child(2) { animation-delay: 60ms; }
+.db-attention-table tbody tr:nth-child(3) { animation-delay: 120ms; }
+.db-attention-table tbody tr:nth-child(4) { animation-delay: 180ms; }
+
+/* Section Header Typography with Icons */
+.db-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.db-stat-card:nth-child(4) {
-  border-left-color: #8b5cf6;
+.db-section-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 16px;
+}
+
+.db-section-header-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Top Performers Podium */
+.officer-podium-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.officer-podium-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.officer-podium-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(11, 25, 87, 0.1);
+}
+
+.officer-podium-card--1 {
+  border-top: 3.5px solid #f59e0b;
+  animation-delay: 40ms;
+}
+
+.officer-podium-card--2 {
+  border-top: 3.5px solid #94a3b8;
+  animation-delay: 120ms;
+}
+
+.officer-podium-card--3 {
+  border-top: 3.5px solid #d97706;
+  animation-delay: 200ms;
+}
+
+.officer-podium-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.officer-podium-badge {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.officer-podium-zone {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.officer-podium-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--midnight);
+  margin: 0;
+}
+
+.officer-podium-desig {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.officer-podium-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.officer-podium-hero-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--midnight);
+  line-height: 1;
+}
+
+.officer-podium-hero-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.officer-podium-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+.officer-podium-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.officer-podium-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--midnight);
+}
+
+.officer-podium-stat-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Workload Bar */
+.officer-workload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 140px;
+}
+
+.officer-workload-track {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.officer-workload-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease-out;
+}
+
+.officer-workload-label {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 46px;
+  text-align: right;
 }
 
 /* Enforcement Activity Panel */
