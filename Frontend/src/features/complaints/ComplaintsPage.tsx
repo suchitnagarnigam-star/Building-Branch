@@ -4,6 +4,7 @@ import type { Status } from "../../shared/types";
 import { locationData } from "../../data/locationData";
 import { useEffect, useMemo, useState } from "react";
 import { getComplaintAction } from "../../shared/utils/complaintNavigation";
+import { API_BASE_URL } from "../../shared/utils/apiConfig";
 
 const ALL_STATUSES = [
   "Registered",
@@ -52,8 +53,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   useEffect(() => {
     let active = true;
-    const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
-    fetch(`${apiUrl}/complaints`)
+    fetch(`${API_BASE_URL}/complaints`)
       .then(async (response) => {
         const result = await response.json() as { complaints?: ComplaintRecord[]; message?: string };
         if (!response.ok) throw new Error(result.message || "Unable to load complaints.");

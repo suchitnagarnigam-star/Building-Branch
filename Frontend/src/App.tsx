@@ -29,6 +29,7 @@ import ExtractedComplaintPage from "./features/complaints/ExtractedComplaintPage
 // Other pages
 import OfficersPage from "./features/officers/OfficersPage";
 import SettingsPage from "./features/settings/SettingsPage";
+import UsersPage from "./features/users/UsersPage";
 
 // Case workflow
 import CasesPage from "./pages/CasesPage";
@@ -86,6 +87,11 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
     return ["superadmin", "admin"].includes(normRole);
   }
 
+  // /users → allowed: superadmin only
+  if (currentRoute === "/users" || currentRoute.startsWith("/users/")) {
+    return normRole === "superadmin";
+  }
+
   // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
   // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
   return true;
@@ -110,6 +116,10 @@ function App() {
 
   // Role-based route guard enforcement: redirect to "/" silently if not allowed
   useEffect(() => {
+    if (route === "/analytics") {
+      navigate("/dashboard");
+      return;
+    }
     if (user && !isRoutePermittedForRole(route, user.role)) {
       navigate("/");
     }
@@ -293,6 +303,11 @@ function App() {
     // Settings
     if (route === "/settings") {
       return <SettingsPage />;
+    }
+
+    // User Management (superadmin)
+    if (route === "/users") {
+      return <UsersPage />;
     }
 
     // Coming soon placeholders

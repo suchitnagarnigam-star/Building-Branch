@@ -2,6 +2,7 @@ import {useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { locationData, zoneForBlock } from "../data/locationData";
 import Icon from "../shared/components/Icon";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 type FieldInspectionPageProps = {
   navigate: (route: string) => void;
@@ -50,8 +51,7 @@ type CaseLookup = {
 };
 
 const getApiBaseUrl = () => {
-  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
-  return base.replace(/\/$/, "");
+  return API_BASE_URL;
 };
 
 const OFFICERS_API_URL = `${getApiBaseUrl()}/officers/roster`;
