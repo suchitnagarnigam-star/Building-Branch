@@ -1,6 +1,7 @@
 import type { Complaint, ComplaintFormData } from "../types/complaint.js";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
-const BASE_API_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+const BASE_API_URL = API_BASE_URL;
 const API_URL           = `${BASE_API_URL}/complaints`;
 const SOURCE_UPLOAD_URL = `${BASE_API_URL}/complaints/source-upload`;
 export const EXTERNAL_SOURCE_RESULT_KEY = "mcl-external-source-result";

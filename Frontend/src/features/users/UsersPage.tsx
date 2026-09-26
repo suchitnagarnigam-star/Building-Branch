@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Icon from "../../shared/components/Icon";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../shared/utils/apiConfig";
 
 export type ManagedUser = {
   userId: number;
@@ -62,7 +63,7 @@ export default function UsersPage() {
   // Action status / banner
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+  const apiUrl = API_BASE_URL;
 
   const fetchUsers = async () => {
     setLoading(true);

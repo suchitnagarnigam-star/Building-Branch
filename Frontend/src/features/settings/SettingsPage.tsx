@@ -1,15 +1,7 @@
-import { useState, useEffect } from "react";
+import { useFontScale } from "../../shared/hooks/useFontScale";
 
 function SettingsPage() {
-  const [fontScale, setFontScale] = useState<number>(() => {
-    const saved = localStorage.getItem("mcl-font-scale");
-    return saved ? Number(saved) : 100;
-  });
-
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${(fontScale / 100) * 16}px`;
-    localStorage.setItem("mcl-font-scale", String(fontScale));
-  }, [fontScale]);
+  const { fontScale, setFontScale } = useFontScale();
 
   return (
     <div className="settings-page">

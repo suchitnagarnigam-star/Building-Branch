@@ -6,7 +6,7 @@ import { DonutChart, type DonutChartSegment } from "@/components/ui/donut-chart"
 import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
-import { complaints as MOCK_COMPLAINTS } from "../../shared/constants/mockData";
+import { API_BASE_URL } from "../../shared/utils/apiConfig";
 import { getComplaintAction } from "../../shared/utils/complaintNavigation";
 
 type DashboardPageProps = {
@@ -14,7 +14,7 @@ type DashboardPageProps = {
   setSelectedComplaintId: (id: string) => void;
 };
 
-/* ─── Standardized Complaint Item ─── */
+/* ─── Types ─── */
 type ComplaintRecord = {
   complaintId: string;
   citizenName: string;
@@ -28,6 +28,43 @@ type ComplaintRecord = {
   status: Status;
   createdAt: string;
   caseId?: string | null;
+};
+
+interface AnalyticsOverview {
+  stats: {
+    total: number;
+    open: number;
+    resolved: number;
+    inspections: number;
+  };
+  zones: { zone: string; count: number }[];
+  statuses: { status: string; count: number }[];
+  pipeline: {
+    registered: number;
+    assigned: number;
+    fieldVisits: number;
+    casesCreated: number;
+    notices270: number;
+    notices269: number;
+    resolved: number;
+  };
+  recentComplaints: ComplaintRecord[];
+}
+
+const INITIAL_DATA: AnalyticsOverview = {
+  stats: { total: 0, open: 0, resolved: 0, inspections: 0 },
+  zones: [],
+  statuses: [],
+  pipeline: {
+    registered: 0,
+    assigned: 0,
+    fieldVisits: 0,
+    casesCreated: 0,
+    notices270: 0,
+    notices269: 0,
+    resolved: 0,
+  },
+  recentComplaints: [],
 };
 
 /* ─── Helpers ─── */
@@ -46,111 +83,73 @@ const currentMonth = new Intl.DateTimeFormat("en-IN", { month: "short", year: "n
 
 /* ─── Component ─── */
 function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps) {
-  const [apiComplaints, setApiComplaints] = useState<ComplaintRecord[]>([]);
+  const [data, setData] = useState<AnalyticsOverview>(INITIAL_DATA);
   const [hoveredDonutSegment, setHoveredDonutSegment] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
-    fetch(`${apiUrl}/complaints`)
+    fetch(`${API_BASE_URL}/analytics/overview`)
       .then(async (response) => {
-        const result = (await response.json()) as { complaints?: ComplaintRecord[]; message?: string };
-        if (!response.ok) throw new Error(result.message || "Unable to load complaints.");
-        return result.complaints ?? [];
+        const result = (await response.json()) as { success?: boolean } & AnalyticsOverview;
+        if (!response.ok || !result.success) {
+          throw new Error("Unable to load analytics.");
+        }
+        return result;
       })
-      .then((data) => {
-        if (active) setApiComplaints(data);
+      .then((overview) => {
+        if (active) {
+          setData(overview);
+        }
       })
-      .catch(() => {
-        // Fall back gracefully
+      .catch((error) => {
+        console.error("Dashboard analytics fetch failed:", error);
       });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // Use live server complaints if available, else shared mock store
-  const activeComplaintsList = useMemo<ComplaintRecord[]>(() => {
-    if (apiComplaints.length > 0) {
-      return apiComplaints;
-    }
+  const stats = data.stats;
 
-    return MOCK_COMPLAINTS.map((c) => ({
-      complaintId: c.id,
-      citizenName: c.citizen,
-      title: c.title,
-      description: c.description,
-      zone: c.zone ? c.zone.replace("Zone-", "Zone ") : "Zone A",
-      block: c.block || "Block 1",
-      ward: c.ward ? c.ward.replace("Ward ", "") : "12",
-      assignedOfficerName: c.assignedOfficer || c.officer || "R. Kumar",
-      assignedAtpName: c.atp || "S. Gill",
-      status: c.status,
-      createdAt: c.registered ? new Date(c.registered).toISOString() : new Date().toISOString(),
-    }));
-  }, [apiComplaints]);
-
-  // Dynamically compute exact stats from actual complaints
-  const stats = useMemo(() => {
-    const total = activeComplaintsList.length;
-
-    const open = activeComplaintsList.filter((c) => {
-      const s = (c.status || "").toLowerCase();
-      return !s.includes("approved") && !s.includes("closed") && !s.includes("rejected");
-    }).length;
-
-    const resolved = activeComplaintsList.filter((c) => {
-      const s = (c.status || "").toLowerCase();
-      return s.includes("approved") || s.includes("closed");
-    }).length;
-
-    const inspections = activeComplaintsList.filter((c) => {
-      const s = (c.status || "").toLowerCase();
-      return s.includes("progress") || s.includes("assigned") || s.includes("submitted");
-    }).length;
-
-    return { total, open, resolved, inspections };
-  }, [activeComplaintsList]);
-
-  // Dynamically compute exact complaints by zone
+  // Normalized complaints by zone: ensure canonical Zone A, B, C, D order
   const zoneData = useMemo(() => {
-    const counts: Record<string, number> = { "Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0 };
+    const canonical = ["Zone A", "Zone B", "Zone C", "Zone D"];
+    const countMap: Record<string, number> = { "Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0 };
 
-    activeComplaintsList.forEach((c) => {
-      const rawZone = (c.zone || "").trim();
+    data.zones.forEach((z) => {
+      const raw = (z.zone || "").trim();
       let key = "Zone A";
-      if (rawZone.includes("B") || rawZone === "Zone-B") key = "Zone B";
-      else if (rawZone.includes("C") || rawZone === "Zone-C") key = "Zone C";
-      else if (rawZone.includes("D") || rawZone === "Zone-D") key = "Zone D";
-      else if (rawZone.includes("A") || rawZone === "Zone-A") key = "Zone A";
+      if (raw.includes("B") || raw === "Zone-B") key = "Zone B";
+      else if (raw.includes("C") || raw === "Zone-C") key = "Zone C";
+      else if (raw.includes("D") || raw === "Zone-D") key = "Zone D";
+      else if (raw.includes("A") || raw === "Zone-A") key = "Zone A";
 
-      counts[key] = (counts[key] || 0) + 1;
+      countMap[key] = (countMap[key] || 0) + Number(z.count);
     });
 
-    return [
-      { zone: "Zone A", count: counts["Zone A"] },
-      { zone: "Zone B", count: counts["Zone B"] },
-      { zone: "Zone C", count: counts["Zone C"] },
-      { zone: "Zone D", count: counts["Zone D"] },
-    ];
-  }, [activeComplaintsList]);
+    return canonical.map((zone) => ({ zone, count: countMap[zone] }));
+  }, [data.zones]);
 
   const yAxisMax = useMemo(() => {
     const maxZoneCount = Math.max(0, ...zoneData.map((d) => Number(d.count) || 0));
     return maxZoneCount > 0 ? Math.ceil(maxZoneCount * 1.35) : 5;
   }, [zoneData]);
 
-  // Dynamically compute exact status donut distribution
+  // Aggregate statuses into standard 4 lifecycle categories
   const statusData = useMemo(() => {
     let reg = 0;
     let ass = 0;
     let inp = 0;
     let res = 0;
 
-    activeComplaintsList.forEach((c) => {
-      const s = (c.status || "").toLowerCase();
-      if (s === "registered") reg += 1;
-      else if (s === "assigned") ass += 1;
-      else if (s.includes("approved") || s.includes("closed")) res += 1;
-      else inp += 1;
+    data.statuses.forEach((s) => {
+      const name = (s.status || "").toLowerCase();
+      const count = Number(s.count) || 0;
+      if (name === "registered") reg += count;
+      else if (name === "assigned") ass += count;
+      else if (name.includes("approved") || name.includes("closed") || name.includes("resolved")) res += count;
+      else inp += count;
     });
 
     return [
@@ -159,7 +158,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
       { name: "In Progress", value: inp, color: "#d97706" },
       { name: "Resolved", value: res, color: "#10b981" },
     ];
-  }, [activeComplaintsList]);
+  }, [data.statuses]);
 
   const statusTotal = statusData.reduce((sum, d) => sum + d.value, 0);
 
@@ -175,24 +174,22 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
   const displayDonutLbl = activeDonutSeg ? activeDonutSeg.label : "TOTAL CASES";
   const displayDonutPct = activeDonutSeg && statusTotal > 0 ? Math.round((activeDonutSeg.value / statusTotal) * 100) : 100;
 
-  // Dynamically compute pipeline step counts directly from real data
+  // Real pipeline stage counts from backend analytics
   const pipeline = useMemo(() => [
-    { stage: "Complaint Registered", icon: "file", count: stats.total, avg: "Avg. 0.5 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Assigned", icon: "users", count: activeComplaintsList.filter(c => (c.status || "").toLowerCase() !== "registered").length, avg: "Avg. 1.2 days", bg: "#ffedd5", color: "#ea580c" },
-    { stage: "Field Visit", icon: "pin", count: stats.inspections, avg: "Avg. 2.8 days", bg: "#fee2e2", color: "#c25e40" },
-    { stage: "Case Created", icon: "file", count: Math.min(stats.inspections, Math.ceil(stats.total * 0.5)), avg: "Avg. 1.6 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Notice 270", icon: "file", count: Math.ceil(stats.total * 0.25), avg: "Avg. 3.1 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Notice 269", icon: "file", count: Math.ceil(stats.total * 0.1), avg: "Avg. 4.2 days", bg: "#dbeafe", color: "#2563eb" },
-    { stage: "Resolution", icon: "check", count: stats.resolved, avg: "Avg. 2.6 days", bg: "#d1fae5", color: "#059669" },
-  ], [activeComplaintsList, stats]);
-
-  const recentComplaints = useMemo(() => activeComplaintsList.slice(0, 5), [activeComplaintsList]);
+    { stage: "Complaint Registered", icon: "file", count: data.pipeline.registered, bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Assigned", icon: "users", count: data.pipeline.assigned, bg: "#ffedd5", color: "#ea580c" },
+    { stage: "Field Visit", icon: "pin", count: data.pipeline.fieldVisits, bg: "#fee2e2", color: "#c25e40" },
+    { stage: "Case Created", icon: "file", count: data.pipeline.casesCreated, bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Notice 270", icon: "file", count: data.pipeline.notices270, bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Notice 269", icon: "file", count: data.pipeline.notices269, bg: "#dbeafe", color: "#2563eb" },
+    { stage: "Resolution", icon: "check", count: data.pipeline.resolved, bg: "#d1fae5", color: "#059669" },
+  ], [data.pipeline]);
 
   const statCards = [
-    { label: "TOTAL COMPLAINTS", value: stats.total, change: "12.4%", changeDir: "up" as const, accent: "blue", icon: "list" },
-    { label: "OPEN / ACTIVE", value: stats.open, change: "6.8%", changeDir: "up" as const, accent: "orange", icon: "folder" },
-    { label: "RESOLVED THIS MONTH", value: stats.resolved, change: "18.2%", changeDir: "up" as const, accent: "green", icon: "check-circle" },
-    { label: "FIELD INSPECTIONS", value: stats.inspections, change: "14.6%", changeDir: "up" as const, accent: "teal", icon: "pin" },
+    { label: "TOTAL COMPLAINTS", value: stats.total, accent: "blue", icon: "list" },
+    { label: "OPEN / ACTIVE", value: stats.open, accent: "orange", icon: "folder" },
+    { label: "RESOLVED THIS MONTH", value: stats.resolved, accent: "green", icon: "check-circle" },
+    { label: "FIELD INSPECTIONS", value: stats.inspections, accent: "teal", icon: "pin" },
   ];
 
   const handleExportReport = () => {
@@ -200,11 +197,11 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
       ["Building Branch Summary Report", currentMonth],
       ["Generated On", new Date().toLocaleString()],
       [],
-      ["Metric", "Value", "Trend"],
-      ["Total Complaints", stats.total, "+12.4% vs last month"],
-      ["Open / Active Cases", stats.open, "+6.8% vs last month"],
-      ["Resolved This Month", stats.resolved, "+18.2% vs last month"],
-      ["Field Inspections", stats.inspections, "+14.6% vs last month"],
+      ["Metric", "Value"],
+      ["Total Complaints", stats.total],
+      ["Open / Active Cases", stats.open],
+      ["Resolved This Month", stats.resolved],
+      ["Field Inspections", stats.inspections],
       [],
       ["Zone Summary"],
       ["Zone", "Complaint Count"],
@@ -212,11 +209,11 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
       [],
       ["Case Status Summary"],
       ["Status", "Count", "Percentage"],
-      ...statusData.map((s) => [s.name, s.value, `${((s.value / statusTotal) * 100).toFixed(1)}%`]),
+      ...statusData.map((s) => [s.name, s.value, `${statusTotal > 0 ? ((s.value / statusTotal) * 100).toFixed(1) : 0}%`]),
       [],
       ["Recent Complaints"],
       ["Complaint ID", "Citizen Name", "Title", "Zone", "Block", "Status", "Date"],
-      ...recentComplaints.map((c) => [
+      ...data.recentComplaints.map((c) => [
         c.complaintId,
         c.citizenName || "N/A",
         c.title || "N/A",
@@ -272,9 +269,6 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             <div className="db-stat-card__body">
               <div className="db-stat-card__label">{card.label}</div>
               <div className="db-stat-card__value">{card.value.toLocaleString()}</div>
-              <div className={`db-stat-card__change db-stat-card__change--${card.changeDir}`}>
-                ↑ {card.change} <span className="db-stat-card__change-text">vs last month</span>
-              </div>
             </div>
           </div>
         ))}
@@ -423,7 +417,6 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                 </div>
                 <div className="db-pipeline__step-label">{step.stage}</div>
                 <div className="db-pipeline__step-count">{step.count.toLocaleString()}</div>
-                <div className="db-pipeline__step-avg">{step.avg}</div>
               </div>
               {i < pipeline.length - 1 && <div className="db-pipeline__arrow">→</div>}
             </div>
@@ -458,34 +451,42 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             </tr>
           </thead>
           <tbody>
-            {recentComplaints.map((c) => {
-              const action = getComplaintAction(c);
-              return (
-                <tr key={c.complaintId}>
-                  <td className="db-table__id">{c.complaintId}</td>
-                  <td>{formatDate(c.createdAt)}</td>
-                  <td>{c.ward ?? "—"}</td>
-                  <td>{c.zone}</td>
-                  <td className="db-table__desc">{c.title || c.description || "—"}</td>
-                  <td>{c.assignedOfficerName ?? "—"}</td>
-                  <td>{c.assignedAtpName ?? "—"}</td>
-                  <td><StatusBadge status={c.status} /></td>
-                  <td>{daysBetween(c.createdAt)} days</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="db-table__view-btn"
-                      onClick={() => {
-                        setSelectedComplaintId(c.complaintId);
-                        navigate(action.route);
-                      }}
-                    >
-                      {action.label} →
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {data.recentComplaints.length === 0 ? (
+              <tr>
+                <td colSpan={10} style={{ textAlign: "center", padding: "24px", color: "var(--muted)" }}>
+                  No complaints found
+                </td>
+              </tr>
+            ) : (
+              data.recentComplaints.map((c) => {
+                const action = getComplaintAction(c);
+                return (
+                  <tr key={c.complaintId}>
+                    <td className="db-table__id">{c.complaintId}</td>
+                    <td>{formatDate(c.createdAt)}</td>
+                    <td>{c.ward ?? "—"}</td>
+                    <td>{c.zone}</td>
+                    <td className="db-table__desc">{c.title || c.description || "—"}</td>
+                    <td>{c.assignedOfficerName ?? "—"}</td>
+                    <td>{c.assignedAtpName ?? "—"}</td>
+                    <td><StatusBadge status={c.status} /></td>
+                    <td>{daysBetween(c.createdAt)} days</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="db-table__view-btn"
+                        onClick={() => {
+                          setSelectedComplaintId(c.complaintId);
+                          navigate(action.route);
+                        }}
+                      >
+                        {action.label} →
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

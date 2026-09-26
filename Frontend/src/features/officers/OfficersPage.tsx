@@ -13,6 +13,8 @@ import {
   Legend,
 } from "recharts";
 
+import { API_BASE_URL } from "../../shared/utils/apiConfig";
+
 type Officer = {
   officerId: string;
   name: string;
@@ -39,11 +41,7 @@ type OfficerDetailsResponse = {
 };
 
 const getApiUrl = () => {
-  const base =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-    "http://localhost:5000/api";
-
-  return `${base}/officers`;
+  return `${API_BASE_URL}/officers`;
 };
 
 // ── 1. PODIUM SPARKLINE (Smooth Bezier with Gradient Area Fill) ───────────────
@@ -547,8 +545,7 @@ function OfficersPage() {
       });
 
     // Fetch complaints for visual analytics
-    const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
-    fetch(`${base}/complaints`)
+    fetch(`${API_BASE_URL}/complaints`)
       .then((res) => res.json())
       .then((data: { complaints?: Complaint[] } | Complaint[]) => {
         if (active) {

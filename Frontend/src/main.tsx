@@ -10,6 +10,7 @@ if (savedFontScale) {
   const scale = Number(savedFontScale);
   if (!Number.isNaN(scale) && scale >= 85 && scale <= 115) {
     document.documentElement.style.fontSize = `${(scale / 100) * 16}px`;
+    (document.documentElement.style as unknown as Record<string, string>).zoom = `${scale / 100}`;
   }
 }
 

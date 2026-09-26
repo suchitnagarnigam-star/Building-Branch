@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { AppComplaint } from "../../shared/types";
+import { API_BASE_URL } from "../../shared/utils/apiConfig";
 
 type DriveFile = {
   fileId: string;
@@ -84,7 +85,7 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
 
-  const apiUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000/api";
+  const apiUrl = API_BASE_URL;
 
   const handleAssignOfficer = async () => {
     setAssigning(true);
@@ -334,7 +335,7 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
                   <img
                     key={attachment.filePath}
                     className="attachment-preview"
-                    src={`http://localhost:5000/uploads/${relativePath
+                    src={`${API_BASE_URL.replace(/\/api$/, "")}/uploads/${relativePath
                       .map(encodeURIComponent)
                       .join("/")}`}
                     alt={attachment.fileName}
@@ -361,7 +362,7 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
                   <img
                     key={driveFile.fileId}
                     className="attachment-preview"
-                    src={`http://localhost:5000/api/complaints/${encodeURIComponent(
+                    src={`${API_BASE_URL}/complaints/${encodeURIComponent(
                       complaintId
                     )}/files/${encodeURIComponent(
                       driveFile.fileId
