@@ -39,6 +39,8 @@ export const formatPageTitle = (route: string): string => {
     case "/complaints/mine":
     case "/complaints/pending":
       return "Complaints";
+    case "/analytics":
+      return "Analytics";
     case "/field-inspection":
       return "Field Inspections";
     case "/construction-status":
@@ -47,6 +49,8 @@ export const formatPageTitle = (route: string): string => {
       return "Officers";
     case "/settings":
       return "Settings";
+    case "/users":
+      return "User Management";
     case "/cases":
       return "Cases";
     case "/notices":

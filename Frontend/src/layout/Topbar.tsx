@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useFontScale } from "../shared/hooks/useFontScale";
 
 type TopbarProps = {
   userName?: string;
@@ -11,10 +12,7 @@ function Topbar({
   userRole = "Building Branch (Staff)",
 }: TopbarProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
-  const [fontScale, setFontScale] = useState<number>(() => {
-    const saved = localStorage.getItem("mcl-font-scale");
-    return saved ? Number(saved) : 100;
-  });
+  const { fontScale, setFontScale } = useFontScale();
   const [showFontPopover, setShowFontPopover] = useState(false);
   const fontPopoverRef = useRef<HTMLDivElement>(null);
 
@@ -22,11 +20,6 @@ function Topbar({
     const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${(fontScale / 100) * 16}px`;
-    localStorage.setItem("mcl-font-scale", String(fontScale));
-  }, [fontScale]);
 
   useEffect(() => {
     if (!showFontPopover) return;
@@ -71,6 +64,34 @@ function Topbar({
           <span className="topbar__gov-punjabi">ਨਗਰ ਨਿਗਮ ਲੁਧਿਆਣਾ</span>
           <span className="topbar__gov-separator">|</span>
           <span className="topbar__gov-eng">Municipal Corporation Ludhiana</span>
+        </div>
+
+        <div className="topbar__gov-right">
+          <span style={{ fontSize: "11px", color: "#cbd5e1", marginRight: "6px" }}>Text Size:</span>
+          <button
+            type="button"
+            className={`topbar__gov-text-btn ${fontScale < 100 ? "topbar__gov-text-btn--active" : ""}`}
+            title="Decrease text size"
+            onClick={() => setFontScale(Math.max(85, fontScale - 5))}
+          >
+            A-
+          </button>
+          <button
+            type="button"
+            className={`topbar__gov-text-btn ${fontScale === 100 ? "topbar__gov-text-btn--active" : ""}`}
+            title="Reset text size to default (100%)"
+            onClick={() => setFontScale(100)}
+          >
+            A
+          </button>
+          <button
+            type="button"
+            className={`topbar__gov-text-btn ${fontScale > 100 ? "topbar__gov-text-btn--active" : ""}`}
+            title="Increase text size"
+            onClick={() => setFontScale(Math.min(115, fontScale + 5))}
+          >
+            A+
+          </button>
         </div>
       </div>
 
@@ -118,8 +139,8 @@ function Topbar({
                   </span>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>A</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", width: "100%", boxSizing: "border-box" }}>
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500, flexShrink: 0 }}>A</span>
                   <input
                     type="range"
                     min="85"
@@ -127,20 +148,20 @@ function Topbar({
                     step="5"
                     value={fontScale}
                     onChange={(e) => setFontScale(Number(e.target.value))}
-                    style={{ flex: 1, accentColor: "#2563eb", cursor: "pointer" }}
+                    style={{ flex: 1, minWidth: 0, accentColor: "#2563eb", cursor: "pointer" }}
                   />
-                  <span style={{ fontSize: "15px", color: "#64748b", fontWeight: 700 }}>A</span>
+                  <span style={{ fontSize: "15px", color: "#64748b", fontWeight: 700, flexShrink: 0 }}>A</span>
                 </div>
 
-                <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
-                  {[85, 100, 115].map((preset) => (
+                <div style={{ display: "flex", gap: "5px", width: "100%", boxSizing: "border-box" }}>
+                  {[85, 95, 100, 105, 115].map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       className={`topbar__font-preset-btn ${fontScale === preset ? "topbar__font-preset-btn--active" : ""}`}
                       onClick={() => setFontScale(preset)}
                     >
-                      {preset === 100 ? "Default" : `${preset}%`}
+                      {preset === 100 ? "100%" : `${preset}%`}
                     </button>
                   ))}
                 </div>

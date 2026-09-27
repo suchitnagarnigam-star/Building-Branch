@@ -26,8 +26,11 @@ async function saveLocalComplaint(complaint: Complaint): Promise<void> {
   await fs.writeFile(LOCAL_STORAGE_FILE, JSON.stringify(complaints, null, 2), "utf-8");
 }
 
-export const getComplaints = async (): Promise<Complaint[]> => {
+export const getComplaints = async (filterByUserId?: number): Promise<Complaint[]> => {
   try {
+    const whereClause = filterByUserId ? "WHERE submitted_by_user_id = $1" : "";
+    const params = filterByUserId ? [filterByUserId] : [];
+
     const result = await pool.query<Complaint>(`
       SELECT
         complaint_id AS "complaintId",
@@ -50,6 +53,7 @@ export const getComplaints = async (): Promise<Complaint[]> => {
         status,
         created_at AS "createdAt",
         drive_folder_url AS "driveFolderUrl",
+        submitted_by_user_id AS "submittedByUserId",
         (
           SELECT case_id FROM cases WHERE primary_complaint_id = complaints.complaint_id
           UNION
@@ -57,12 +61,17 @@ export const getComplaints = async (): Promise<Complaint[]> => {
           LIMIT 1
         ) AS "caseId"
       FROM complaints
+      ${whereClause}
       ORDER BY created_at DESC
-    `);
+    `, params);
     return result.rows;
   } catch (error) {
     console.warn("PostgreSQL query failed, serving complaints from local JSON storage:", (error as Error).message);
-    return getLocalComplaints();
+    const local = await getLocalComplaints();
+    if (filterByUserId) {
+      return local.filter((c) => c.submittedByUserId === filterByUserId);
+    }
+    return local;
   }
 };
 
@@ -119,11 +128,12 @@ export const saveComplaint = async (
           assigned_atp_mobile,
           status,
           created_at,
-          drive_folder_url
+          drive_folder_url,
+          submitted_by_user_id
         )
         VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11::jsonb, $12, $13, $14, $15, $16, $17, $18, $19, $20
+          $11::jsonb, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
         )
         ON CONFLICT (complaint_id) DO UPDATE SET
           status = EXCLUDED.status,
@@ -151,6 +161,7 @@ export const saveComplaint = async (
         complaint.status,
         complaint.createdAt,
         complaint.driveFolderUrl ?? null,
+        complaint.submittedByUserId ?? null,
       ],
     );
   } catch (error) {

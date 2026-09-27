@@ -4,6 +4,8 @@ import path from "node:path";
 
 import authRoutes from "./routes/authRoutes";
 import complaintRoutes from "./routes/complaintRoutes";
+import userRoutes from "./routes/userRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
 import { testDatabaseConnection } from "./db/database";
 
 const app = express();
@@ -16,6 +18,8 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(serverRoot, "uploads")));
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/analytics", analyticsRoutes);
 app.use("/api", complaintRoutes);
 
 const PORT = 5000;

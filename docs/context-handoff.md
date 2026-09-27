@@ -1,15 +1,15 @@
 # MCL Building Branch (MCL-BB) — Context Handoff & Progress Report
 
-**Date:** September 26, 2026  
-**Repository:** MCL-BB (`d:\Projects\MCL\MCL-BB`)  
-**Active Branch:** `ad-dev` (synced with `origin/ad-dev`)  
+**Date:** September 27, 2026  
+**Repository:** MCL-BB (`D:\Projects\MCL\MCL-BB`)  
+**Active Branch:** `ad-dev` (synced with `origin/ad-dev` & `main`)  
 **Target Milestone:** Full Enforcement Lifecycle Automation, Role-Based Access Control, Statutory Persistence, and Live Operations Analytics
 
 ---
 
 ## 1. Executive Summary
 
-The **MCL Building Branch (MCL-BB)** system automates the statutory building violation enforcement lifecycle for the Pune Municipal Corporation (PMC) under the PMC Act 1976.
+The **MCL Building Branch (MCL-BB)** system automates the statutory building violation enforcement lifecycle for the Municipal Corporation of Ludhiana (MCL) under the PMC Act 1976.
 
 The platform covers the entire pipeline: **Complaint Intake** (manual & AI-extracted OCR document review), **BI/ATP Assignment**, **Complaint-to-Case Promotion**, **Field Inspection & Geotagged Evidence Capture**, **Statutory Notice Generation (Section 270 & Section 269)**, **Granular Section-Level Construction Processing (Compoundable vs Non-Compoundable)**, **Violator Reply Logging**, and **Role-Based Authentication (JWT & PIN)** backed by PostgreSQL and Google Drive file storage.
 

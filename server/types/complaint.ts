@@ -47,6 +47,7 @@ export interface Complaint {
   status: "Registered" | "Assigned" | "In progress" | "Resolution submitted" | "Pending approval" | "Approved / Closed" | "Rejected" | string;
   createdAt: string;
   caseId?: string | null;
+  submittedByUserId?: number | null;
 }
 
 export interface AttachmentMeta {

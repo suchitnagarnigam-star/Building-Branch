@@ -35,7 +35,10 @@ The current working assumption is:
 - [x] Construction Status dual lookup intake (`-- Choose an Existing Case or enter Complaint ID --`).
 - [x] Construction status persistence (`POST /api/cases/:caseId/construction-status`).
 - [x] Text and display scaling controls (`Topbar.tsx` popover slider & `SettingsPage.tsx` settings).
-- [ ] Centralise hardcoded `http://localhost:5000` URLs using `VITE_API_BASE_URL`.
+- [x] Backend Auth Phase 1 (`users` & `officers` tables, bcrypt PIN hashing, JWT authentication and role authorization middleware, `/api/auth/login`).
+- [x] Frontend Auth Phase 2 (`AuthContext`, JWT login/logout, Bearer token headers, role-based navigation filtering, route guards in `App.tsx`).
+- [x] Centralise API configuration & auto-attach Bearer headers via global fetch interceptor.
+- [x] Removal of redundant `/analytics` page (consolidated in Dashboard / Officers view).
 - [ ] Statutory workflow state machine transition validation (`STATUS_TRANSITIONS.ts`).
 - [ ] Violator reply persistence and review endpoints (`/api/cases/:id/reply`, `/api/cases/:id/review-reply`).
 - [ ] Live analytics API integration from persisted DB records.

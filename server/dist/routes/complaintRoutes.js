@@ -225,9 +225,14 @@ router.get("/officers/:officerId", async (req, res) => {
         });
     }
 });
-router.get("/complaints", async (_req, res) => {
+router.get("/complaints", async (req, res) => {
     try {
-        res.json({ success: true, complaints: await (0, complaintStorage_1.getComplaints)() });
+        const role = (req.user?.role || "").toLowerCase();
+        const userId = req.user?.userId;
+        const complaints = role === "operator" && userId
+            ? await (0, complaintStorage_1.getComplaints)(userId)
+            : await (0, complaintStorage_1.getComplaints)();
+        res.json({ success: true, complaints });
     }
     catch (error) {
         console.error("Error loading complaints:", error);
@@ -236,7 +241,12 @@ router.get("/complaints", async (_req, res) => {
 });
 router.get("/complaints/:complaintId", async (req, res) => {
     try {
-        const complaint = (await (0, complaintStorage_1.getComplaints)()).find((item) => item.complaintId === req.params.complaintId);
+        const role = (req.user?.role || "").toLowerCase();
+        const userId = req.user?.userId;
+        const complaints = role === "operator" && userId
+            ? await (0, complaintStorage_1.getComplaints)(userId)
+            : await (0, complaintStorage_1.getComplaints)();
+        const complaint = complaints.find((item) => item.complaintId === req.params.complaintId);
         if (!complaint) {
             res.status(404).json({ success: false, message: "Complaint not found." });
             return;
@@ -1204,6 +1214,7 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
             assignedAtpMobile: atp?.mobile ?? null,
             status: "Registered",
             createdAt: new Date().toISOString(),
+            submittedByUserId: req.user?.userId ?? null,
         };
         await (0, complaintStorage_1.saveComplaint)(complaint);
         await deleteTemporaryFiles([
