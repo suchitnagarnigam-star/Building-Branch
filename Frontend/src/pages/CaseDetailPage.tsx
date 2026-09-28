@@ -444,6 +444,46 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             </div>
             <div style={{ fontSize: "13px", fontWeight: 600, color: notice269 ? "var(--ink)" : "#94a3b8" }}>Demolition / 269</div>
           </div>
+          {/* Enforcement Action */}
+          {notice269 && (
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                padding: "12px 14px",
+                background: "#ffffff",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "8px",
+                cursor: "pointer",
+              }}
+              onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/enforcement`)}
+              title="Click to view or record Enforcement Action"
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", color: "var(--muted)" }}>{isCompleteViolated ? "05" : "06"}</span>
+                <span
+                  style={{
+                    background: "#f1f5f9",
+                    color: "#64748b",
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    padding: "2px 6px",
+                    borderRadius: "9999px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "3px",
+                  }}
+                >
+                  Action Required
+                </span>
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)", display: "flex", alignItems: "center", gap: "6px" }}>
+                Enforcement <Icon name="arrow-right" size={14} />
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

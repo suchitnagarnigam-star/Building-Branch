@@ -12,7 +12,7 @@ exports.pool = new pg_1.Pool({
     },
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 15000,
 });
 exports.pool.on("error", (error) => {
     console.warn("⚠️  [Database Pool Warning]:", error.message);

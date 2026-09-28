@@ -36,6 +36,7 @@ import CasesPage from "./pages/CasesPage";
 import CaseDetailPage from "./pages/CaseDetailPage";
 import FieldInspectionPage from "./pages/FieldInspectionPage";
 import ConstructionStatusForm from "./pages/ConstructionStatusForm";
+import EnforcementActionForm from "./pages/EnforcementActionForm";
 
 // Shared
 import ComingSoonPage from "./shared/components/ComingSoonPage";
@@ -104,7 +105,7 @@ function App() {
 
   // Route matching helpers
   const getCaseIdFromRoute = (): string | null => {
-    const match = route.match(/^\/cases\/([^/]+)(?:\/construction-status)?$/);
+    const match = route.match(/^\/cases\/([^/]+)(?:\/(?:construction-status|enforcement))?$/);
     return match ? decodeURIComponent(match[1]) : null;
   };
 
@@ -267,6 +268,15 @@ function App() {
 
     // Case detail
     if (route.startsWith("/cases/") && caseIdFromRoute) {
+      // Check if it's the enforcement action route
+      if (route.endsWith("/enforcement")) {
+        return (
+          <EnforcementActionForm
+            caseId={caseIdFromRoute}
+            navigate={navigate}
+          />
+        );
+      }
       return (
         <CaseDetailPage
           caseId={caseIdFromRoute}

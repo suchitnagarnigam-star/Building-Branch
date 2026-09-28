@@ -1,3 +1,4 @@
+import { cloneElement, isValidElement } from "react";
 import type { ReactNode } from "react";
 
 const commonProps = {
@@ -231,14 +232,34 @@ const icons: Record<string, (className: string) => ReactNode> = {
   ),
 };
 
+
 type IconProps = {
   name: string;
   className?: string;
+  size?: number | string;
+  color?: string;
 };
 
-function Icon({ name, className = "" }: IconProps) {
+function Icon({ name, className = "", size, color }: IconProps) {
   const render = icons[name] ?? icons.dashboard;
-  return <>{render(className)}</>;
+  const svgNode = render(className);
+
+  if (isValidElement(svgNode)) {
+    const extraProps: any = {};
+    if (size) {
+      extraProps.width = size;
+      extraProps.height = size;
+    }
+    if (color) {
+      extraProps.style = { ...((svgNode.props as any).style || {}), color };
+    }
+
+    if (size || color) {
+      return cloneElement(svgNode, extraProps);
+    }
+  }
+
+  return <>{svgNode}</>;
 }
 
 export default Icon;

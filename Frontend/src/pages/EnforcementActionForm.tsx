@@ -1,0 +1,674 @@
+import { useState, useRef, ChangeEvent, FormEvent, useEffect } from "react";
+import Icon from "../shared/components/Icon";
+
+type EnforcementActionFormProps = {
+  navigate?: (route: string) => void;
+  caseId?: string;
+};
+
+type EnforcementOutcome =
+  | ""
+  | "violator_complied"
+  | "demolition_violator"
+  | "demolition_mcl"
+  | "appeal_stay"
+  | "further_action";
+
+type DemolitionType = "full" | "partial";
+type VerificationStatus = "verified" | "not_verified";
+type YesNo = "yes" | "no";
+
+export default function EnforcementActionForm({ navigate, caseId: propCaseId }: EnforcementActionFormProps) {
+  // ── Form State ──────────────────────────────────────────────────────────────
+  const [outcome, setOutcome] = useState<EnforcementOutcome>("");
+
+  // Violator Complied State
+  const [complied, setComplied] = useState({
+    complianceDate: "",
+    verificationDate: "",
+    verificationStatus: "" as VerificationStatus | "",
+  });
+
+  // Demolition by Violator State
+  const [demoViolator, setDemoViolator] = useState({
+    demolitionDate: "",
+    demolitionType: "full" as DemolitionType,
+    verificationDate: "",
+    verificationStatus: "" as VerificationStatus | "",
+    demolishedPortion: "",
+    remainingViolation: "",
+    furtherAction: "",
+  });
+
+  // Demolition by MCL State
+  const [demoMcl, setDemoMcl] = useState({
+    demolitionDate: "",
+    executedBy: "",
+    demolitionType: "full" as DemolitionType,
+    demolishedPortion: "",
+    remainingViolation: "",
+    furtherAction: "",
+    costRecovery: "no" as YesNo,
+    demolitionCost: "",
+    recoveryAmount: "",
+    recoveryStatus: "",
+    recoveryReference: "",
+  });
+
+  // Appeal / Stay State
+  const [appealStay, setAppealStay] = useState({
+    appealFiled: "no" as YesNo,
+    appealNumber: "",
+    appealDate: "",
+    authority: "",
+    stayGranted: "no" as YesNo,
+    stayDate: "",
+    courtDirections: "",
+  });
+
+  // Further Action Required State
+  const [furtherAction, setFurtherAction] = useState({
+    reason: "",
+    nextAction: "",
+    expectedActionDate: "",
+  });
+
+  // Common Section State
+  const [remarks, setRemarks] = useState("");
+  const [evidencePhoto, setEvidencePhoto] = useState<File | null>(null);
+
+  // Form Validation & Submit State
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // File Input Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Mock Data for Case & 269 ───────────────────────────────────────────────
+  const mockCaseData = {
+    caseId: propCaseId || "CASE-2023-0891",
+    complaintId: "CMP-2023-1452",
+    address: "Plot 42, Sector 15, Operational Area",
+    block: "19",
+    zone: "Zone D",
+    ward: "Ward 4",
+    violator: "Ramesh Kumar",
+    assignedBI: "Sanjay Sharma",
+    supervisingATP: "Priya Desai",
+    constructionStatus: "Unauthorized Extension",
+    notice269Number: "MCL/269/2023/110",
+    notice269Date: "2023-10-15",
+    compliancePeriod: "3 Days",
+    complianceDeadline: "2023-10-18",
+    complianceStatus: "Deadline Reached", // "Pending" or "Deadline Reached"
+  };
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleOutcomeChange = (newOutcome: EnforcementOutcome) => {
+    setOutcome(newOutcome);
+    setFieldErrors({});
+    setSubmitError("");
+    setSubmitSuccess(false);
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setEvidencePhoto(e.target.files[0]);
+      setFieldErrors((prev) => ({ ...prev, evidencePhoto: "" }));
+      setSubmitError("");
+    }
+  };
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {};
+    setSubmitError("");
+
+    if (!outcome) {
+      setSubmitError("Please select an Enforcement Outcome.");
+      return false;
+    }
+
+    if (outcome === "violator_complied") {
+      if (!complied.complianceDate) errors.complianceDate = "Compliance Date is required.";
+      if (!complied.verificationDate) errors.verificationDate = "Verification Date is required.";
+      if (!complied.verificationStatus) errors.verificationStatus = "Verification Status is required.";
+    }
+
+    if (outcome === "demolition_violator") {
+      if (!demoViolator.demolitionDate) errors.demolitionDate = "Demolition Date is required.";
+      if (!demoViolator.demolitionType) errors.demolitionType = "Demolition Type is required.";
+      if (!demoViolator.verificationDate) errors.verificationDate = "Verification Date is required.";
+      if (!demoViolator.verificationStatus) errors.verificationStatus = "Verification Status is required.";
+      if (demoViolator.demolitionType === "partial") {
+        if (!demoViolator.demolishedPortion) errors.demolishedPortion = "Demolished / Removed Portion is required.";
+        if (!demoViolator.remainingViolation) errors.remainingViolation = "Remaining Violation is required.";
+        if (!demoViolator.furtherAction) errors.furtherAction = "Further Action / Next Step is required.";
+      }
+    }
+
+    if (outcome === "demolition_mcl") {
+      if (!demoMcl.demolitionDate) errors.demolitionDate = "Demolition Date is required.";
+      if (!demoMcl.executedBy) errors.executedBy = "Executed By is required.";
+      if (!demoMcl.demolitionType) errors.demolitionType = "Demolition Type is required.";
+      if (demoMcl.demolitionType === "partial") {
+        if (!demoMcl.demolishedPortion) errors.demolishedPortion = "Demolished Portion is required.";
+        if (!demoMcl.remainingViolation) errors.remainingViolation = "Remaining Violation is required.";
+        if (!demoMcl.furtherAction) errors.furtherAction = "Further Action / Next Step is required.";
+      }
+    }
+
+    if (outcome === "further_action") {
+      if (!furtherAction.reason.trim()) errors.reason = "Reason is required.";
+      if (!furtherAction.nextAction.trim()) errors.nextAction = "Next Action is required.";
+    }
+
+    // Common requirements (except for appeal/stay which might not need immediate evidence depending on business logic, but let's assume it's required if an outcome is action-based)
+    if (outcome !== "appeal_stay") {
+      if (!evidencePhoto) errors.evidencePhoto = "Evidence is required.";
+      if (!remarks.trim()) errors.remarks = "Remarks are required.";
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setSubmitError("Please fill in all required fields marked with *.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    const confirmed = window.confirm("Are you sure you want to submit this enforcement action?");
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setSubmitSuccess(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 1000);
+  };
+
+  // ── Render Helpers ──────────────────────────────────────────────────────────
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: "6px",
+    border: "1px solid var(--border)",
+    fontSize: "14px",
+    color: "var(--ink)",
+    background: "#fff",
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "var(--ink)",
+    marginBottom: "6px",
+  };
+
+  const renderError = (field: string) => {
+    if (!fieldErrors[field]) return null;
+    return <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{fieldErrors[field]}</div>;
+  };
+
+  const renderRadioCard = (value: EnforcementOutcome, label: string, icon: string, description: string) => {
+    const isSelected = outcome === value;
+    return (
+      <label
+        style={{
+          display: "flex",
+          gap: "12px",
+          padding: "16px",
+          borderRadius: "8px",
+          border: `2px solid ${isSelected ? "#3b82f6" : "var(--border)"}`,
+          background: isSelected ? "#eff6ff" : "#fff",
+          cursor: "pointer",
+          transition: "all 0.2s",
+        }}
+        onClick={() => handleOutcomeChange(value)}
+      >
+        <div style={{ paddingTop: "2px" }}>
+          <input
+            type="radio"
+            name="outcome"
+            value={value}
+            checked={isSelected}
+            onChange={() => handleOutcomeChange(value)}
+            style={{ accentColor: "#3b82f6", width: "16px", height: "16px" }}
+          />
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, color: isSelected ? "#1e40af" : "var(--ink)", fontSize: "15px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px" }}>
+              <Icon name={icon} size={18} />
+            </div>
+            {label}
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--muted)", lineHeight: 1.4, paddingLeft: "28px" }}>
+            {description}
+          </div>
+        </div>
+      </label>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 20px 80px", fontFamily: "'Inter', sans-serif" }}>
+      {/* ── Header ── */}
+      <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <button
+          type="button"
+          onClick={() => navigate?.("/cases")}
+          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--muted)", padding: 0 }}
+        >
+          <Icon name="arrow-left" size={20} />
+        </button>
+        <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--ink)" }}>Demolition / Enforcement Action</h1>
+      </div>
+
+      {submitSuccess && (
+        <div style={{ padding: "16px", borderRadius: "8px", background: "#dcfce7", border: "1px solid #bbf7d0", color: "#166534", marginBottom: "24px", display: "flex", gap: "12px" }}>
+          <Icon name="check-circle" size={20} />
+          <div>
+            <div style={{ fontWeight: 600 }}>Action Submitted Successfully</div>
+            <div style={{ fontSize: "13px", marginTop: "4px" }}>The enforcement action has been recorded for Case {mockCaseData.caseId}.</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── WORKFLOW PIPELINE ── */}
+      <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", boxShadow: "var(--shadow-card)", marginBottom: "24px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", color: "var(--ink)", textTransform: "uppercase", marginBottom: "16px" }}>
+          Case Workflow
+        </div>
+        <div style={{ display: "flex", overflowX: "auto", gap: "12px", paddingBottom: "8px" }}>
+          {[
+            { step: "01", label: "270 Notice", status: "completed" },
+            { step: "02", label: "269 Notice", status: "completed" },
+            { step: "03", label: "Min. 3-Day Compliance", status: "completed" },
+            { step: "04", label: "Enforcement Action", status: "current" },
+            { step: "05", label: "Closure / Verification", status: "pending" },
+          ].map((item, idx) => (
+            <div key={idx} style={{ flexShrink: 0, minWidth: "140px", border: `1px solid ${item.status === 'current' ? '#3b82f6' : 'var(--border)'}`, borderRadius: "8px", padding: "12px", background: item.status === 'completed' ? '#f8fafc' : item.status === 'current' ? '#eff6ff' : '#fff' }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ fontSize: "11px", color: "var(--muted)" }}>{item.step}</span>
+                {item.status === "completed" && <span style={{ color: "#10b981" }}><Icon name="check" size={14} /></span>}
+                {item.status === "current" && <span style={{ color: "#3b82f6", fontSize: "10px", fontWeight: 600 }}>IN PROGRESS</span>}
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: item.status === 'current' ? 700 : 500, color: item.status === 'pending' ? 'var(--muted)' : 'var(--ink)' }}>{item.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 1. CASE & 269 INFO (READ ONLY) ── */}
+      <section style={{ background: "#f8fafc", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+          <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
+            <Icon name="file-text" size={18} /> Case & 269 Notice Summary
+          </h2>
+          <span style={{ padding: "4px 10px", background: mockCaseData.complianceStatus === "Deadline Reached" ? "#fee2e2" : "#fef3c7", color: mockCaseData.complianceStatus === "Deadline Reached" ? "#991b1b" : "#b45309", fontSize: "12px", fontWeight: 600, borderRadius: "99px" }}>
+            {mockCaseData.complianceStatus}
+          </span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "13px" }}>
+          <div><span style={{ color: "var(--muted)" }}>Case ID:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.caseId}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Complaint ID:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.complaintId}</strong></div>
+          <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "var(--muted)" }}>Property:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.address}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Block / Zone:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.block} / {mockCaseData.zone}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Ward:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.ward}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Violator:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.violator}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Construction Status:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.constructionStatus}</strong></div>
+          <div style={{ gridColumn: "1 / -1", height: "1px", background: "var(--border)", margin: "8px 0" }}></div>
+          <div><span style={{ color: "var(--muted)" }}>269 Notice Number:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.notice269Number}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Notice Date:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.notice269Date}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Compliance Period:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.compliancePeriod}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Deadline:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.complianceDeadline}</strong></div>
+        </div>
+      </section>
+
+      <form onSubmit={handleSubmit}>
+        {/* ── 2. ENFORCEMENT OUTCOME ── */}
+        <section style={{ marginBottom: "32px" }}>
+          <h2 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600 }}>Enforcement Outcome <span style={{ color: "#ef4444" }}>*</span></h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            {renderRadioCard("violator_complied", "Violator Complied", "check-circle", "Violator has voluntarily removed the unauthorized construction.")}
+            {renderRadioCard("demolition_violator", "Demolition by Violator", "tool", "Demolition carried out by the violator themselves.")}
+            {renderRadioCard("demolition_mcl", "Demolition by MCL", "alert-triangle", "Demolition executed by MCL authorities.")}
+            {renderRadioCard("appeal_stay", "Appeal / Stay", "shield", "Legal stay or appeal filed against the notice.")}
+            {renderRadioCard("further_action", "Further Action Required", "clock", "Pending other actions before demolition.")}
+          </div>
+        </section>
+
+        {/* ── DYNAMIC SECTIONS ── */}
+        
+        {outcome === "violator_complied" && (
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Compliance Details</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Compliance Date *</label>
+                <input type="date" style={inputStyle} value={complied.complianceDate} onChange={e => setComplied({...complied, complianceDate: e.target.value})} />
+                {renderError("complianceDate")}
+              </div>
+              <div>
+                <label style={labelStyle}>Verification Date *</label>
+                <input type="date" style={inputStyle} value={complied.verificationDate} onChange={e => setComplied({...complied, verificationDate: e.target.value})} />
+                {renderError("verificationDate")}
+              </div>
+              <div>
+                <label style={labelStyle}>Verification Status *</label>
+                <select style={inputStyle} value={complied.verificationStatus} onChange={e => setComplied({...complied, verificationStatus: e.target.value as VerificationStatus})}>
+                  <option value="">Select Status</option>
+                  <option value="verified">Verified</option>
+                  <option value="not_verified">Not Verified</option>
+                </select>
+                {renderError("verificationStatus")}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {outcome === "demolition_violator" && (
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Demolition Details</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Demolition Date *</label>
+                <input type="date" style={inputStyle} value={demoViolator.demolitionDate} onChange={e => setDemoViolator({...demoViolator, demolitionDate: e.target.value})} />
+                {renderError("demolitionDate")}
+              </div>
+              <div>
+                <label style={labelStyle}>Demolition Type *</label>
+                <select style={inputStyle} value={demoViolator.demolitionType} onChange={e => setDemoViolator({...demoViolator, demolitionType: e.target.value as DemolitionType})}>
+                  <option value="full">Full Demolition</option>
+                  <option value="partial">Partial Demolition</option>
+                </select>
+                {renderError("demolitionType")}
+              </div>
+              <div>
+                <label style={labelStyle}>Verification Date *</label>
+                <input type="date" style={inputStyle} value={demoViolator.verificationDate} onChange={e => setDemoViolator({...demoViolator, verificationDate: e.target.value})} />
+                {renderError("verificationDate")}
+              </div>
+              <div>
+                <label style={labelStyle}>Verification Status *</label>
+                <select style={inputStyle} value={demoViolator.verificationStatus} onChange={e => setDemoViolator({...demoViolator, verificationStatus: e.target.value as VerificationStatus})}>
+                  <option value="">Select Status</option>
+                  <option value="verified">Verified</option>
+                  <option value="not_verified">Not Verified</option>
+                </select>
+                {renderError("verificationStatus")}
+              </div>
+
+              {demoViolator.demolitionType === "partial" && (
+                <>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Demolished / Removed Portion *</label>
+                    <textarea style={{...inputStyle, minHeight: "80px"}} value={demoViolator.demolishedPortion} onChange={e => setDemoViolator({...demoViolator, demolishedPortion: e.target.value})} />
+                    {renderError("demolishedPortion")}
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Remaining Violation *</label>
+                    <textarea style={{...inputStyle, minHeight: "80px"}} value={demoViolator.remainingViolation} onChange={e => setDemoViolator({...demoViolator, remainingViolation: e.target.value})} />
+                    {renderError("remainingViolation")}
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Further Action / Next Step *</label>
+                    <input type="text" style={inputStyle} value={demoViolator.furtherAction} onChange={e => setDemoViolator({...demoViolator, furtherAction: e.target.value})} />
+                    {renderError("furtherAction")}
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
+        {outcome === "demolition_mcl" && (
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>MCL Execution Details</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Demolition Date *</label>
+                <input type="date" style={inputStyle} value={demoMcl.demolitionDate} onChange={e => setDemoMcl({...demoMcl, demolitionDate: e.target.value})} />
+                {renderError("demolitionDate")}
+              </div>
+              <div>
+                <label style={labelStyle}>Executed By *</label>
+                <input type="text" style={inputStyle} placeholder="Officer/Team Name" value={demoMcl.executedBy} onChange={e => setDemoMcl({...demoMcl, executedBy: e.target.value})} />
+                {renderError("executedBy")}
+              </div>
+              <div>
+                <label style={labelStyle}>Demolition Type *</label>
+                <select style={inputStyle} value={demoMcl.demolitionType} onChange={e => setDemoMcl({...demoMcl, demolitionType: e.target.value as DemolitionType})}>
+                  <option value="full">Full Demolition</option>
+                  <option value="partial">Partial Demolition</option>
+                </select>
+                {renderError("demolitionType")}
+              </div>
+
+              {demoMcl.demolitionType === "partial" && (
+                <>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Demolished Portion *</label>
+                    <textarea style={{...inputStyle, minHeight: "60px"}} value={demoMcl.demolishedPortion} onChange={e => setDemoMcl({...demoMcl, demolishedPortion: e.target.value})} />
+                    {renderError("demolishedPortion")}
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Remaining Violation *</label>
+                    <textarea style={{...inputStyle, minHeight: "60px"}} value={demoMcl.remainingViolation} onChange={e => setDemoMcl({...demoMcl, remainingViolation: e.target.value})} />
+                    {renderError("remainingViolation")}
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Further Action / Next Step *</label>
+                    <input type="text" style={inputStyle} value={demoMcl.furtherAction} onChange={e => setDemoMcl({...demoMcl, furtherAction: e.target.value})} />
+                    {renderError("furtherAction")}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <hr style={{ border: "0", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
+            
+            <h4 style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 600 }}>Cost Recovery</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Cost Recovery Applicable?</label>
+                <select style={inputStyle} value={demoMcl.costRecovery} onChange={e => setDemoMcl({...demoMcl, costRecovery: e.target.value as YesNo})}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+              
+              {demoMcl.costRecovery === "yes" && (
+                <>
+                  <div>
+                    <label style={labelStyle}>Demolition Cost (₹)</label>
+                    <input type="number" style={inputStyle} value={demoMcl.demolitionCost} onChange={e => setDemoMcl({...demoMcl, demolitionCost: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Recovery Amount (₹)</label>
+                    <input type="number" style={inputStyle} value={demoMcl.recoveryAmount} onChange={e => setDemoMcl({...demoMcl, recoveryAmount: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Recovery Status</label>
+                    <select style={inputStyle} value={demoMcl.recoveryStatus} onChange={e => setDemoMcl({...demoMcl, recoveryStatus: e.target.value})}>
+                      <option value="">Select Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="recovered">Recovered</option>
+                    </select>
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Recovery Reference / Notes</label>
+                    <input type="text" style={inputStyle} value={demoMcl.recoveryReference} onChange={e => setDemoMcl({...demoMcl, recoveryReference: e.target.value})} />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
+        {outcome === "appeal_stay" && (
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+            {appealStay.stayGranted === "yes" && (
+              <div style={{ padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#991b1b", marginBottom: "20px", display: "flex", gap: "12px", alignItems: "center" }}>
+                <Icon name="alert-circle" size={20} />
+                <div style={{ fontWeight: 600, fontSize: "14px" }}>Demolition action is blocked while the stay is active.</div>
+              </div>
+            )}
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Appeal Filed?</label>
+                <select style={inputStyle} value={appealStay.appealFiled} onChange={e => setAppealStay({...appealStay, appealFiled: e.target.value as YesNo})}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+
+              {appealStay.appealFiled === "yes" && (
+                <>
+                  <div>
+                    <label style={labelStyle}>Appeal Number</label>
+                    <input type="text" style={inputStyle} value={appealStay.appealNumber} onChange={e => setAppealStay({...appealStay, appealNumber: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Appeal Date</label>
+                    <input type="date" style={inputStyle} value={appealStay.appealDate} onChange={e => setAppealStay({...appealStay, appealDate: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Authority / Court</label>
+                    <input type="text" style={inputStyle} value={appealStay.authority} onChange={e => setAppealStay({...appealStay, authority: e.target.value})} />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <hr style={{ border: "0", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Stay Granted?</label>
+                <select style={inputStyle} value={appealStay.stayGranted} onChange={e => setAppealStay({...appealStay, stayGranted: e.target.value as YesNo})}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+
+              {appealStay.stayGranted === "yes" && (
+                <>
+                  <div>
+                    <label style={labelStyle}>Stay Date</label>
+                    <input type="date" style={inputStyle} value={appealStay.stayDate} onChange={e => setAppealStay({...appealStay, stayDate: e.target.value})} />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Court / Authority Directions</label>
+                    <textarea style={{...inputStyle, minHeight: "80px"}} value={appealStay.courtDirections} onChange={e => setAppealStay({...appealStay, courtDirections: e.target.value})} />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
+        {outcome === "further_action" && (
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Further Action Details</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={labelStyle}>Reason *</label>
+                <input type="text" style={inputStyle} value={furtherAction.reason} onChange={e => setFurtherAction({...furtherAction, reason: e.target.value})} />
+                {renderError("reason")}
+              </div>
+              <div>
+                <label style={labelStyle}>Next Action *</label>
+                <input type="text" style={inputStyle} value={furtherAction.nextAction} onChange={e => setFurtherAction({...furtherAction, nextAction: e.target.value})} />
+                {renderError("nextAction")}
+              </div>
+              <div>
+                <label style={labelStyle}>Expected Action Date</label>
+                <input type="date" style={inputStyle} value={furtherAction.expectedActionDate} onChange={e => setFurtherAction({...furtherAction, expectedActionDate: e.target.value})} />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── COMMON SECTION (Evidence, Remarks, Submit) ── */}
+        {outcome && (
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px" }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Supporting Evidence & Remarks</h3>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div>
+                <label style={labelStyle}>Evidence / Document Upload {outcome !== 'appeal_stay' ? '*' : ''}</label>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "13px", fontWeight: 600, color: "var(--ink)", cursor: "pointer" }}>
+                    <Icon name="upload" size={16} /> Choose File
+                  </button>
+                  <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "13px", fontWeight: 600, color: "var(--ink)", cursor: "pointer" }}>
+                    <Icon name="camera" size={16} /> Take Photo
+                  </button>
+                </div>
+                
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept="image/*,application/pdf" />
+                <input type="file" ref={cameraInputRef} onChange={handleFileChange} style={{ display: "none" }} accept="image/*" capture="environment" />
+                
+                {evidencePhoto && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", fontSize: "13px", marginTop: "8px" }}>
+                    <Icon name="file" size={14} color="#64748b" />
+                    <span 
+                      style={{ cursor: "pointer", color: "#3b82f6", textDecoration: "underline" }}
+                      onClick={() => {
+                        const url = URL.createObjectURL(evidencePhoto);
+                        window.open(url, "_blank");
+                      }}
+                    >
+                      {evidencePhoto.name}
+                    </span>
+                    <button type="button" onClick={() => setEvidencePhoto(null)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon name="close" size={14} />
+                    </button>
+                  </div>
+                )}
+                {renderError("evidencePhoto")}
+              </div>
+
+              <div>
+                <label style={labelStyle}>Remarks {outcome !== 'appeal_stay' ? '*' : ''}</label>
+                <textarea style={{...inputStyle, minHeight: "100px"}} placeholder="Enter any additional details or remarks..." value={remarks} onChange={e => { setRemarks(e.target.value); setFieldErrors(prev => ({...prev, remarks: ""})) }} />
+                {renderError("remarks")}
+              </div>
+
+              {submitError && (
+                <div style={{ padding: "12px", background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: "6px", fontSize: "13px", fontWeight: 500 }}>
+                  {submitError}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px", borderTop: "1px solid var(--border)", paddingTop: "20px" }}>
+                <button type="button" onClick={() => navigate?.("/cases")} style={{ padding: "10px 20px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "14px", fontWeight: 600, color: "var(--ink)", cursor: "pointer" }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={isSubmitting} style={{ padding: "10px 20px", background: "#3b82f6", border: "none", borderRadius: "6px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: isSubmitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+                  {isSubmitting ? "Saving..." : "Submit Action"}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+      </form>
+    </div>
+  );
+}
