@@ -53,3 +53,9 @@ CREATE TABLE IF NOT EXISTS demolition_evidence (
     uploaded_by_name VARCHAR(150),
     uploaded_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_demolition_records_case_id
+ON demolition_records(case_id);
+
+CREATE INDEX IF NOT EXISTS idx_demolition_evidence_demolition_id
+ON demolition_evidence(demolition_id);

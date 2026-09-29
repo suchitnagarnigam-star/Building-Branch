@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent, FormEvent, useEffect } from "react";
+import { useState, useRef, type ChangeEvent, type FormEvent } from "react";
 import Icon from "../shared/components/Icon";
 
 type EnforcementActionFormProps = {
@@ -182,7 +182,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
     return true;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -190,12 +190,42 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
     if (!confirmed) return;
 
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setSubmitError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("outcome", outcome);
+
+      if (outcome === "violator_complied") formData.append("complied", JSON.stringify(complied));
+      if (outcome === "demolition_violator") formData.append("demoViolator", JSON.stringify(demoViolator));
+      if (outcome === "demolition_mcl") formData.append("demoMcl", JSON.stringify(demoMcl));
+      if (outcome === "appeal_stay") formData.append("appealStay", JSON.stringify(appealStay));
+      if (outcome === "further_action") formData.append("furtherAction", JSON.stringify(furtherAction));
+
+      formData.append("remarks", remarks);
+      if (evidencePhoto) {
+        formData.append("evidencePhoto", evidencePhoto);
+      }
+
+      const response = await fetch(`/api/cases/${encodeURIComponent(mockCaseData.caseId)}/enforcement`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to submit enforcement action.");
+      }
+
       setSubmitSuccess(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 1000);
+      setTimeout(() => {
+        navigate?.(`/cases/${encodeURIComponent(mockCaseData.caseId)}`);
+      }, 5000);
+    } catch (error: any) {
+      setSubmitError(error.message || "An error occurred.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ── Render Helpers ──────────────────────────────────────────────────────────
@@ -353,24 +383,24 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         </section>
 
         {/* ── DYNAMIC SECTIONS ── */}
-        
+
         {outcome === "violator_complied" && (
           <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Compliance Details</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Compliance Date *</label>
-                <input type="date" style={inputStyle} value={complied.complianceDate} onChange={e => setComplied({...complied, complianceDate: e.target.value})} />
+                <input type="date" style={inputStyle} value={complied.complianceDate} onChange={e => setComplied({ ...complied, complianceDate: e.target.value })} />
                 {renderError("complianceDate")}
               </div>
               <div>
                 <label style={labelStyle}>Verification Date *</label>
-                <input type="date" style={inputStyle} value={complied.verificationDate} onChange={e => setComplied({...complied, verificationDate: e.target.value})} />
+                <input type="date" style={inputStyle} value={complied.verificationDate} onChange={e => setComplied({ ...complied, verificationDate: e.target.value })} />
                 {renderError("verificationDate")}
               </div>
               <div>
                 <label style={labelStyle}>Verification Status *</label>
-                <select style={inputStyle} value={complied.verificationStatus} onChange={e => setComplied({...complied, verificationStatus: e.target.value as VerificationStatus})}>
+                <select style={inputStyle} value={complied.verificationStatus} onChange={e => setComplied({ ...complied, verificationStatus: e.target.value as VerificationStatus })}>
                   <option value="">Select Status</option>
                   <option value="verified">Verified</option>
                   <option value="not_verified">Not Verified</option>
@@ -387,12 +417,12 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Demolition Date *</label>
-                <input type="date" style={inputStyle} value={demoViolator.demolitionDate} onChange={e => setDemoViolator({...demoViolator, demolitionDate: e.target.value})} />
+                <input type="date" style={inputStyle} value={demoViolator.demolitionDate} onChange={e => setDemoViolator({ ...demoViolator, demolitionDate: e.target.value })} />
                 {renderError("demolitionDate")}
               </div>
               <div>
                 <label style={labelStyle}>Demolition Type *</label>
-                <select style={inputStyle} value={demoViolator.demolitionType} onChange={e => setDemoViolator({...demoViolator, demolitionType: e.target.value as DemolitionType})}>
+                <select style={inputStyle} value={demoViolator.demolitionType} onChange={e => setDemoViolator({ ...demoViolator, demolitionType: e.target.value as DemolitionType })}>
                   <option value="full">Full Demolition</option>
                   <option value="partial">Partial Demolition</option>
                 </select>
@@ -400,12 +430,12 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
               </div>
               <div>
                 <label style={labelStyle}>Verification Date *</label>
-                <input type="date" style={inputStyle} value={demoViolator.verificationDate} onChange={e => setDemoViolator({...demoViolator, verificationDate: e.target.value})} />
+                <input type="date" style={inputStyle} value={demoViolator.verificationDate} onChange={e => setDemoViolator({ ...demoViolator, verificationDate: e.target.value })} />
                 {renderError("verificationDate")}
               </div>
               <div>
                 <label style={labelStyle}>Verification Status *</label>
-                <select style={inputStyle} value={demoViolator.verificationStatus} onChange={e => setDemoViolator({...demoViolator, verificationStatus: e.target.value as VerificationStatus})}>
+                <select style={inputStyle} value={demoViolator.verificationStatus} onChange={e => setDemoViolator({ ...demoViolator, verificationStatus: e.target.value as VerificationStatus })}>
                   <option value="">Select Status</option>
                   <option value="verified">Verified</option>
                   <option value="not_verified">Not Verified</option>
@@ -417,17 +447,17 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                 <>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Demolished / Removed Portion *</label>
-                    <textarea style={{...inputStyle, minHeight: "80px"}} value={demoViolator.demolishedPortion} onChange={e => setDemoViolator({...demoViolator, demolishedPortion: e.target.value})} />
+                    <textarea style={{ ...inputStyle, minHeight: "80px" }} value={demoViolator.demolishedPortion} onChange={e => setDemoViolator({ ...demoViolator, demolishedPortion: e.target.value })} />
                     {renderError("demolishedPortion")}
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Remaining Violation *</label>
-                    <textarea style={{...inputStyle, minHeight: "80px"}} value={demoViolator.remainingViolation} onChange={e => setDemoViolator({...demoViolator, remainingViolation: e.target.value})} />
+                    <textarea style={{ ...inputStyle, minHeight: "80px" }} value={demoViolator.remainingViolation} onChange={e => setDemoViolator({ ...demoViolator, remainingViolation: e.target.value })} />
                     {renderError("remainingViolation")}
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Further Action / Next Step *</label>
-                    <input type="text" style={inputStyle} value={demoViolator.furtherAction} onChange={e => setDemoViolator({...demoViolator, furtherAction: e.target.value})} />
+                    <input type="text" style={inputStyle} value={demoViolator.furtherAction} onChange={e => setDemoViolator({ ...demoViolator, furtherAction: e.target.value })} />
                     {renderError("furtherAction")}
                   </div>
                 </>
@@ -442,17 +472,17 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Demolition Date *</label>
-                <input type="date" style={inputStyle} value={demoMcl.demolitionDate} onChange={e => setDemoMcl({...demoMcl, demolitionDate: e.target.value})} />
+                <input type="date" style={inputStyle} value={demoMcl.demolitionDate} onChange={e => setDemoMcl({ ...demoMcl, demolitionDate: e.target.value })} />
                 {renderError("demolitionDate")}
               </div>
               <div>
                 <label style={labelStyle}>Executed By *</label>
-                <input type="text" style={inputStyle} placeholder="Officer/Team Name" value={demoMcl.executedBy} onChange={e => setDemoMcl({...demoMcl, executedBy: e.target.value})} />
+                <input type="text" style={inputStyle} placeholder="Officer/Team Name" value={demoMcl.executedBy} onChange={e => setDemoMcl({ ...demoMcl, executedBy: e.target.value })} />
                 {renderError("executedBy")}
               </div>
               <div>
                 <label style={labelStyle}>Demolition Type *</label>
-                <select style={inputStyle} value={demoMcl.demolitionType} onChange={e => setDemoMcl({...demoMcl, demolitionType: e.target.value as DemolitionType})}>
+                <select style={inputStyle} value={demoMcl.demolitionType} onChange={e => setDemoMcl({ ...demoMcl, demolitionType: e.target.value as DemolitionType })}>
                   <option value="full">Full Demolition</option>
                   <option value="partial">Partial Demolition</option>
                 </select>
@@ -463,17 +493,17 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                 <>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Demolished Portion *</label>
-                    <textarea style={{...inputStyle, minHeight: "60px"}} value={demoMcl.demolishedPortion} onChange={e => setDemoMcl({...demoMcl, demolishedPortion: e.target.value})} />
+                    <textarea style={{ ...inputStyle, minHeight: "60px" }} value={demoMcl.demolishedPortion} onChange={e => setDemoMcl({ ...demoMcl, demolishedPortion: e.target.value })} />
                     {renderError("demolishedPortion")}
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Remaining Violation *</label>
-                    <textarea style={{...inputStyle, minHeight: "60px"}} value={demoMcl.remainingViolation} onChange={e => setDemoMcl({...demoMcl, remainingViolation: e.target.value})} />
+                    <textarea style={{ ...inputStyle, minHeight: "60px" }} value={demoMcl.remainingViolation} onChange={e => setDemoMcl({ ...demoMcl, remainingViolation: e.target.value })} />
                     {renderError("remainingViolation")}
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Further Action / Next Step *</label>
-                    <input type="text" style={inputStyle} value={demoMcl.furtherAction} onChange={e => setDemoMcl({...demoMcl, furtherAction: e.target.value})} />
+                    <input type="text" style={inputStyle} value={demoMcl.furtherAction} onChange={e => setDemoMcl({ ...demoMcl, furtherAction: e.target.value })} />
                     {renderError("furtherAction")}
                   </div>
                 </>
@@ -481,30 +511,30 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             </div>
 
             <hr style={{ border: "0", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
-            
+
             <h4 style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 600 }}>Cost Recovery</h4>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Cost Recovery Applicable?</label>
-                <select style={inputStyle} value={demoMcl.costRecovery} onChange={e => setDemoMcl({...demoMcl, costRecovery: e.target.value as YesNo})}>
+                <select style={inputStyle} value={demoMcl.costRecovery} onChange={e => setDemoMcl({ ...demoMcl, costRecovery: e.target.value as YesNo })}>
                   <option value="no">No</option>
                   <option value="yes">Yes</option>
                 </select>
               </div>
-              
+
               {demoMcl.costRecovery === "yes" && (
                 <>
                   <div>
                     <label style={labelStyle}>Demolition Cost (₹)</label>
-                    <input type="number" style={inputStyle} value={demoMcl.demolitionCost} onChange={e => setDemoMcl({...demoMcl, demolitionCost: e.target.value})} />
+                    <input type="number" style={inputStyle} value={demoMcl.demolitionCost} onChange={e => setDemoMcl({ ...demoMcl, demolitionCost: e.target.value })} />
                   </div>
                   <div>
                     <label style={labelStyle}>Recovery Amount (₹)</label>
-                    <input type="number" style={inputStyle} value={demoMcl.recoveryAmount} onChange={e => setDemoMcl({...demoMcl, recoveryAmount: e.target.value})} />
+                    <input type="number" style={inputStyle} value={demoMcl.recoveryAmount} onChange={e => setDemoMcl({ ...demoMcl, recoveryAmount: e.target.value })} />
                   </div>
                   <div>
                     <label style={labelStyle}>Recovery Status</label>
-                    <select style={inputStyle} value={demoMcl.recoveryStatus} onChange={e => setDemoMcl({...demoMcl, recoveryStatus: e.target.value})}>
+                    <select style={inputStyle} value={demoMcl.recoveryStatus} onChange={e => setDemoMcl({ ...demoMcl, recoveryStatus: e.target.value })}>
                       <option value="">Select Status</option>
                       <option value="pending">Pending</option>
                       <option value="recovered">Recovered</option>
@@ -512,7 +542,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Recovery Reference / Notes</label>
-                    <input type="text" style={inputStyle} value={demoMcl.recoveryReference} onChange={e => setDemoMcl({...demoMcl, recoveryReference: e.target.value})} />
+                    <input type="text" style={inputStyle} value={demoMcl.recoveryReference} onChange={e => setDemoMcl({ ...demoMcl, recoveryReference: e.target.value })} />
                   </div>
                 </>
               )}
@@ -528,11 +558,11 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                 <div style={{ fontWeight: 600, fontSize: "14px" }}>Demolition action is blocked while the stay is active.</div>
               </div>
             )}
-            
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Appeal Filed?</label>
-                <select style={inputStyle} value={appealStay.appealFiled} onChange={e => setAppealStay({...appealStay, appealFiled: e.target.value as YesNo})}>
+                <select style={inputStyle} value={appealStay.appealFiled} onChange={e => setAppealStay({ ...appealStay, appealFiled: e.target.value as YesNo })}>
                   <option value="no">No</option>
                   <option value="yes">Yes</option>
                 </select>
@@ -542,15 +572,15 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                 <>
                   <div>
                     <label style={labelStyle}>Appeal Number</label>
-                    <input type="text" style={inputStyle} value={appealStay.appealNumber} onChange={e => setAppealStay({...appealStay, appealNumber: e.target.value})} />
+                    <input type="text" style={inputStyle} value={appealStay.appealNumber} onChange={e => setAppealStay({ ...appealStay, appealNumber: e.target.value })} />
                   </div>
                   <div>
                     <label style={labelStyle}>Appeal Date</label>
-                    <input type="date" style={inputStyle} value={appealStay.appealDate} onChange={e => setAppealStay({...appealStay, appealDate: e.target.value})} />
+                    <input type="date" style={inputStyle} value={appealStay.appealDate} onChange={e => setAppealStay({ ...appealStay, appealDate: e.target.value })} />
                   </div>
                   <div>
                     <label style={labelStyle}>Authority / Court</label>
-                    <input type="text" style={inputStyle} value={appealStay.authority} onChange={e => setAppealStay({...appealStay, authority: e.target.value})} />
+                    <input type="text" style={inputStyle} value={appealStay.authority} onChange={e => setAppealStay({ ...appealStay, authority: e.target.value })} />
                   </div>
                 </>
               )}
@@ -561,7 +591,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Stay Granted?</label>
-                <select style={inputStyle} value={appealStay.stayGranted} onChange={e => setAppealStay({...appealStay, stayGranted: e.target.value as YesNo})}>
+                <select style={inputStyle} value={appealStay.stayGranted} onChange={e => setAppealStay({ ...appealStay, stayGranted: e.target.value as YesNo })}>
                   <option value="no">No</option>
                   <option value="yes">Yes</option>
                 </select>
@@ -571,11 +601,11 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                 <>
                   <div>
                     <label style={labelStyle}>Stay Date</label>
-                    <input type="date" style={inputStyle} value={appealStay.stayDate} onChange={e => setAppealStay({...appealStay, stayDate: e.target.value})} />
+                    <input type="date" style={inputStyle} value={appealStay.stayDate} onChange={e => setAppealStay({ ...appealStay, stayDate: e.target.value })} />
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Court / Authority Directions</label>
-                    <textarea style={{...inputStyle, minHeight: "80px"}} value={appealStay.courtDirections} onChange={e => setAppealStay({...appealStay, courtDirections: e.target.value})} />
+                    <textarea style={{ ...inputStyle, minHeight: "80px" }} value={appealStay.courtDirections} onChange={e => setAppealStay({ ...appealStay, courtDirections: e.target.value })} />
                   </div>
                 </>
               )}
@@ -589,17 +619,17 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Reason *</label>
-                <input type="text" style={inputStyle} value={furtherAction.reason} onChange={e => setFurtherAction({...furtherAction, reason: e.target.value})} />
+                <input type="text" style={inputStyle} value={furtherAction.reason} onChange={e => setFurtherAction({ ...furtherAction, reason: e.target.value })} />
                 {renderError("reason")}
               </div>
               <div>
                 <label style={labelStyle}>Next Action *</label>
-                <input type="text" style={inputStyle} value={furtherAction.nextAction} onChange={e => setFurtherAction({...furtherAction, nextAction: e.target.value})} />
+                <input type="text" style={inputStyle} value={furtherAction.nextAction} onChange={e => setFurtherAction({ ...furtherAction, nextAction: e.target.value })} />
                 {renderError("nextAction")}
               </div>
               <div>
                 <label style={labelStyle}>Expected Action Date</label>
-                <input type="date" style={inputStyle} value={furtherAction.expectedActionDate} onChange={e => setFurtherAction({...furtherAction, expectedActionDate: e.target.value})} />
+                <input type="date" style={inputStyle} value={furtherAction.expectedActionDate} onChange={e => setFurtherAction({ ...furtherAction, expectedActionDate: e.target.value })} />
               </div>
             </div>
           </section>
@@ -609,7 +639,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         {outcome && (
           <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Supporting Evidence & Remarks</h3>
-            
+
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Evidence / Document Upload {outcome !== 'appeal_stay' ? '*' : ''}</label>
@@ -621,14 +651,14 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                     <Icon name="camera" size={16} /> Take Photo
                   </button>
                 </div>
-                
+
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept="image/*,application/pdf" />
                 <input type="file" ref={cameraInputRef} onChange={handleFileChange} style={{ display: "none" }} accept="image/*" capture="environment" />
-                
+
                 {evidencePhoto && (
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", fontSize: "13px", marginTop: "8px" }}>
                     <Icon name="file" size={14} color="#64748b" />
-                    <span 
+                    <span
                       style={{ cursor: "pointer", color: "#3b82f6", textDecoration: "underline" }}
                       onClick={() => {
                         const url = URL.createObjectURL(evidencePhoto);
@@ -647,7 +677,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
 
               <div>
                 <label style={labelStyle}>Remarks {outcome !== 'appeal_stay' ? '*' : ''}</label>
-                <textarea style={{...inputStyle, minHeight: "100px"}} placeholder="Enter any additional details or remarks..." value={remarks} onChange={e => { setRemarks(e.target.value); setFieldErrors(prev => ({...prev, remarks: ""})) }} />
+                <textarea style={{ ...inputStyle, minHeight: "100px" }} placeholder="Enter any additional details or remarks..." value={remarks} onChange={e => { setRemarks(e.target.value); setFieldErrors(prev => ({ ...prev, remarks: "" })) }} />
                 {renderError("remarks")}
               </div>
 

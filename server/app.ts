@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes";
 import complaintRoutes from "./routes/complaintRoutes";
 import userRoutes from "./routes/userRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
+import enforcementRoutes from "./routes/enforcementRoutes";
 import { testDatabaseConnection } from "./db/database";
 
 const app = express();
@@ -21,6 +22,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api", complaintRoutes);
+app.use("/api", enforcementRoutes);
 
 const PORT = 5000;
 

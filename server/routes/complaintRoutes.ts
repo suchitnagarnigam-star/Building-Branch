@@ -704,7 +704,6 @@ router.get("/cases/:caseId", async (req, res) => {
     created_at: new Date().toISOString()
   };
 
-  res.json({ success: true, caseRecord: fallbackCase });
   res.json({
     success: true,
     caseRecord: fallbackCase,
