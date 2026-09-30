@@ -183,15 +183,18 @@ Processing endpoints:
 - `/cases`
 - `/cases/:caseId`
 - `/cases/:caseId/construction-status`
+- `/cases/:caseId/enforcement`
 - `/construction-status`
 - `/field-inspection`
 - `/officers`
+- `/users`
 - `/settings`
 
 ## Backend API
 
 - `POST /api/auth/login` (JWT authentication & PIN verification)
 - `POST /api/auth/logout`
+- `GET /api/auth/me`
 - `GET /api/complaints` (requires Bearer token; includes subqueried `caseId`)
 - `GET /api/complaints/:complaintId`
 - `GET /api/complaints/:complaintId/files`
@@ -200,9 +203,16 @@ Processing endpoints:
 - `GET /api/cases`
 - `GET /api/cases/:caseId` (resolves by case_id, primary_complaint_id, or case_complaints)
 - `POST /api/cases/:caseId/construction-status`
+- `POST /api/cases/:caseId/enforcement` (statutory demolition & enforcement action recording with evidence upload)
+- `GET /api/analytics/overview` (live operational KPI counts, complaint statuses, zone breakdowns, and statutory Needs Attention flags)
+- `GET /api/analytics/officers` (live officer inspection, notice, and case assignment metrics)
 - `GET /api/officers`
 - `GET /api/officers/roster`
 - `GET /api/officers/:officerId`
+- `GET /api/users` (superadmin user list)
+- `POST /api/users` (superadmin create user)
+- `PUT /api/users/:userId` (superadmin update user)
+- `DELETE /api/users/:userId` (superadmin delete user)
 - `POST /api/complaints/source-upload`
 - `POST /api/complaints/process-source`
 - `POST /api/complaints/extract-source`
