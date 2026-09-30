@@ -973,6 +973,55 @@ function OfficersPage() {
                   </div>
                 )}
 
+                {/* Supervised Building Inspectors for ATP */}
+                {selectedOfficer.officer.designation === "ATP" && (
+                  <div>
+                    <h4
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "var(--muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        margin: "0 0 8px 0",
+                      }}
+                    >
+                      Supervised Building Inspectors ({selectedOfficer.officer.zone ? (selectedOfficer.officer.zone.startsWith("Zone") ? selectedOfficer.officer.zone : `Zone ${selectedOfficer.officer.zone}`) : ""})
+                    </h4>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {officers
+                        .filter((o) => {
+                          const isBi = (o.designation || "").toUpperCase().includes("BI");
+                          const sameZone = (o.zone || "").replace(/^Zone\s*/i, "").toUpperCase() === (selectedOfficer.officer.zone || "").replace(/^Zone\s*/i, "").toUpperCase();
+                          return isBi && sameZone;
+                        })
+                        .map((bi) => (
+                          <div
+                            key={bi.officerId}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 12px",
+                              background: "#f8fafc",
+                              border: "1px solid var(--border)",
+                              borderRadius: "6px",
+                              fontSize: "12px",
+                            }}
+                          >
+                            <div>
+                              <strong style={{ color: "var(--navy)" }}>{bi.name}</strong>
+                              <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "6px" }}>({bi.designation})</span>
+                            </div>
+                            <div style={{ fontSize: "11.5px", color: "var(--ink)", fontWeight: 500 }}>
+                              {bi.casesAssigned || 0} cases · {bi.fieldVisits || 0} visits
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Assigned Blocks */}
                 <div>
                   <h4

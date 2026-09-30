@@ -10,6 +10,7 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const complaintRoutes_1 = __importDefault(require("./routes/complaintRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const analyticsRoutes_1 = __importDefault(require("./routes/analyticsRoutes"));
+const enforcementRoutes_1 = __importDefault(require("./routes/enforcementRoutes"));
 const database_1 = require("./db/database");
 const app = (0, express_1.default)();
 const moduleDirectory = __dirname;
@@ -23,6 +24,7 @@ app.use("/api/auth", authRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/analytics", analyticsRoutes_1.default);
 app.use("/api", complaintRoutes_1.default);
+app.use("/api", enforcementRoutes_1.default);
 const PORT = 5000;
 app.listen(PORT, async () => {
     console.log(`🚀 [Server] Running on http://localhost:${PORT}`);

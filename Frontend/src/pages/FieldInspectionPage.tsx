@@ -1,6 +1,8 @@
 import {useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { locationData, zoneForBlock } from "../data/locationData";
+import { fallbackOfficers } from "../data/officersData";
+import { useAuth } from "../context/AuthContext";
 import Icon from "../shared/components/Icon";
 import { API_BASE_URL } from "../shared/utils/apiConfig";
 
@@ -68,6 +70,7 @@ const isBiOfficer = (officer: Officer) => {
 };
 
 function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPageProps) {
+  const { user } = useAuth();
   const initialCaseId = useMemo(() => {
     if (propCaseId) return propCaseId;
     if (typeof window !== "undefined") {
@@ -93,9 +96,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   const [complaintLookup, setComplaintLookup] = useState<ComplaintLookup | null>(null);
   const [complaintLoading, setComplaintLoading] = useState(false);
   const [complaintError, setComplaintError] = useState("");
-  const [officers, setOfficers] = useState<Officer[]>([]);
-  const [officersLoading, setOfficersLoading] = useState(true);
-  const [officersError, setOfficersError] = useState("");
+  const [officers, setOfficers] = useState<Officer[]>(fallbackOfficers);
   const [reportingOfficer, setReportingOfficer] = useState("");
   const [block, setBlock] = useState("");
   const [ward, setWard] = useState("");
@@ -130,13 +131,12 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
         return result;
       })
       .then((result: { officers?: Officer[] }) => {
-        if (active) setOfficers(result.officers ?? []);
+        if (active && result.officers && result.officers.length > 0) {
+          setOfficers(result.officers);
+        }
       })
       .catch((reason: unknown) => {
-        if (active) setOfficersError(reason instanceof Error ? reason.message : "Unable to load officers.");
-      })
-      .finally(() => {
-        if (active) setOfficersLoading(false);
+        console.warn("Failed to fetch officers roster, falling back to static roster:", reason);
       });
     return () => {
       active = false;
@@ -238,26 +238,54 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
     };
   }, [existingCaseId, sourceOfReport]);
 
+  const isBiUser = Boolean(
+    user && (user.role === "bi" || (user.officerId && officers.some((o) => o.officerId === user.officerId && isBiOfficer(o))))
+  );
+
+  useEffect(() => {
+    if (isBiUser && user?.officerId && !reportingOfficer && !complaintLookup && !caseLookup) {
+      setReportingOfficer(user.officerId);
+    }
+  }, [isBiUser, user?.officerId, reportingOfficer, complaintLookup, caseLookup]);
+
   const zone = useMemo(() => zoneForBlock(block), [block]);
   const selectedReportingOfficer = useMemo(
     () => officers.find((officer) => officer.officerId === reportingOfficer),
     [officers, reportingOfficer],
   );
   const availableBlocks = useMemo(() => {
-    if (!selectedReportingOfficer) return [];
+    if (!selectedReportingOfficer) return locationData;
     const assignedBlocks = new Set(selectedReportingOfficer.blocks.map(normalise));
-    return locationData.filter((entry) => assignedBlocks.has(normalise(entry.block)));
+    const filtered = locationData.filter((entry) => assignedBlocks.has(normalise(entry.block)));
+    return filtered.length > 0 ? filtered : locationData;
   }, [selectedReportingOfficer]);
+
   const supervisingAtp = useMemo(() => {
     const selectedBlock = normalise(block);
-    if (!selectedBlock) return undefined;
-    const mappedAtp = officers.find(
-      (officer) =>
-        officer.designation.trim().toUpperCase() === "ATP" &&
-        normalise(officer.zone) === normalise(zone) &&
-        officer.blocks.some((officerBlock) => normalise(officerBlock) === selectedBlock),
-    );
-    if (mappedAtp) return mappedAtp;
+    if (!selectedBlock && !zone) return undefined;
+
+    // 1. Try to find ATP mapped by block
+    if (selectedBlock) {
+      const mappedAtp = officers.find(
+        (officer) =>
+          officer.designation.trim().toUpperCase() === "ATP" &&
+          normalise(officer.zone) === normalise(zone) &&
+          officer.blocks.some((officerBlock) => normalise(officerBlock) === selectedBlock),
+      );
+      if (mappedAtp) return mappedAtp;
+    }
+
+    // 2. Try to find ATP mapped by zone
+    if (zone) {
+      const zoneAtp = officers.find(
+        (officer) =>
+          officer.designation.trim().toUpperCase() === "ATP" &&
+          normalise(officer.zone) === normalise(zone),
+      );
+      if (zoneAtp) return zoneAtp;
+    }
+
+    // 3. Fallback to complaint lookup if available
     if (complaintLookup?.assignedAtpName) {
       return {
         officerId: complaintLookup.assignedAtpId ?? "complaint-atp",
@@ -273,7 +301,6 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
 
   const isComplaintMode = sourceOfReport === "complaint";
   const isCaseMode = sourceOfReport === "case";
-  const isAutoPopulatedMode = isComplaintMode || isCaseMode;
 
   const handleSourceChange = (value: "complaint" | "field_visit" | string) => {
     setSourceOfReport(value as "complaint" | "field_visit" | "case");
@@ -864,11 +891,27 @@ const submitInspection = async (
             </div>
             <div className="form-field">
               <label htmlFor="reportingOfficer">Reporting Officer <span>*</span></label>
-              <select id="reportingOfficer" required value={reportingOfficer} onChange={(event) => { setReportingOfficer(event.target.value); setBlock(""); }} disabled={isAutoPopulatedMode || officersLoading || Boolean(officersError)}>
-                <option value="">{officersLoading ? "Loading officers..." : "Select officer"}</option>
-                {officers.filter(isBiOfficer).map((officer) => <option key={officer.officerId} value={officer.officerId}>{officer.name}</option>)}
+              <select
+                id="reportingOfficer"
+                required
+                value={reportingOfficer}
+                onChange={(event) => {
+                  setReportingOfficer(event.target.value);
+                  setBlock("");
+                }}
+                disabled={Boolean(
+                  (isComplaintMode && complaintLookup?.assignedOfficerId) ||
+                  (isCaseMode && caseLookup?.assigned_bi_id) ||
+                  (isBiUser && user?.officerId)
+                )}
+              >
+                <option value="">Select officer</option>
+                {officers.filter(isBiOfficer).map((officer) => (
+                  <option key={officer.officerId} value={officer.officerId}>
+                    {officer.name} ({officer.zone ? `Zone ${officer.zone}` : officer.designation})
+                  </option>
+                ))}
               </select>
-              {officersError && <small className="field-error">{officersError}</small>}
             </div>
 
             {sourceOfReport === "complaint" && (
@@ -932,10 +975,27 @@ const submitInspection = async (
         <section className="inspection-card">
           <div className="inspection-card__header"><span className="inspection-card__number">02</span><h2>Location</h2></div>
           <div className="inspection-grid">
-            <div className="form-field"><label htmlFor="block">Block <span>*</span></label><select id="block" required value={block} onChange={(event) => setBlock(event.target.value)} disabled={isAutoPopulatedMode || !selectedReportingOfficer}><option value="">{selectedReportingOfficer ? "Select block" : "Select officer first"}</option>{availableBlocks.map((entry) => <option value={entry.block} key={entry.block}>{entry.block}</option>)}</select></div>
+            <div className="form-field">
+              <label htmlFor="block">Block <span>*</span></label>
+              <select
+                id="block"
+                required
+                value={block}
+                onChange={(event) => setBlock(event.target.value)}
+                disabled={Boolean(
+                  (isComplaintMode && complaintLookup?.block) ||
+                  (isCaseMode && caseLookup?.block)
+                )}
+              >
+                <option value="">{selectedReportingOfficer ? "Select block" : "Select block (all zones)"}</option>
+                {availableBlocks.map((entry) => (
+                  <option value={entry.block} key={entry.block}>{entry.block}</option>
+                ))}
+              </select>
+            </div>
             <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{caseLookup?.zone || complaintLookup?.zone || zone || "Auto"}</div></div>
-            <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" readOnly={isAutoPopulatedMode} value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Ward" /></div>
-            <div className="form-field form-field--wide"><label htmlFor="location">Address / Landmark <span>*</span></label><input id="location" readOnly={isAutoPopulatedMode} required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter location" /></div>
+            <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" readOnly={Boolean((isComplaintMode && complaintLookup?.ward) || (isCaseMode && caseLookup?.ward))} value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Ward" /></div>
+            <div className="form-field form-field--wide"><label htmlFor="location">Address / Landmark <span>*</span></label><input id="location" readOnly={Boolean((isComplaintMode && complaintLookup?.address) || (isCaseMode && caseLookup?.location))} required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter location" /></div>
             <div className="form-field form-field--full"><label>GPS Location <span>*</span></label><div className={`location-capture ${coordinates ? "location-capture--success" : ""}`}><div className="location-capture__icon"><Icon name="map" /></div><div className="location-capture__content"><strong>{coordinates ? "Location captured" : "GPS not captured"}</strong>{coordinates ? <span>Lat {coordinates.latitude.toFixed(5)} · Long {coordinates.longitude.toFixed(5)}</span> : <span>Capture site location</span>}</div><button type="button" className="secondary-button" onClick={captureLocation} disabled={locationLoading}>{locationLoading ? "Capturing..." : coordinates ? "Recapture" : "Capture Location"}</button></div>{locationError && <small className="field-error">{locationError}</small>}</div>
           </div>
         </section>

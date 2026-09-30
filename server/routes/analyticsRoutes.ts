@@ -172,14 +172,45 @@ router.get("/officers", async (_req: Request, res: Response) => {
         o.zone,
         o.phone_number AS "mobile",
         o.blocks,
-        COUNT(DISTINCT fv.visit_id)::int AS "fieldVisits",
-        COUNT(DISTINCT n.notice_id)::int AS "noticesIssued",
-        COUNT(DISTINCT cs.case_id)::int AS "casesAssigned"
+        CASE 
+          WHEN o.designation = 'ATP' THEN (
+            SELECT COUNT(DISTINCT fv.visit_id)::int
+            FROM field_visits fv
+            JOIN officers bi ON bi.officer_id = fv.bi_id
+            WHERE bi.zone = o.zone
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT fv.visit_id)::int
+            FROM field_visits fv
+            WHERE fv.bi_id = o.officer_id
+          )
+        END AS "fieldVisits",
+        CASE 
+          WHEN o.designation = 'ATP' THEN (
+            SELECT COUNT(DISTINCT n.notice_id)::int
+            FROM notices n
+            JOIN officers bi ON bi.officer_id = n.issued_by_id
+            WHERE bi.zone = o.zone
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT n.notice_id)::int
+            FROM notices n
+            WHERE n.issued_by_id = o.officer_id
+          )
+        END AS "noticesIssued",
+        CASE 
+          WHEN o.designation = 'ATP' THEN (
+            SELECT COUNT(DISTINCT cs.case_id)::int
+            FROM cases cs
+            WHERE cs.assigned_atp_id = o.officer_id OR cs.zone = o.zone
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT cs.case_id)::int
+            FROM cases cs
+            WHERE cs.assigned_bi_id = o.officer_id
+          )
+        END AS "casesAssigned"
       FROM officers o
-      LEFT JOIN field_visits fv ON fv.bi_id = o.officer_id
-      LEFT JOIN notices n ON n.issued_by_id = o.officer_id
-      LEFT JOIN cases cs ON cs.assigned_bi_id = o.officer_id
-      GROUP BY o.officer_id, o.name, o.designation, o.zone, o.phone_number, o.blocks
       ORDER BY "casesAssigned" DESC, "fieldVisits" DESC;
     `);
 
