@@ -242,16 +242,12 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
     user && (user.role === "bi" || (user.officerId && officers.some((o) => o.officerId === user.officerId && isBiOfficer(o))))
   );
 
-  useEffect(() => {
-    if (isBiUser && user?.officerId && !reportingOfficer && !complaintLookup && !caseLookup) {
-      setReportingOfficer(user.officerId);
-    }
-  }, [isBiUser, user?.officerId, reportingOfficer, complaintLookup, caseLookup]);
+  const effectiveReportingOfficer = reportingOfficer || (isBiUser && user?.officerId ? user.officerId : "");
 
   const zone = useMemo(() => zoneForBlock(block), [block]);
   const selectedReportingOfficer = useMemo(
-    () => officers.find((officer) => officer.officerId === reportingOfficer),
-    [officers, reportingOfficer],
+    () => officers.find((officer) => officer.officerId === effectiveReportingOfficer),
+    [officers, effectiveReportingOfficer],
   );
   const availableBlocks = useMemo(() => {
     if (!selectedReportingOfficer) return locationData;
@@ -519,7 +515,7 @@ const submitInspection = async (
 
     formData.append(
       "reportingOfficer",
-      reportingOfficer,
+      effectiveReportingOfficer,
     );
 
     if (sourceOfReport === "complaint") {
@@ -748,7 +744,7 @@ const submitInspection = async (
                 <input
                   type="text"
                   readOnly
-                  value={selectedReportingOfficer?.name || caseLookup?.assigned_bi_name || reportingOfficer || "—"}
+                  value={selectedReportingOfficer?.name || caseLookup?.assigned_bi_name || effectiveReportingOfficer || "—"}
                   style={{ background: "var(--surface-muted)", cursor: "not-allowed" }}
                 />
               </div>
@@ -894,7 +890,7 @@ const submitInspection = async (
               <select
                 id="reportingOfficer"
                 required
-                value={reportingOfficer}
+                value={effectiveReportingOfficer}
                 onChange={(event) => {
                   setReportingOfficer(event.target.value);
                   setBlock("");

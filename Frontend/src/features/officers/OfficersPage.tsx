@@ -193,33 +193,31 @@ function OfficersPage() {
   }, [officers]);
 
   // Filter officers based on designation, search, and zone
-  const filteredOfficers = useMemo(() => {
-    return officers.filter((officer) => {
-      // Designation filter
-      if (designationFilter === "BI") {
-        const d = (officer.designation || "").trim().toUpperCase();
-        if (!d.includes("BI")) return false;
-      } else if (designationFilter === "ATP") {
-        const d = (officer.designation || "").trim().toUpperCase();
-        if (!d.includes("ATP")) return false;
-      }
+  const filteredOfficers = officers.filter((officer) => {
+    // Designation filter
+    if (designationFilter === "BI") {
+      const d = (officer.designation || "").trim().toUpperCase();
+      if (!d.includes("BI")) return false;
+    } else if (designationFilter === "ATP") {
+      const d = (officer.designation || "").trim().toUpperCase();
+      if (!d.includes("ATP")) return false;
+    }
 
-      // Search filter
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        (officer.name || "").toLowerCase().includes(q) ||
-        (officer.officerId || "").toLowerCase().includes(q) ||
-        (officer.designation || "").toLowerCase().includes(q);
+    // Search filter
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      (officer.name || "").toLowerCase().includes(q) ||
+      (officer.officerId || "").toLowerCase().includes(q) ||
+      (officer.designation || "").toLowerCase().includes(q);
 
-      // Zone filter
-      const matchesZone =
-        selectedZone === "All Zones" ||
-        (officer.zone || "").toLowerCase() === selectedZone.toLowerCase() ||
-        `Zone ${officer.zone || ""}`.toLowerCase() === selectedZone.toLowerCase();
+    // Zone filter
+    const matchesZone =
+      selectedZone === "All Zones" ||
+      (officer.zone || "").toLowerCase() === selectedZone.toLowerCase() ||
+      `Zone ${officer.zone || ""}`.toLowerCase() === selectedZone.toLowerCase();
 
-      return matchesSearch && matchesZone;
-    });
-  }, [officers, designationFilter, searchQuery, selectedZone]);
+    return matchesSearch && matchesZone;
+  });
 
   const availableZones = useMemo(() => {
     const zones = new Set<string>();
