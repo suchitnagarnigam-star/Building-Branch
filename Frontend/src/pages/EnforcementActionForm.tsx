@@ -1,5 +1,8 @@
-import { useState, useRef, type ChangeEvent, type FormEvent } from "react";
+import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from "react";
 import Icon from "../shared/components/Icon";
+
+// ===== UPDATED: Minimum compliance period is a business rule, not mock data =====
+const MIN_COMPLIANCE_DAYS = 3;
 
 type EnforcementActionFormProps = {
   navigate?: (route: string) => void;
@@ -17,6 +20,83 @@ type EnforcementOutcome =
 type DemolitionType = "full" | "partial";
 type VerificationStatus = "verified" | "not_verified";
 type YesNo = "yes" | "no";
+
+type CaseData = {
+  caseId: string;
+  complaintId: string | null;
+  address: string;
+  block: string;
+  zone: string;
+  ward: string | null;
+  violator: string;
+  assignedBI?: string;
+  supervisingATP?: string;
+  constructionStatus: string;
+  notice269Number: string;
+  notice269Date: string;
+  compliancePeriod: string;
+  complianceDeadline: string;
+  complianceStatus: "Pending" | "Deadline Reached";
+
+  has270Notice: boolean;
+  has269Notice: boolean;
+};
+
+type WorkflowStatus = "completed" | "current" | "pending";
+
+type WorkflowStep = {
+  step: string;
+  label: string;
+  status: WorkflowStatus;
+};
+
+const getWorkflowSteps = (
+  caseData: CaseData | null
+): WorkflowStep[] => {
+  if (!caseData) {
+    return [
+      { step: "01", label: "270 Notice", status: "pending" },
+      { step: "02", label: "269 Notice", status: "pending" },
+      { step: "03", label: "Min. 3-Day Compliance", status: "pending" },
+      { step: "04", label: "Enforcement Action", status: "pending" },
+      { step: "05", label: "Closure / Verification", status: "pending" },
+    ];
+  }
+
+  const deadlineReached = caseData.complianceStatus === "Deadline Reached";
+
+  return [
+    {
+      step: "01",
+      label: "270 Notice",
+      status: caseData.has270Notice ? "completed" : "pending",
+    },
+    {
+      step: "02",
+      label: "269 Notice",
+      status: caseData.has269Notice ? "completed" : "pending",
+    },
+    {
+      step: "03",
+      label: "Min. 3-Day Compliance",
+      status: caseData.has269Notice
+        ? deadlineReached
+          ? "completed"
+          : "current"
+        : "pending",
+    },
+    {
+      step: "04",
+      label: "Enforcement Action",
+      status: caseData.has269Notice && deadlineReached ? "current" : "pending",
+    },
+    {
+      step: "05",
+      label: "Closure / Verification",
+      status: "pending",
+    },
+  ];
+};
 
 export default function EnforcementActionForm({ navigate, caseId: propCaseId }: EnforcementActionFormProps) {
   // ── Form State ──────────────────────────────────────────────────────────────
@@ -87,28 +167,144 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Mock Data for Case & 269 ───────────────────────────────────────────────
-  const mockCaseData = {
-    caseId: propCaseId || "CASE-2023-0891",
-    complaintId: "CMP-2023-1452",
-    address: "Plot 42, Sector 15, Operational Area",
-    block: "19",
-    zone: "Zone D",
-    ward: "Ward 4",
-    violator: "Ramesh Kumar",
-    assignedBI: "Sanjay Sharma",
-    supervisingATP: "Priya Desai",
-    constructionStatus: "Unauthorized Extension",
-    notice269Number: "MCL/269/2023/110",
-    notice269Date: "2023-10-15",
-    compliancePeriod: "3 Days",
-    complianceDeadline: "2023-10-18",
-    complianceStatus: "Deadline Reached", // "Pending" or "Deadline Reached"
+  const [caseData, setCaseData] = useState<CaseData | null>(null);
+  const [isLoadingCase, setIsLoadingCase] = useState(true);
+  const [caseFetchError, setCaseFetchError] = useState("");
+
+  const workflowSteps = getWorkflowSteps(caseData);
+
+  // ===== UPDATED: Enforcement can be started only after the minimum 3-day period =====
+  const canTakeEnforcementAction =
+    caseData?.complianceStatus === "Deadline Reached";
+
+  useEffect(() => {
+  if (!propCaseId) {
+    setCaseFetchError("Case ID is missing.");
+    setIsLoadingCase(false);
+    return;
+  }
+
+  const fetchCase = async () => {
+    try {
+      setIsLoadingCase(true);
+      setCaseFetchError("");
+
+      const response = await fetch(
+        `/api/cases/${encodeURIComponent(propCaseId)}`
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to fetch case.");
+      }
+
+      // ===== UPDATED: Normalize the real API response into the UI CaseData shape =====
+      const caseRecord = result.caseRecord;
+      const visits = result.visits ?? [];
+      const notices = result.notices ?? [];
+      const constructionSummary = result.constructionSummary;
+
+      // Use the latest inspection visit so the violator name is not hardcoded.
+      const latestVisit = visits.reduce((latest: any, current: any) => {
+        if (!latest) return current;
+        return new Date(current.submitted_at ?? 0).getTime() >
+          new Date(latest.submitted_at ?? 0).getTime()
+          ? current
+          : latest;
+      }, null);
+
+      // Use the latest 269 notice returned by the API.
+      const notice269 = notices
+        .filter((notice: any) => notice.notice_type === "269")
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.issued_at ?? b.created_at ?? 0).getTime() -
+            new Date(a.issued_at ?? a.created_at ?? 0).getTime()
+        )[0] ?? null;
+
+      const noticeDate = notice269?.issued_at
+        ? new Date(notice269.issued_at)
+        : constructionSummary?.notice_269_issued_at
+          ? new Date(constructionSummary.notice_269_issued_at)
+          : null;
+
+      // Minimum compliance period = 3 days from the 269 notice date.
+      const complianceDeadline = noticeDate
+        ? new Date(
+            noticeDate.getTime() +
+              MIN_COMPLIANCE_DAYS * 24 * 60 * 60 * 1000
+          )
+        : null;
+
+      // ===== UPDATED: Deadline is reached only at/after the full 3-day period =====
+      const complianceStatus: CaseData["complianceStatus"] =
+        complianceDeadline && new Date() >= complianceDeadline
+          ? "Deadline Reached"
+          : "Pending";
+
+      const formatDate = (date: Date | null) => {
+        if (!date) return "-";
+
+        return date.toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+      };
+
+      // ===== UPDATED: Map API snake_case fields once, then use camelCase in JSX =====
+      const mappedCase: CaseData = {
+        caseId: caseRecord.case_id,
+        complaintId: caseRecord.primary_complaint_id ?? null,
+        address: caseRecord.location ?? "-",
+        block: caseRecord.block ?? "-",
+        zone: caseRecord.zone ?? "-",
+        ward: caseRecord.ward ?? null,
+        violator: latestVisit?.violator_name ?? "-",
+        assignedBI: caseRecord.assigned_bi_name,
+        supervisingATP: caseRecord.assigned_atp_name,
+        constructionStatus: caseRecord.construction_status ?? "-",
+        notice269Number:
+          notice269?.notice_number ??
+          constructionSummary?.notice_269_number ??
+          "-",
+        notice269Date: formatDate(noticeDate),
+        compliancePeriod: `${MIN_COMPLIANCE_DAYS} days`,
+        complianceDeadline: formatDate(complianceDeadline),
+        complianceStatus,
+        has270Notice: notices.some(
+          (notice: any) => notice.notice_type === "270"
+        ),
+        has269Notice: notices.some(
+          (notice: any) => notice.notice_type === "269"
+        ),
+      };
+
+      setCaseData(mappedCase);
+    } catch (error: any) {
+      setCaseFetchError(
+        error.message || "Failed to load case information."
+      );
+    } finally {
+      setIsLoadingCase(false);
+    }
   };
+
+  fetchCase();
+}, [propCaseId]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleOutcomeChange = (newOutcome: EnforcementOutcome) => {
+    // ===== UPDATED: Prevent enforcement actions before the compliance deadline =====
+    if (!canTakeEnforcementAction) {
+      setSubmitError(
+        `Enforcement action cannot be started until the minimum ${MIN_COMPLIANCE_DAYS}-day compliance period is completed.`
+      );
+      return;
+    }
+
     setOutcome(newOutcome);
     setFieldErrors({});
     setSubmitError("");
@@ -126,6 +322,19 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
     setSubmitError("");
+
+    if (!caseData) {
+      setSubmitError("Case information is not available.");
+      return false;
+    }
+
+    // ===== UPDATED: Server/API data must confirm the compliance period is complete =====
+    if (!canTakeEnforcementAction) {
+      setSubmitError(
+        `Enforcement action is available only after the minimum ${MIN_COMPLIANCE_DAYS}-day compliance period.`
+      );
+      return false;
+    }
 
     if (!outcome) {
       setSubmitError("Please select an Enforcement Outcome.");
@@ -207,7 +416,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         formData.append("evidencePhoto", evidencePhoto);
       }
 
-      const response = await fetch(`/api/cases/${encodeURIComponent(mockCaseData.caseId)}/enforcement`, {
+      const response = await fetch(`/api/cases/${encodeURIComponent(propCaseId!)}/enforcement`, {
         method: "POST",
         body: formData,
       });
@@ -219,7 +428,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
 
       setSubmitSuccess(true);
       setTimeout(() => {
-        navigate?.(`/cases/${encodeURIComponent(mockCaseData.caseId)}`);
+        navigate?.(`/cases/${encodeURIComponent(propCaseId!)}`);
       }, 5000);
     } catch (error: any) {
       setSubmitError(error.message || "An error occurred.");
@@ -255,6 +464,8 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
 
   const renderRadioCard = (value: EnforcementOutcome, label: string, icon: string, description: string) => {
     const isSelected = outcome === value;
+    const isDisabled = !canTakeEnforcementAction;
+
     return (
       <label
         style={{
@@ -264,7 +475,8 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
           borderRadius: "8px",
           border: `2px solid ${isSelected ? "#3b82f6" : "var(--border)"}`,
           background: isSelected ? "#eff6ff" : "#fff",
-          cursor: "pointer",
+          cursor: isDisabled ? "not-allowed" : "pointer",
+          opacity: isDisabled ? 0.65 : 1,
           transition: "all 0.2s",
         }}
         onClick={() => handleOutcomeChange(value)}
@@ -275,6 +487,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             name="outcome"
             value={value}
             checked={isSelected}
+            disabled={!canTakeEnforcementAction}
             onChange={() => handleOutcomeChange(value)}
             style={{ accentColor: "#3b82f6", width: "16px", height: "16px" }}
           />
@@ -313,7 +526,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
           <Icon name="check-circle" size={20} />
           <div>
             <div style={{ fontWeight: 600 }}>Action Submitted Successfully</div>
-            <div style={{ fontSize: "13px", marginTop: "4px" }}>The enforcement action has been recorded for Case {mockCaseData.caseId}.</div>
+            <div style={{ fontSize: "13px", marginTop: "4px" }}>The enforcement action has been recorded for Case {caseData?.caseId}.</div>
           </div>
         </div>
       )}
@@ -324,13 +537,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
           Case Workflow
         </div>
         <div style={{ display: "flex", overflowX: "auto", gap: "12px", paddingBottom: "8px" }}>
-          {[
-            { step: "01", label: "270 Notice", status: "completed" },
-            { step: "02", label: "269 Notice", status: "completed" },
-            { step: "03", label: "Min. 3-Day Compliance", status: "completed" },
-            { step: "04", label: "Enforcement Action", status: "current" },
-            { step: "05", label: "Closure / Verification", status: "pending" },
-          ].map((item, idx) => (
+          {workflowSteps.map((item, idx) => (
             <div key={idx} style={{ flexShrink: 0, minWidth: "140px", border: `1px solid ${item.status === 'current' ? '#3b82f6' : 'var(--border)'}`, borderRadius: "8px", padding: "12px", background: item.status === 'completed' ? '#f8fafc' : item.status === 'current' ? '#eff6ff' : '#fff' }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "11px", color: "var(--muted)" }}>{item.step}</span>
@@ -343,36 +550,150 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         </div>
       </section>
 
+      {isLoadingCase && (
+  <div
+    style={{
+      padding: "16px",
+      marginBottom: "24px",
+      background: "#eff6ff",
+      border: "1px solid #bfdbfe",
+      borderRadius: "8px",
+      color: "#1e40af",
+      fontSize: "14px",
+    }}
+  >
+    Loading case information...
+  </div>
+)}
+
+{caseFetchError && (
+  <div
+    style={{
+      padding: "16px",
+      marginBottom: "24px",
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      borderRadius: "8px",
+      color: "#991b1b",
+      fontSize: "14px",
+    }}
+  >
+    {caseFetchError}
+  </div>
+)}
+
       {/* ── 1. CASE & 269 INFO (READ ONLY) ── */}
       <section style={{ background: "#f8fafc", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
           <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
             <Icon name="file-text" size={18} /> Case & 269 Notice Summary
           </h2>
-          <span style={{ padding: "4px 10px", background: mockCaseData.complianceStatus === "Deadline Reached" ? "#fee2e2" : "#fef3c7", color: mockCaseData.complianceStatus === "Deadline Reached" ? "#991b1b" : "#b45309", fontSize: "12px", fontWeight: 600, borderRadius: "99px" }}>
-            {mockCaseData.complianceStatus}
+          <span style={{ padding: "4px 10px", background: caseData?.complianceStatus === "Deadline Reached" ? "#fee2e2" : "#fef3c7", color: caseData?.complianceStatus === "Deadline Reached" ? "#991b1b" : "#b45309", fontSize: "12px", fontWeight: 600, borderRadius: "99px" }}>
+            {caseData?.complianceStatus === "Deadline Reached"
+              ? "Deadline Reached"
+              : "Compliance Period Active"}
           </span>
         </div>
+        {isLoadingCase ? (
+             <div style={{ padding: "20px 0", color: "var(--muted)" }}>
+                Loading case information...
+             </div>
+        ) : caseFetchError ? (
+        <div
+          style={{
+            padding: "12px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            borderRadius: "6px",
+          }}
+        >
+        {caseFetchError}
+      </div>
+      ) : caseData ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "13px" }}>
-          <div><span style={{ color: "var(--muted)" }}>Case ID:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.caseId}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Complaint ID:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.complaintId}</strong></div>
-          <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "var(--muted)" }}>Property:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.address}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Block / Zone:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.block} / {mockCaseData.zone}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Ward:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.ward}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Violator:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.violator}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Construction Status:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.constructionStatus}</strong></div>
+          {/* ===== UPDATED: Use the normalized CaseData fields here ===== */}
+          <div>
+            <span style={{ color: "var(--muted)" }}>Case ID:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.caseId}
+            </strong>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--muted)" }}>Complaint ID:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.complaintId || "N/A"}
+            </strong>
+          </div>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span style={{ color: "var(--muted)" }}>Property:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.address || "-"}
+            </strong>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--muted)" }}>Block / Zone:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.block || "-"} / {caseData.zone || "-"}
+            </strong>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--muted)" }}>Ward:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.ward || "-"}
+            </strong>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--muted)" }}>Violator:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.violator || "-"}
+            </strong>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--muted)" }}>Construction Status:</span>{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {caseData.constructionStatus || "-"}
+            </strong>
+          </div>
           <div style={{ gridColumn: "1 / -1", height: "1px", background: "var(--border)", margin: "8px 0" }}></div>
-          <div><span style={{ color: "var(--muted)" }}>269 Notice Number:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.notice269Number}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Notice Date:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.notice269Date}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Compliance Period:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.compliancePeriod}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Deadline:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.complianceDeadline}</strong></div>
+          <div>{/* ===== UPDATED: Notice/compliance values come from the real API mapping ===== */}<span style={{ color: "var(--muted)" }}>269 Notice Number:</span> <strong style={{ color: "var(--ink)" }}>{caseData?.notice269Number}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Notice Date:</span> <strong style={{ color: "var(--ink)" }}>{caseData?.notice269Date}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Compliance Period:</span> <strong style={{ color: "var(--ink)" }}>{caseData?.compliancePeriod}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Deadline:</span> <strong style={{ color: "var(--ink)" }}>{caseData?.complianceDeadline}</strong></div>
         </div>
+      ) : null}
       </section>
 
       <form onSubmit={handleSubmit}>
         {/* ── 2. ENFORCEMENT OUTCOME ── */}
         <section style={{ marginBottom: "32px" }}>
           <h2 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600 }}>Enforcement Outcome <span style={{ color: "#ef4444" }}>*</span></h2>
+
+          {/* ===== UPDATED: Explain why enforcement options are disabled before deadline ===== */}
+          {caseData && !canTakeEnforcementAction && caseData.has269Notice && (
+            <div
+              style={{
+                padding: "12px 16px",
+                marginBottom: "16px",
+                background: "#fffbeb",
+                border: "1px solid #fde68a",
+                borderRadius: "8px",
+                color: "#92400e",
+                fontSize: "13px",
+              }}
+            >
+              The minimum {MIN_COMPLIANCE_DAYS}-day compliance period has not yet
+              been completed. Enforcement actions will be available after the
+              deadline of <strong>{caseData.complianceDeadline}</strong>.
+            </div>
+          )}
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             {renderRadioCard("violator_complied", "Violator Complied", "check-circle", "Violator has voluntarily removed the unauthorized construction.")}
             {renderRadioCard("demolition_violator", "Demolition by Violator", "tool", "Demolition carried out by the violator themselves.")}
