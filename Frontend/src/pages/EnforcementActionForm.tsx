@@ -295,7 +295,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
   };
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 20px 80px", fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "28px 32px 80px", fontFamily: "'Inter', sans-serif" }}>
       {/* ── Header ── */}
       <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
         <button
@@ -319,11 +319,11 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
       )}
 
       {/* ── WORKFLOW PIPELINE ── */}
-      <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", boxShadow: "var(--shadow-card)", marginBottom: "24px" }}>
+      <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px 24px", boxShadow: "var(--shadow-card)", marginBottom: "24px" }}>
         <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", color: "var(--ink)", textTransform: "uppercase", marginBottom: "16px" }}>
           Case Workflow
         </div>
-        <div style={{ display: "flex", overflowX: "auto", gap: "12px", paddingBottom: "8px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", paddingBottom: "4px" }}>
           {[
             { step: "01", label: "270 Notice", status: "completed" },
             { step: "02", label: "269 Notice", status: "completed" },
@@ -331,41 +331,41 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             { step: "04", label: "Enforcement Action", status: "current" },
             { step: "05", label: "Closure / Verification", status: "pending" },
           ].map((item, idx) => (
-            <div key={idx} style={{ flexShrink: 0, minWidth: "140px", border: `1px solid ${item.status === 'current' ? '#3b82f6' : 'var(--border)'}`, borderRadius: "8px", padding: "12px", background: item.status === 'completed' ? '#f8fafc' : item.status === 'current' ? '#eff6ff' : '#fff' }}>
+            <div key={idx} style={{ flex: "1 1 180px", minWidth: "160px", border: `1px solid ${item.status === 'current' ? '#3b82f6' : 'var(--border)'}`, borderRadius: "8px", padding: "14px 16px", background: item.status === 'completed' ? '#f8fafc' : item.status === 'current' ? '#eff6ff' : '#fff' }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--muted)" }}>{item.step}</span>
-                {item.status === "completed" && <span style={{ color: "#10b981" }}><Icon name="check" size={14} /></span>}
-                {item.status === "current" && <span style={{ color: "#3b82f6", fontSize: "10px", fontWeight: 600 }}>IN PROGRESS</span>}
+                <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: 600 }}>{item.step}</span>
+                {item.status === "completed" && <span style={{ color: "#10b981", display: "flex" }}><Icon name="check" size={14} /></span>}
+                {item.status === "current" && <span style={{ color: "#3b82f6", fontSize: "10px", fontWeight: 700, letterSpacing: "0.04em" }}>IN PROGRESS</span>}
               </div>
-              <div style={{ fontSize: "13px", fontWeight: item.status === 'current' ? 700 : 500, color: item.status === 'pending' ? 'var(--muted)' : 'var(--ink)' }}>{item.label}</div>
+              <div style={{ fontSize: "13.5px", fontWeight: item.status === 'current' ? 700 : 500, color: item.status === 'pending' ? 'var(--muted)' : 'var(--ink)' }}>{item.label}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── 1. CASE & 269 INFO (READ ONLY) ── */}
-      <section style={{ background: "#f8fafc", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+      <section style={{ background: "#f8fafc", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px 24px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "18px" }}>
           <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
-            <Icon name="file-text" size={18} /> Case & 269 Notice Summary
+            <Icon name="file-text" size={18} /> Case &amp; 269 Notice Summary
           </h2>
-          <span style={{ padding: "4px 10px", background: mockCaseData.complianceStatus === "Deadline Reached" ? "#fee2e2" : "#fef3c7", color: mockCaseData.complianceStatus === "Deadline Reached" ? "#991b1b" : "#b45309", fontSize: "12px", fontWeight: 600, borderRadius: "99px" }}>
+          <span style={{ padding: "4px 12px", background: mockCaseData.complianceStatus === "Deadline Reached" ? "#fee2e2" : "#fef3c7", color: mockCaseData.complianceStatus === "Deadline Reached" ? "#991b1b" : "#b45309", fontSize: "12px", fontWeight: 700, borderRadius: "99px" }}>
             {mockCaseData.complianceStatus}
           </span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "13px" }}>
-          <div><span style={{ color: "var(--muted)" }}>Case ID:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.caseId}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Complaint ID:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.complaintId}</strong></div>
-          <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "var(--muted)" }}>Property:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.address}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Block / Zone:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.block} / {mockCaseData.zone}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Ward:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.ward}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Violator:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.violator}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Construction Status:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.constructionStatus}</strong></div>
-          <div style={{ gridColumn: "1 / -1", height: "1px", background: "var(--border)", margin: "8px 0" }}></div>
-          <div><span style={{ color: "var(--muted)" }}>269 Notice Number:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.notice269Number}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Notice Date:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.notice269Date}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Compliance Period:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.compliancePeriod}</strong></div>
-          <div><span style={{ color: "var(--muted)" }}>Deadline:</span> <strong style={{ color: "var(--ink)" }}>{mockCaseData.complianceDeadline}</strong></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px 24px", fontSize: "13.5px" }}>
+          <div><span style={{ color: "var(--muted)" }}>Case ID:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.caseId}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Complaint ID:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.complaintId}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Block / Zone:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.block} / {mockCaseData.zone}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Ward:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.ward}</strong></div>
+          <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "var(--muted)" }}>Property Address:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.address}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Violator:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.violator}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Construction Status:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.constructionStatus}</strong></div>
+          <div style={{ gridColumn: "1 / -1", height: "1px", background: "var(--border)", margin: "4px 0" }}></div>
+          <div><span style={{ color: "var(--muted)" }}>269 Notice Number:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.notice269Number}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Notice Date:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.notice269Date}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Compliance Period:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.compliancePeriod}</strong></div>
+          <div><span style={{ color: "var(--muted)" }}>Deadline:</span> <strong style={{ color: "var(--ink)", marginLeft: "4px" }}>{mockCaseData.complianceDeadline}</strong></div>
         </div>
       </section>
 
@@ -373,7 +373,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         {/* ── 2. ENFORCEMENT OUTCOME ── */}
         <section style={{ marginBottom: "32px" }}>
           <h2 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600 }}>Enforcement Outcome <span style={{ color: "#ef4444" }}>*</span></h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "16px" }}>
             {renderRadioCard("violator_complied", "Violator Complied", "check-circle", "Violator has voluntarily removed the unauthorized construction.")}
             {renderRadioCard("demolition_violator", "Demolition by Violator", "tool", "Demolition carried out by the violator themselves.")}
             {renderRadioCard("demolition_mcl", "Demolition by MCL", "alert-triangle", "Demolition executed by MCL authorities.")}
@@ -385,9 +385,9 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         {/* ── DYNAMIC SECTIONS ── */}
 
         {outcome === "violator_complied" && (
-          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "24px 28px", marginBottom: "24px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Compliance Details</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Compliance Date *</label>
                 <input type="date" style={inputStyle} value={complied.complianceDate} onChange={e => setComplied({ ...complied, complianceDate: e.target.value })} />
@@ -412,9 +412,9 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         )}
 
         {outcome === "demolition_violator" && (
-          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "24px 28px", marginBottom: "24px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Demolition Details</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Demolition Date *</label>
                 <input type="date" style={inputStyle} value={demoViolator.demolitionDate} onChange={e => setDemoViolator({ ...demoViolator, demolitionDate: e.target.value })} />
@@ -467,9 +467,9 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         )}
 
         {outcome === "demolition_mcl" && (
-          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "24px 28px", marginBottom: "24px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>MCL Execution Details</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Demolition Date *</label>
                 <input type="date" style={inputStyle} value={demoMcl.demolitionDate} onChange={e => setDemoMcl({ ...demoMcl, demolitionDate: e.target.value })} />
@@ -513,7 +513,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             <hr style={{ border: "0", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
 
             <h4 style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 600 }}>Cost Recovery</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Cost Recovery Applicable?</label>
                 <select style={inputStyle} value={demoMcl.costRecovery} onChange={e => setDemoMcl({ ...demoMcl, costRecovery: e.target.value as YesNo })}>
@@ -551,7 +551,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         )}
 
         {outcome === "appeal_stay" && (
-          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "24px 28px", marginBottom: "24px" }}>
             {appealStay.stayGranted === "yes" && (
               <div style={{ padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#991b1b", marginBottom: "20px", display: "flex", gap: "12px", alignItems: "center" }}>
                 <Icon name="alert-circle" size={20} />
@@ -559,7 +559,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Appeal Filed?</label>
                 <select style={inputStyle} value={appealStay.appealFiled} onChange={e => setAppealStay({ ...appealStay, appealFiled: e.target.value as YesNo })}>
@@ -588,7 +588,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
 
             <hr style={{ border: "0", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Stay Granted?</label>
                 <select style={inputStyle} value={appealStay.stayGranted} onChange={e => setAppealStay({ ...appealStay, stayGranted: e.target.value as YesNo })}>
@@ -614,9 +614,9 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         )}
 
         {outcome === "further_action" && (
-          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "24px 28px", marginBottom: "24px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Further Action Details</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Reason *</label>
                 <input type="text" style={inputStyle} value={furtherAction.reason} onChange={e => setFurtherAction({ ...furtherAction, reason: e.target.value })} />
@@ -637,7 +637,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
 
         {/* ── COMMON SECTION (Evidence, Remarks, Submit) ── */}
         {outcome && (
-          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px" }}>
+          <section style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "10px", padding: "24px 28px" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 600 }}>Supporting Evidence & Remarks</h3>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
