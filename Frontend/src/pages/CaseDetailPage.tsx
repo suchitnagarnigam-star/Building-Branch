@@ -95,14 +95,52 @@ type ConstructionSummary = {
   notice_269_file_url?: string | null;
 };
 
-type StatusHistory = {
-  history_id: string | number;
-  previous_status?: string | null;
-  new_status: string;
-  changed_by_name?: string | null;
-  changed_at: string;
-  reason?: string | null;
-  note?: string | null;
+type DemolitionEvidenceFile = {
+  evidence_id: number | string;
+  file_name: string;
+  mime_type?: string;
+  drive_file_id?: string;
+  drive_file_url?: string;
+  evidence_type?: string;
+  uploaded_at?: string;
+};
+
+type DemolitionRecord = {
+  demolition_id: string | number;
+  case_id: string;
+  demolition_order_number?: string | null;
+  order_date?: string | null;
+  delivery_date?: string | null;
+  specified_period_days?: number | null;
+  compliance_deadline?: string | null;
+  order_reason?: string | null;
+  appeal_filed?: string | null;
+  appeal_number?: string | null;
+  appeal_date?: string | null;
+  appeal_authority?: string | null;
+  stay_granted?: string | null;
+  stay_date?: string | null;
+  compliance_status?: string | null;
+  enforcement_outcome?: string | null;
+  compliance_date?: string | null;
+  verification_date?: string | null;
+  verification_status?: string | null;
+  action_date?: string | null;
+  demolition_type?: string | null;
+  executed_by?: string | null;
+  demolished_portion?: string | null;
+  remaining_violation?: string | null;
+  next_action?: string | null;
+  expected_action_date?: string | null;
+  remarks?: string | null;
+  cost_recovery_applicable?: string | null;
+  demolition_cost?: string | number | null;
+  recovery_amount?: string | number | null;
+  recovery_status?: string | null;
+  recovery_reference?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
+  evidence_files?: DemolitionEvidenceFile[];
 };
 
 export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps) {
@@ -111,6 +149,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const [notices, setNotices] = useState<NoticeRecord[]>([]);
   const [violatorReplies, setViolatorReplies] = useState<ViolatorReply[]>([]);
   const [constructionSummary, setConstructionSummary] = useState<ConstructionSummary | null>(null);
+  const [demolitionRecord, setDemolitionRecord] = useState<DemolitionRecord | null>(null);
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -128,6 +167,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
         setNotices(data.notices || []);
         setViolatorReplies(data.violatorReplies || []);
         setConstructionSummary(data.constructionSummary || null);
+        setDemolitionRecord(data.demolitionRecord || null);
         setStatusHistory(data.statusHistory || []);
       } else {
         setError(data.message || "Failed to load case record.");
@@ -164,6 +204,24 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
     if (source.toLowerCase() === "proactive_bi") return "Proactive BI";
     if (source.toLowerCase() === "complaint") return "Complaint Based";
     return source.replace(/_/g, " ");
+  };
+
+  const formatOutcomeName = (outcome?: string | null) => {
+    if (!outcome) return "Enforcement Recorded";
+    switch (outcome) {
+      case "violator_complied":
+        return "Violator Complied";
+      case "demolition_violator":
+        return "Demolition Completed (Violator)";
+      case "demolition_mcl":
+        return "Demolition Executed (MCL)";
+      case "appeal_stay":
+        return "Appeal / Court Stay Pending";
+      case "further_action":
+        return "Further Action Required";
+      default:
+        return outcome.replace(/_/g, " ");
+    }
   };
 
   if (loading) {
@@ -465,8 +523,8 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 <span style={{ fontSize: "11px", color: "var(--muted)" }}>{isCompleteViolated ? "05" : "06"}</span>
                 <span
                   style={{
-                    background: "#f1f5f9",
-                    color: "#64748b",
+                    background: demolitionRecord ? "#dcfce7" : "#f1f5f9",
+                    color: demolitionRecord ? "#166534" : "#64748b",
                     fontSize: "10px",
                     fontWeight: 600,
                     padding: "2px 6px",
@@ -476,7 +534,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                     gap: "3px",
                   }}
                 >
-                  Action Required
+                  {demolitionRecord ? "✓ Completed" : "Action Required"}
                 </span>
               </div>
               <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1104,6 +1162,221 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
               >
                 <Icon name="edit" /> Record Construction Status
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* ── CARD: Demolition & Enforcement Information ── */}
+        <section
+          style={{
+            background: "var(--white, #ffffff)",
+            border: "1px solid var(--border, #e2e8f0)",
+            borderRadius: "10px",
+            padding: "20px",
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px", fontWeight: 700, color: "var(--ink)" }}>
+              <span>🚜</span>
+              <span>Demolition &amp; Enforcement Information</span>
+            </div>
+            <span
+              style={{
+                fontSize: "11px",
+                background: demolitionRecord ? "#dcfce7" : "#f1f5f9",
+                color: demolitionRecord ? "#166534" : "#64748b",
+                padding: "2px 8px",
+                borderRadius: "9999px",
+                fontWeight: 600,
+              }}
+            >
+              {demolitionRecord ? formatOutcomeName(demolitionRecord.enforcement_outcome) : "Pending Action"}
+            </span>
+          </div>
+
+          {demolitionRecord ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "14px 20px",
+                fontSize: "13px",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Enforcement Outcome</div>
+                <div style={{ fontWeight: 600, color: "var(--ink)" }}>
+                  {formatOutcomeName(demolitionRecord.enforcement_outcome)}
+                </div>
+              </div>
+
+              {demolitionRecord.action_date && (
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Action / Demolition Date</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{formatDate(demolitionRecord.action_date)}</div>
+                </div>
+              )}
+
+              {demolitionRecord.compliance_date && (
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Compliance Date</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{formatDate(demolitionRecord.compliance_date)}</div>
+                </div>
+              )}
+
+              {demolitionRecord.verification_date && (
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Verification Date</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{formatDate(demolitionRecord.verification_date)} ({demolitionRecord.verification_status || "Verified"})</div>
+                </div>
+              )}
+
+              {demolitionRecord.executed_by && (
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Executed By</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)" }}>{demolitionRecord.executed_by}</div>
+                </div>
+              )}
+
+              {demolitionRecord.demolition_type && (
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Demolition Type</div>
+                  <div style={{ fontWeight: 600, color: "var(--ink)", textTransform: "capitalize" }}>{demolitionRecord.demolition_type} Demolition</div>
+                </div>
+              )}
+
+              {demolitionRecord.demolished_portion && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Demolished Portion</div>
+                  <div style={{ fontWeight: 500, color: "var(--ink)" }}>{demolitionRecord.demolished_portion}</div>
+                </div>
+              )}
+
+              {demolitionRecord.remaining_violation && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Remaining Violation</div>
+                  <div style={{ fontWeight: 500, color: "var(--danger, #dc2626)" }}>{demolitionRecord.remaining_violation}</div>
+                </div>
+              )}
+
+              {demolitionRecord.cost_recovery_applicable === "yes" && (
+                <div style={{ gridColumn: "1 / -1", background: "#f8fafc", border: "1px solid #e2e8f0", padding: "10px 12px", borderRadius: "8px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "4px", color: "var(--ink)" }}>Cost Recovery Details</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "12px" }}>
+                    <div><strong>Demolition Cost:</strong> ₹{demolitionRecord.demolition_cost || 0}</div>
+                    <div><strong>Recovery Amount:</strong> ₹{demolitionRecord.recovery_amount || 0}</div>
+                    <div><strong>Status:</strong> {demolitionRecord.recovery_status || "Pending"}</div>
+                    <div><strong>Reference No:</strong> {demolitionRecord.recovery_reference || "-"}</div>
+                  </div>
+                </div>
+              )}
+
+              {demolitionRecord.appeal_filed === "yes" && (
+                <div style={{ gridColumn: "1 / -1", background: "#fffbeb", border: "1px solid #fef3c7", padding: "10px 12px", borderRadius: "8px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "4px", color: "#b45309" }}>Appeal &amp; Stay Details</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "12px", color: "#78350f" }}>
+                    <div><strong>Appeal No:</strong> {demolitionRecord.appeal_number || "-"}</div>
+                    <div><strong>Authority:</strong> {demolitionRecord.appeal_authority || "-"}</div>
+                    <div><strong>Stay Granted:</strong> {demolitionRecord.stay_granted === "yes" ? "Yes" : "No"}</div>
+                    {demolitionRecord.stay_date && <div><strong>Stay Date:</strong> {formatDate(demolitionRecord.stay_date)}</div>}
+                    {demolitionRecord.order_reason && <div style={{ gridColumn: "1 / -1" }}><strong>Court Directions:</strong> {demolitionRecord.order_reason}</div>}
+                  </div>
+                </div>
+              )}
+
+              {demolitionRecord.remarks && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Remarks / Notes</div>
+                  <div style={{ fontSize: "13px", color: "var(--ink)", fontStyle: "italic" }}>"{demolitionRecord.remarks}"</div>
+                </div>
+              )}
+
+              {/* Evidence Photos */}
+              <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
+                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "8px" }}>
+                  Demolition Evidence Photos ({demolitionRecord.evidence_files?.length || 0})
+                </div>
+                {demolitionRecord.evidence_files && demolitionRecord.evidence_files.length > 0 ? (
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    {demolitionRecord.evidence_files.map((ev) => (
+                      <a
+                        key={ev.evidence_id}
+                        href={ev.drive_file_url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-block",
+                          border: "1px solid var(--border, #e2e8f0)",
+                          borderRadius: "6px",
+                          padding: "6px 8px",
+                          background: "#ffffff",
+                          textDecoration: "none",
+                          fontSize: "12px",
+                          color: "var(--ink)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "90px",
+                            height: "64px",
+                            background: "#f8fafc",
+                            borderRadius: "4px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: "4px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {ev.drive_file_id ? (
+                            <img
+                              src={`https://lh3.googleusercontent.com/d/${ev.drive_file_id}`}
+                              alt={ev.file_name}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: "18px" }}>📷</span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: "11px", color: "var(--muted)", display: "block", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ev.file_name}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ color: "var(--muted)", fontSize: "12px" }}>No evidence photo attached</span>
+                )}
+              </div>
+
+              <div style={{ gridColumn: "1 / -1", marginTop: "10px" }}>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/enforcement`)}
+                  style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Icon name="edit" /> Edit Enforcement Action
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ color: "var(--muted)", fontSize: "13px", margin: "0 0 14px" }}>
+                No demolition or enforcement action has been recorded for this case yet.
+              </p>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/enforcement`)}
+                style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Icon name="arrow-right" /> Record Enforcement Action
               </button>
             </div>
           )}

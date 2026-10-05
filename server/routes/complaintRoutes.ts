@@ -660,6 +660,31 @@ router.get("/cases/:caseId", async (req, res) => {
       const compoundablePart = partsResult.rows.find(p => p.part_type === 'compoundable');
       const nonCompoundablePart = partsResult.rows.find(p => p.part_type === 'non_compoundable');
 
+      const demolitionResult = await pool.query(
+        `SELECT d.*,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'evidence_id', de.evidence_id,
+                'file_name', de.file_name,
+                'mime_type', de.mime_type,
+                'drive_file_id', de.drive_file_id,
+                'drive_file_url', de.drive_file_url,
+                'evidence_type', de.evidence_type,
+                'uploaded_at', de.uploaded_at
+              )
+            ) FILTER (WHERE de.evidence_id IS NOT NULL),
+            '[]'
+          ) AS evidence_files
+        FROM demolition_records d
+        LEFT JOIN demolition_evidence de ON de.demolition_id = d.demolition_id
+        WHERE LOWER(d.case_id) = LOWER($1)
+        GROUP BY d.demolition_id
+        ORDER BY d.created_at DESC
+        LIMIT 1`,
+        [actualCaseId]
+      );
+
       res.json({
         success: true,
         caseRecord,
@@ -668,6 +693,7 @@ router.get("/cases/:caseId", async (req, res) => {
         notices: noticesResult.rows,
         violatorReplies: repliesResult.rows,
         statusHistory: historyResult.rows,
+        demolitionRecord: demolitionResult.rows[0] || null,
         compoundable: compoundablePart ? {
           partStatus: compoundablePart.part_status,
           assessmentStatus: compoundablePart.assessment_status,

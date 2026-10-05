@@ -168,6 +168,9 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
   // Common Section State
   const [remarks, setRemarks] = useState("");
   const [evidencePhoto, setEvidencePhoto] = useState<File | null>(null);
+  const [existingEvidenceFiles, setExistingEvidenceFiles] = useState<
+    Array<{ evidence_id?: number | string; file_name: string; drive_file_id?: string; drive_file_url?: string }>
+  >([]);
 
   // Form Validation & Submit State
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -212,6 +215,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
       const visits = result.visits ?? [];
       const notices = result.notices ?? [];
       const constructionSummary = result.constructionSummary;
+      const demolitionRecord = result.demolitionRecord;
 
       // Use the latest inspection visit so the violator name is not hardcoded.
       const latestVisit = (visits as VisitRecord[]).reduce<VisitRecord | null>((latest, current) => {
@@ -261,6 +265,17 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         });
       };
 
+      const toInputDate = (str?: string | null) => {
+        if (!str) return "";
+        try {
+          const d = new Date(str);
+          if (isNaN(d.getTime())) return "";
+          return d.toISOString().split("T")[0];
+        } catch {
+          return "";
+        }
+      };
+
       // ===== UPDATED: Map API snake_case fields once, then use camelCase in JSX =====
       const mappedCase: CaseData = {
         caseId: caseRecord.case_id,
@@ -290,6 +305,60 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
       };
 
       setCaseData(mappedCase);
+
+      // Pre-populate demolition/enforcement form if filled earlier
+      if (demolitionRecord) {
+        if (demolitionRecord.enforcement_outcome) {
+          setOutcome(demolitionRecord.enforcement_outcome as EnforcementOutcome);
+        }
+        setComplied({
+          complianceDate: toInputDate(demolitionRecord.compliance_date),
+          verificationDate: toInputDate(demolitionRecord.verification_date),
+          verificationStatus: (demolitionRecord.verification_status as VerificationStatus) || "",
+        });
+        setDemoViolator({
+          demolitionDate: toInputDate(demolitionRecord.action_date),
+          demolitionType: (demolitionRecord.demolition_type as DemolitionType) || "full",
+          verificationDate: toInputDate(demolitionRecord.verification_date),
+          verificationStatus: (demolitionRecord.verification_status as VerificationStatus) || "",
+          demolishedPortion: demolitionRecord.demolished_portion || "",
+          remainingViolation: demolitionRecord.remaining_violation || "",
+          furtherAction: demolitionRecord.next_action || "",
+        });
+        setDemoMcl({
+          demolitionDate: toInputDate(demolitionRecord.action_date),
+          executedBy: demolitionRecord.executed_by || "",
+          demolitionType: (demolitionRecord.demolition_type as DemolitionType) || "full",
+          demolishedPortion: demolitionRecord.demolished_portion || "",
+          remainingViolation: demolitionRecord.remaining_violation || "",
+          furtherAction: demolitionRecord.next_action || "",
+          costRecovery: (demolitionRecord.cost_recovery_applicable as YesNo) || "no",
+          demolitionCost: demolitionRecord.demolition_cost ? String(demolitionRecord.demolition_cost) : "",
+          recoveryAmount: demolitionRecord.recovery_amount ? String(demolitionRecord.recovery_amount) : "",
+          recoveryStatus: demolitionRecord.recovery_status || "",
+          recoveryReference: demolitionRecord.recovery_reference || "",
+        });
+        setAppealStay({
+          appealFiled: (demolitionRecord.appeal_filed as YesNo) || "no",
+          appealNumber: demolitionRecord.appeal_number || "",
+          appealDate: toInputDate(demolitionRecord.appeal_date),
+          authority: demolitionRecord.appeal_authority || "",
+          stayGranted: (demolitionRecord.stay_granted as YesNo) || "no",
+          stayDate: toInputDate(demolitionRecord.stay_date),
+          courtDirections: demolitionRecord.order_reason || "",
+        });
+        setFurtherAction({
+          reason: demolitionRecord.order_reason || "",
+          nextAction: demolitionRecord.next_action || "",
+          expectedActionDate: toInputDate(demolitionRecord.expected_action_date),
+        });
+        if (demolitionRecord.remarks) {
+          setRemarks(demolitionRecord.remarks);
+        }
+        if (demolitionRecord.evidence_files && demolitionRecord.evidence_files.length > 0) {
+          setExistingEvidenceFiles(demolitionRecord.evidence_files);
+        }
+      }
     } catch (error: unknown) {
       setCaseFetchError(
         error instanceof Error ? error.message : "Failed to load case information."
@@ -383,9 +452,11 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
       if (!furtherAction.nextAction.trim()) errors.nextAction = "Next Action is required.";
     }
 
-    // Common requirements (except for appeal/stay which might not need immediate evidence depending on business logic, but let's assume it's required if an outcome is action-based)
+    // Common requirements (except for appeal/stay which might not need immediate evidence depending on business logic)
     if (outcome !== "appeal_stay") {
-      if (!evidencePhoto) errors.evidencePhoto = "Evidence is required.";
+      if (!evidencePhoto && existingEvidenceFiles.length === 0) {
+        errors.evidencePhoto = "Evidence is required.";
+      }
       if (!remarks.trim()) errors.remarks = "Remarks are required.";
     }
 
@@ -969,9 +1040,60 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <div>
                 <label style={labelStyle}>Evidence / Document Upload {outcome !== 'appeal_stay' ? '*' : ''}</label>
+
+                {existingEvidenceFiles && existingEvidenceFiles.length > 0 && !evidencePhoto && (
+                  <div style={{ marginBottom: "14px", padding: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "8px" }}>
+                      Previously Uploaded Evidence Image:
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                      {existingEvidenceFiles.map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={file.drive_file_url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "8px 12px",
+                            background: "#ffffff",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "6px",
+                            textDecoration: "none",
+                            fontSize: "12px",
+                            color: "var(--ink)",
+                          }}
+                        >
+                          {file.drive_file_id ? (
+                            <img
+                              src={`https://lh3.googleusercontent.com/d/${file.drive_file_id}`}
+                              alt={file.file_name}
+                              style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "4px" }}
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <Icon name="file" size={16} color="#64748b" />
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{file.file_name}</div>
+                            <div style={{ fontSize: "10px", color: "var(--muted)" }}>Click to view full image</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "8px" }}>
+                      You can select a new file below if you wish to replace or update this evidence photo.
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
                   <button type="button" onClick={() => fileInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "13px", fontWeight: 600, color: "var(--ink)", cursor: "pointer" }}>
-                    <Icon name="upload" size={16} /> Choose File
+                    <Icon name="upload" size={16} /> {existingEvidenceFiles.length > 0 ? "Replace Photo" : "Choose File"}
                   </button>
                   <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "13px", fontWeight: 600, color: "var(--ink)", cursor: "pointer" }}>
                     <Icon name="camera" size={16} /> Take Photo
