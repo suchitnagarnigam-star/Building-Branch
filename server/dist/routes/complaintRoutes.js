@@ -20,6 +20,7 @@ const driveService_1 = require("../services/driveService");
 const database_1 = require("../db/database");
 const authRoutes_1 = __importDefault(require("./authRoutes"));
 const auth_1 = require("../middleware/auth");
+const accessControl_1 = require("../services/accessControl");
 const router = (0, express_1.Router)();
 // Auth routes (public login, protected logout)
 router.use("/auth", authRoutes_1.default);
@@ -207,7 +208,11 @@ router.get("/officers/:officerId", async (req, res) => {
             });
             return;
         }
-        const assignedComplaints = complaints.filter((complaint) => complaint.assignedOfficerId === officer.officerId);
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        let assignedComplaints = complaints.filter((complaint) => complaint.assignedOfficerId === officer.officerId);
+        if (assignedBlocks !== null) {
+            assignedComplaints = assignedComplaints.filter((c) => (0, accessControl_1.isBlockAssigned)(c.block, assignedBlocks));
+        }
         res.json({
             success: true,
             officer: {
@@ -229,9 +234,10 @@ router.get("/complaints", async (req, res) => {
     try {
         const role = (req.user?.role || "").toLowerCase();
         const userId = req.user?.userId;
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
         const complaints = role === "operator" && userId
-            ? await (0, complaintStorage_1.getComplaints)(userId)
-            : await (0, complaintStorage_1.getComplaints)();
+            ? await (0, complaintStorage_1.getComplaints)(userId, assignedBlocks)
+            : await (0, complaintStorage_1.getComplaints)(undefined, assignedBlocks);
         res.json({ success: true, complaints });
     }
     catch (error) {
@@ -241,14 +247,15 @@ router.get("/complaints", async (req, res) => {
 });
 router.get("/complaints/:complaintId", async (req, res) => {
     try {
-        const role = (req.user?.role || "").toLowerCase();
-        const userId = req.user?.userId;
-        const complaints = role === "operator" && userId
-            ? await (0, complaintStorage_1.getComplaints)(userId)
-            : await (0, complaintStorage_1.getComplaints)();
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const complaints = await (0, complaintStorage_1.getComplaints)();
         const complaint = complaints.find((item) => item.complaintId === req.params.complaintId);
         if (!complaint) {
             res.status(404).json({ success: false, message: "Complaint not found." });
+            return;
+        }
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(complaint.block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
             return;
         }
         res.json({ success: true, complaint });
@@ -270,6 +277,11 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
             return;
         }
         const complaint = complaintResult.rows[0];
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(complaint.block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
         const existingCaseResult = await client.query(`SELECT case_id FROM cases WHERE primary_complaint_id = $1
        UNION
        SELECT case_id FROM case_complaints WHERE complaint_id = $1
@@ -417,8 +429,17 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
     }
 });
 // ── GET /api/cases ────────────────────────────────────────────────────────────
-router.get("/cases", async (_req, res) => {
+router.get("/cases", async (req, res) => {
     try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        if (assignedBlocks !== null && assignedBlocks.length === 0) {
+            res.json({ success: true, cases: [] });
+            return;
+        }
+        const whereClause = assignedBlocks !== null
+            ? "WHERE REPLACE(LOWER(TRIM(c.block)), 'block ', '') = ANY($1::text[])"
+            : "";
+        const params = assignedBlocks !== null ? [assignedBlocks.map(accessControl_1.normalizeBlock)] : [];
         const result = await database_1.pool.query(`
       SELECT c.*, 
              cs.construction_type,
@@ -432,8 +453,9 @@ router.get("/cases", async (_req, res) => {
         ORDER BY created_at DESC
         LIMIT 1
       ) cs ON true
+      ${whereClause}
       ORDER BY c.created_at DESC
-    `);
+    `, params);
         if (result.rows.length > 0) {
             res.json({ success: true, cases: result.rows });
             return;
@@ -443,7 +465,8 @@ router.get("/cases", async (_req, res) => {
         console.warn("[Cases] PostgreSQL query failed, using fallback case list:", error);
     }
     // High-availability fallback case list
-    const fallbackCases = [
+    const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+    let fallbackCases = [
         {
             case_id: "CASE-9A2E3B1C",
             source_type: "complaint",
@@ -473,11 +496,15 @@ router.get("/cases", async (_req, res) => {
             created_at: new Date().toISOString()
         }
     ];
+    if (assignedBlocks !== null) {
+        fallbackCases = fallbackCases.filter((c) => (0, accessControl_1.isBlockAssigned)(c.block, assignedBlocks));
+    }
     res.json({ success: true, cases: fallbackCases });
 });
 // ── GET /api/cases/:caseId ────────────────────────────────────────────────────
 router.get("/cases/:caseId", async (req, res) => {
     const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
     try {
         const result = await database_1.pool.query(`SELECT * FROM cases
        WHERE LOWER(case_id) = LOWER($1)
@@ -486,6 +513,10 @@ router.get("/cases/:caseId", async (req, res) => {
        LIMIT 1`, [caseId]);
         if (result.rows.length > 0) {
             const caseRecord = result.rows[0];
+            if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(caseRecord.block, assignedBlocks)) {
+                res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+                return;
+            }
             const actualCaseId = caseRecord.case_id;
             const summaryResult = await database_1.pool.query("SELECT * FROM case_construction_summary WHERE LOWER(case_id) = LOWER($1) ORDER BY construction_status_id DESC LIMIT 1", [actualCaseId]);
             const noticesResult = await database_1.pool.query("SELECT * FROM notices WHERE LOWER(case_id) = LOWER($1) ORDER BY created_at DESC", [actualCaseId]);
@@ -579,6 +610,10 @@ router.get("/cases/:caseId", async (req, res) => {
         current_status: "Open",
         created_at: new Date().toISOString()
     };
+    if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(fallbackCase.block, assignedBlocks)) {
+        res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+        return;
+    }
     res.json({
         success: true,
         caseRecord: fallbackCase,
@@ -621,6 +656,14 @@ router.get("/notices/check", async (req, res) => {
 router.get("/cases/:caseId/construction-status", async (req, res) => {
     const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
     try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const caseCheck = await database_1.pool.query("SELECT block FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        if (assignedBlocks !== null && caseCheck.rows.length > 0) {
+            if (!(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+                res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+                return;
+            }
+        }
         // Fetch construction summary
         const summaryResult = await database_1.pool.query("SELECT * FROM case_construction_summary WHERE LOWER(case_id) = LOWER($1) ORDER BY construction_status_id DESC LIMIT 1", [caseId]);
         // Fetch notices (Section 269)
@@ -679,11 +722,18 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
         });
         return;
     }
-    // Connect DB client for transaction
     const client = await database_1.pool.connect();
     try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
         // 1. Check or ensure case exists
         const caseCheck = await client.query("SELECT * FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [rawCaseId]);
+        if (assignedBlocks !== null && caseCheck.rows.length > 0) {
+            if (!(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+                client.release();
+                res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+                return;
+            }
+        }
         let actualCaseId = rawCaseId;
         let previousStatus = "Open";
         if (caseCheck.rows.length === 0) {
@@ -1022,6 +1072,13 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
 router.get("/complaints/:complaintId/files", async (req, res) => {
     try {
         const complaintId = req.params.complaintId;
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const complaints = await (0, complaintStorage_1.getComplaints)();
+        const complaint = complaints.find((c) => c.complaintId === complaintId);
+        if (complaint && assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(complaint.block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
         const files = await (0, driveService_1.listComplaintDriveFiles)(complaintId);
         res.json({
             success: true,
@@ -1361,6 +1418,14 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
             res.status(400).json({
                 success: false,
                 message: "Block is required.",
+            });
+            return;
+        }
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(block, assignedBlocks)) {
+            res.status(403).json({
+                success: false,
+                message: "Forbidden: You are not assigned to the selected block.",
             });
             return;
         }

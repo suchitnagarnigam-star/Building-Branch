@@ -36,6 +36,7 @@ router.post("/login", async (req: Request, res: Response) => {
       locked_until: string | null;
       officer_id: string | null;
       zone: string | null;
+      blocks: string[] | null;
     }>(
       `
         SELECT 
@@ -49,7 +50,8 @@ router.post("/login", async (req: Request, res: Response) => {
           u.failed_attempts,
           u.locked_until,
           o.officer_id,
-          o.zone
+          o.zone,
+          o.blocks
         FROM users u
         LEFT JOIN officers o ON o.user_id = u.user_id
         WHERE (u.username = $1 OR REPLACE(u.phone_number, '-', '') = REPLACE($1, '-', ''))
@@ -128,6 +130,25 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const officerId = user.officer_id || null;
     const zone = user.zone || null;
+    let blocks: string[] | null = Array.isArray(user.blocks) ? user.blocks : null;
+
+    if (!blocks && (user.role?.toLowerCase() === "bi" || user.role?.toLowerCase() === "atp")) {
+      try {
+        const { getOfficers } = await import("../services/officerMapping");
+        const officers = await getOfficers();
+        const found = officers.find(
+          (o) =>
+            (officerId && o.officerId.toLowerCase() === officerId.toLowerCase()) ||
+            (user.name && o.name.toLowerCase() === user.name.toLowerCase()) ||
+            (user.phone_number && o.mobile.replace(/-/g, "").trim() === user.phone_number.replace(/-/g, "").trim())
+        );
+        if (found) {
+          blocks = found.blocks;
+        }
+      } catch {
+        // Fallback ignore
+      }
+    }
 
     const payload: JWTPayload = {
       userId: user.user_id,
@@ -135,6 +156,7 @@ router.post("/login", async (req: Request, res: Response) => {
       role: user.role,
       name: user.name,
       zone,
+      blocks,
     };
 
     const token = generateToken(payload);
@@ -147,6 +169,7 @@ router.post("/login", async (req: Request, res: Response) => {
         role: user.role,
         name: user.name,
         zone,
+        blocks,
       },
     });
   } catch (error) {

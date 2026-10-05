@@ -26,10 +26,31 @@ async function saveLocalComplaint(complaint: Complaint): Promise<void> {
   await fs.writeFile(LOCAL_STORAGE_FILE, JSON.stringify(complaints, null, 2), "utf-8");
 }
 
-export const getComplaints = async (filterByUserId?: number): Promise<Complaint[]> => {
+import { normalizeBlock, isBlockAssigned } from "./accessControl";
+
+export const getComplaints = async (
+  filterByUserId?: number,
+  assignedBlocks?: string[] | null
+): Promise<Complaint[]> => {
+  if (assignedBlocks !== null && assignedBlocks !== undefined && assignedBlocks.length === 0) {
+    return [];
+  }
+
   try {
-    const whereClause = filterByUserId ? "WHERE submitted_by_user_id = $1" : "";
-    const params = filterByUserId ? [filterByUserId] : [];
+    const whereConditions: string[] = [];
+    const params: any[] = [];
+
+    if (filterByUserId) {
+      params.push(filterByUserId);
+      whereConditions.push(`submitted_by_user_id = $${params.length}`);
+    }
+
+    if (assignedBlocks !== null && assignedBlocks !== undefined) {
+      params.push(assignedBlocks.map(normalizeBlock));
+      whereConditions.push(`REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($${params.length}::text[])`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
 
     const result = await pool.query<Complaint>(`
       SELECT
@@ -67,9 +88,12 @@ export const getComplaints = async (filterByUserId?: number): Promise<Complaint[
     return result.rows;
   } catch (error) {
     console.warn("PostgreSQL query failed, serving complaints from local JSON storage:", (error as Error).message);
-    const local = await getLocalComplaints();
+    let local = await getLocalComplaints();
     if (filterByUserId) {
-      return local.filter((c) => c.submittedByUserId === filterByUserId);
+      local = local.filter((c) => c.submittedByUserId === filterByUserId);
+    }
+    if (assignedBlocks !== null && assignedBlocks !== undefined) {
+      local = local.filter((c) => isBlockAssigned(c.block, assignedBlocks));
     }
     return local;
   }

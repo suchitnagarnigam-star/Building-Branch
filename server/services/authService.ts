@@ -8,6 +8,7 @@ export interface JWTPayload {
   role: string;
   name: string;
   zone: string | null;
+  blocks?: string[] | null;
 }
 
 const getJwtSecret = (): string => {

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { pool } from "../db/database";
 import { authenticateToken } from "../middleware/auth";
+import { getUserAssignedBlocks, normalizeBlock } from "../services/accessControl";
 
 const router = Router();
 
@@ -12,9 +13,29 @@ router.get("/overview", async (req: Request, res: Response) => {
     const role = (req.user?.role || "").toLowerCase();
     const userId = req.user?.userId;
     const isOperator = role === "operator" && userId;
+    const assignedBlocks = await getUserAssignedBlocks(req.user);
 
-    const opFilter = isOperator ? "WHERE submitted_by_user_id = $1" : "";
-    const opParams = isOperator ? [userId] : [];
+    let opFilter = "";
+    let caseFilter = "";
+    let opParams: any[] = [];
+
+    if (isOperator) {
+      opFilter = "WHERE submitted_by_user_id = $1";
+      caseFilter = "JOIN complaints c_flt ON cases.primary_complaint_id = c_flt.complaint_id WHERE c_flt.submitted_by_user_id = $1";
+      opParams = [userId];
+    } else if (assignedBlocks !== null) {
+      if (assignedBlocks.length === 0) {
+        opFilter = "WHERE 1=0";
+        caseFilter = "WHERE 1=0";
+        opParams = [];
+      } else {
+        opFilter = "WHERE REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($1::text[])";
+        caseFilter = "WHERE REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($1::text[])";
+        opParams = [assignedBlocks.map(normalizeBlock)];
+      }
+    }
+
+    const hasParams = opParams.length > 0;
 
     const [
       kpiRes,
@@ -30,19 +51,25 @@ router.get("/overview", async (req: Request, res: Response) => {
           (SELECT COUNT(*)::int FROM complaints ${opFilter}) AS "totalComplaints",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM field_visits fv JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE c.submitted_by_user_id = $1)` 
+            : assignedBlocks !== null
+            ? `(SELECT COUNT(*)::int FROM field_visits fv LEFT JOIN cases ca ON fv.case_id = ca.case_id LEFT JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE REPLACE(LOWER(TRIM(COALESCE(ca.block, c.block))), 'block ', '') = ANY($1::text[]))`
             : `(SELECT COUNT(*)::int FROM field_visits)`} AS "totalFieldVisits",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM field_visits fv JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE fv.complaint_id IS NOT NULL AND c.submitted_by_user_id = $1)` 
+            : assignedBlocks !== null
+            ? `(SELECT COUNT(*)::int FROM field_visits fv LEFT JOIN cases ca ON fv.case_id = ca.case_id LEFT JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE fv.complaint_id IS NOT NULL AND REPLACE(LOWER(TRIM(COALESCE(ca.block, c.block))), 'block ', '') = ANY($1::text[]))`
             : `(SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NOT NULL)`} AS "linkedFieldVisits",
           ${isOperator 
             ? `0` 
+            : assignedBlocks !== null
+            ? `(SELECT COUNT(*)::int FROM field_visits fv JOIN cases ca ON fv.case_id = ca.case_id WHERE fv.complaint_id IS NULL AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[]))`
             : `(SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NULL)`} AS "standaloneFieldVisits",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM cases ca JOIN complaints c ON ca.primary_complaint_id = c.complaint_id WHERE c.submitted_by_user_id = $1)` 
-            : `(SELECT COUNT(*)::int FROM cases)`} AS "totalCases",
+            : `(SELECT COUNT(*)::int FROM cases ${caseFilter})`} AS "totalCases",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM cases ca JOIN complaints c ON ca.primary_complaint_id = c.complaint_id WHERE ca.current_status = 'Resolved' AND c.submitted_by_user_id = $1)` 
-            : `(SELECT COUNT(*)::int FROM cases WHERE current_status = 'Resolved')`} AS "resolvedCases";
+            : `(SELECT COUNT(*)::int FROM cases ${caseFilter ? caseFilter + " AND current_status = 'Resolved'" : "WHERE current_status = 'Resolved'"})`} AS "resolvedCases";
       `, opParams),
 
       // 2. Complaint Status Breakdown
@@ -70,10 +97,10 @@ router.get("/overview", async (req: Request, res: Response) => {
       // 4. Enforcement Activity
       pool.query(`
         SELECT 
-          (SELECT COUNT(*)::int FROM notices WHERE notice_type = '270') AS "notices270",
-          (SELECT COUNT(*)::int FROM notices WHERE notice_type = '269') AS "notices269",
-          (SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NULL) AS "standaloneFieldVisits";
-      `),
+          (SELECT COUNT(*)::int FROM notices n ${assignedBlocks !== null ? "JOIN cases ca ON n.case_id = ca.case_id WHERE n.notice_type = '270' AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : "WHERE notice_type = '270'"}) AS "notices270",
+          (SELECT COUNT(*)::int FROM notices n ${assignedBlocks !== null ? "JOIN cases ca ON n.case_id = ca.case_id WHERE n.notice_type = '269' AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : "WHERE notice_type = '269'"}) AS "notices269",
+          (SELECT COUNT(*)::int FROM field_visits fv ${assignedBlocks !== null ? "JOIN cases ca ON fv.case_id = ca.case_id WHERE fv.complaint_id IS NULL AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : "WHERE complaint_id IS NULL"}) AS "standaloneFieldVisits";
+      `, assignedBlocks !== null ? opParams : []),
 
       // 5. Needs Attention (4 metrics)
       pool.query(`
@@ -82,23 +109,26 @@ router.get("/overview", async (req: Request, res: Response) => {
             SELECT COUNT(*)::int FROM complaints c
             WHERE NOT EXISTS (
               SELECT 1 FROM field_visits fv WHERE fv.complaint_id = c.complaint_id
-            ) ${isOperator ? "AND c.submitted_by_user_id = $1" : ""}
+            ) ${isOperator ? "AND c.submitted_by_user_id = $1" : assignedBlocks !== null ? "AND REPLACE(LOWER(TRIM(c.block)), 'block ', '') = ANY($1::text[])" : ""}
           ) AS "complaintsNoFieldVisit",
           (
-            SELECT COUNT(*)::int FROM notices 
-            WHERE notice_type = '270' 
-            AND reply_due_at IS NOT NULL AND reply_due_at < NOW()
+            SELECT COUNT(*)::int FROM notices n
+            ${assignedBlocks !== null ? "JOIN cases ca ON n.case_id = ca.case_id" : ""}
+            WHERE n.notice_type = '270' 
+            AND n.reply_due_at IS NOT NULL AND n.reply_due_at < NOW()
+            ${assignedBlocks !== null ? "AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : ""}
           ) AS "notices270Expired",
           (
-            SELECT COUNT(*)::int FROM violator_replies
+            SELECT COUNT(*)::int FROM violator_replies vr
+            ${assignedBlocks !== null ? "JOIN cases ca ON vr.case_id = ca.case_id WHERE REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : ""}
           ) AS "violatorRepliesPending",
           (
             SELECT COUNT(*)::int FROM cases cs
             WHERE NOT EXISTS (
               SELECT 1 FROM notices n WHERE n.case_id = cs.case_id
-            )
+            ) ${assignedBlocks !== null ? "AND REPLACE(LOWER(TRIM(cs.block)), 'block ', '') = ANY($1::text[])" : ""}
           ) AS "casesNoNotice";
-      `, opParams),
+      `, hasParams ? opParams : []),
 
       // 6. Recent Complaints
       pool.query(`

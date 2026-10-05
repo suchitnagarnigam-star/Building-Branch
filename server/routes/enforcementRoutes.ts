@@ -2,6 +2,7 @@ import express, { Router } from "express";
 import multer from "multer";
 import { pool } from "../db/database";
 import { authenticateToken } from "../middleware/auth";
+import { getUserAssignedBlocks, isBlockAssigned } from "../services/accessControl";
 import { createCaseDriveFolder, uploadInspectionFile } from "../services/driveService";
 import path from "node:path";
 import { mkdir, unlink } from "node:fs/promises";
@@ -32,6 +33,18 @@ const upload = multer({ storage });
 router.get("/cases/:caseId/enforcement", async (req, res) => {
   const caseId = req.params.caseId as string;
   try {
+    const assignedBlocks = await getUserAssignedBlocks(req.user);
+    const caseCheck = await pool.query(
+      "SELECT block FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+      [caseId]
+    );
+
+    if (assignedBlocks !== null && caseCheck.rows.length > 0) {
+      if (!isBlockAssigned(caseCheck.rows[0].block, assignedBlocks)) {
+        return res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+      }
+    }
+
     const result = await pool.query(`
       SELECT d.*,
         COALESCE(
@@ -71,6 +84,17 @@ router.post("/cases/:caseId/enforcement", upload.single("evidencePhoto"), async 
   const file = req.file;
 
   try {
+    const assignedBlocks = await getUserAssignedBlocks(req.user);
+    const caseCheck = await pool.query(
+      "SELECT block FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+      [caseId]
+    );
+
+    if (assignedBlocks !== null && caseCheck.rows.length > 0) {
+      if (!isBlockAssigned(caseCheck.rows[0].block, assignedBlocks)) {
+        return res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+      }
+    }
     const payload = req.body;
     const outcome = payload.outcome;
     let compliance_date = null, verification_date = null, verification_status = null, action_date = null;
