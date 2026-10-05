@@ -715,6 +715,36 @@ router.get("/cases/:caseId", async (req, res) => {
   });
 });
 
+// ── GET /api/notices/check ───────────────────────────────────────────────────
+router.get("/notices/check", async (req, res) => {
+  const noticeNumber = String(req.query.noticeNumber || "").trim();
+  if (!noticeNumber) {
+    res.json({ success: true, exists: false });
+    return;
+  }
+  try {
+    const result = await pool.query(
+      "SELECT * FROM notices WHERE LOWER(notice_number) = LOWER($1) LIMIT 1",
+      [noticeNumber]
+    );
+    if (result.rows.length > 0) {
+      res.json({
+        success: true,
+        exists: true,
+        notice: result.rows[0],
+      });
+    } else {
+      res.json({
+        success: true,
+        exists: false,
+      });
+    }
+  } catch (error) {
+    console.error("[Notices] Error checking notice number:", error);
+    res.status(500).json({ success: false, message: "Error checking notice number." });
+  }
+});
+
 // ── GET /api/cases/:caseId/construction-status ─────────────────────────────────
 router.get("/cases/:caseId/construction-status", async (req, res) => {
   const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
@@ -969,6 +999,18 @@ router.post(
       let compoundableCompleted = existingCompoundable?.part_status === 'completed';
       let nonCompoundableCompleted = existingNonCompoundable?.part_status === 'completed';
 
+      if (compoundableCompleted) {
+        if (status === "compoundable" || (status === "partly_compoundable" && body.compoundableType?.trim() === "compoundable")) {
+          await client.query("ROLLBACK");
+          client.release();
+          res.status(400).json({
+            success: false,
+            message: "Compoundable section is already completed and immutable."
+          });
+          return;
+        }
+      }
+
       const compoundableType = body.compoundableType?.trim() || "full";
 
       const processCompoundable =
@@ -980,13 +1022,13 @@ router.post(
         (status === "partly_compoundable" && (compoundableType === "full" || compoundableType === "non_compoundable"));
 
       // 4. Handle Compoundable section
-      if (processCompoundable) {
+      if (processCompoundable && !compoundableCompleted) {
         const rawAssessment = body.assessmentStatus?.trim().toLowerCase();
         const assessmentStatus = rawAssessment === "pending" ? "pending" : "assessed";
-        const totalCharges = body.totalCharges ? parseFloat(body.totalCharges) : null;
-        const assessmentDate = body.assessmentDate?.trim() || null;
-        const receiptNumber = body.receiptNumber?.trim() || null;
-        const receiptDate = body.receiptDate?.trim() || null;
+        const totalCharges = body.totalCharges && !isNaN(parseFloat(body.totalCharges)) ? parseFloat(body.totalCharges) : null;
+        const assessmentDate = body.assessmentDate?.trim() ? body.assessmentDate.trim() : null;
+        const receiptNumber = body.receiptNumber?.trim() ? body.receiptNumber.trim() : null;
+        const receiptDate = body.receiptDate?.trim() ? body.receiptDate.trim() : null;
 
         const partStatus = assessmentStatus === "assessed" ? "completed" : "pending";
 
@@ -1035,29 +1077,47 @@ router.post(
       const hasNoticeData = Boolean(rawNoticeNumber || rawNoticeDate || noticePhoto);
 
       if (processNonCompoundable && (status === "non_compoundable" || hasNoticeData)) {
-        const noticeNumber = rawNoticeNumber || `MCL/SEC269/${Date.now().toString().slice(-6)}`;
-        const noticeDate = rawNoticeDate || new Date().toISOString();
-
-        const noticeInsert = await client.query(
-          `INSERT INTO notices (
-             case_id, notice_type, notice_number, issued_by_id, issued_by_name,
-             issued_at, enforcement_path, document_name, drive_file_id, drive_file_url,
-             metadata
-           ) VALUES ($1, '269', $2, $3, $4, $5, 'demolition_sealing', $6, $7, $8, $9)
-           RETURNING notice_id`,
-          [
-            actualCaseId,
-            noticeNumber,
-            officerId,
-            officerName,
-            noticeDate,
-            noticeDocumentName || null,
-            noticeDriveId || null,
-            noticeDriveUrl || null,
-            JSON.stringify({ noticeType: "269", constructionType: status, generatedVia: "field_inspection" })
-          ]
+        const existing269 = await client.query(
+          `SELECT notice_id FROM notices WHERE LOWER(case_id) = LOWER($1) AND notice_type = '269' LIMIT 1`,
+          [actualCaseId]
         );
-        notice269Id = noticeInsert.rows[0].notice_id;
+        if ((existing269.rowCount ?? 0) > 0) {
+          const isFullyHandled = status === "non_compoundable" || (status === "partly_compoundable" && compoundableCompleted && nonCompoundableCompleted);
+          if (isFullyHandled) {
+            await client.query("ROLLBACK");
+            client.release();
+            res.status(400).json({
+              success: false,
+              message: "Section 269 notice has already been issued and is immutable for this fully handled case."
+            });
+            return;
+          }
+          notice269Id = existing269.rows[0].notice_id;
+        } else {
+          const noticeNumber = rawNoticeNumber || `MCL/SEC269/${Date.now().toString().slice(-6)}`;
+          const noticeDate = rawNoticeDate || new Date().toISOString();
+
+          const noticeInsert = await client.query(
+            `INSERT INTO notices (
+               case_id, notice_type, notice_number, issued_by_id, issued_by_name,
+               issued_at, enforcement_path, document_name, drive_file_id, drive_file_url,
+               metadata
+             ) VALUES ($1, '269', $2, $3, $4, $5, 'demolition_sealing', $6, $7, $8, $9)
+             RETURNING notice_id`,
+            [
+              actualCaseId,
+              noticeNumber,
+              officerId,
+              officerName,
+              noticeDate,
+              noticeDocumentName || null,
+              noticeDriveId || null,
+              noticeDriveUrl || null,
+              JSON.stringify({ noticeType: "269", constructionType: status, generatedVia: "field_inspection" })
+            ]
+          );
+          notice269Id = noticeInsert.rows[0].notice_id;
+        }
 
         const nonCompoundablePartStatus = "completed";
 
@@ -1420,17 +1480,18 @@ router.post(
 
         combinedOcr,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(
         "[OCR] Source processing failed:",
         error,
       );
 
+      const message = error instanceof Error ? error.message : "Failed to process the uploaded source document.";
+
       res.status(500).json({
         success: false,
         status: "failed",
-        message:
-          "Failed to process the uploaded source document.",
+        message,
       });
     }
   },
@@ -2011,20 +2072,34 @@ const hasNoticeData = Boolean(
   noticePhotos.length > 0,
 );
 
-if (inspectionOutcome === "violation_found") {
-  if (
-    !body.noticeNumber?.trim() ||
-    !body.noticeDate?.trim() ||
-    noticePhotos.length === 0
-  ) {
-    res.status(400).json({
-      success: false,
-      message:
-        "Notice number, notice date and notice photo are required when a violation is found.",
-    });
-    return;
-  }
-} else if (inspectionOutcome === "complete_violated") {
+      if (inspectionOutcome === "violation_found") {
+        const targetComplaintId = body.complaintId?.trim() || null;
+        if (targetComplaintId) {
+          const existing270 = await pool.query(
+            `SELECT n.notice_id FROM notices n JOIN case_complaints cc ON n.case_id = cc.case_id WHERE cc.complaint_id = $1 AND n.notice_type = '270' LIMIT 1`,
+            [targetComplaintId]
+          );
+          if ((existing270.rowCount ?? 0) > 0) {
+            res.status(400).json({
+              success: false,
+              message: "Section 270 notice has already been issued for this case and cannot be modified or re-submitted."
+            });
+            return;
+          }
+        }
+        if (
+          !body.noticeNumber?.trim() ||
+          !body.noticeDate?.trim() ||
+          noticePhotos.length === 0
+        ) {
+          res.status(400).json({
+            success: false,
+            message:
+              "Notice number, notice date and notice photo are required when a violation is found.",
+          });
+          return;
+        }
+      } else if (inspectionOutcome === "complete_violated") {
   // Complete & Violated no longer requires or processes notices during inspection submission.
 } else if (hasNoticeData) {
   res.status(400).json({

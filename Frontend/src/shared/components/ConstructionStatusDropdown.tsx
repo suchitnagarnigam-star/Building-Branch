@@ -16,6 +16,7 @@ type ConstructionStatusDropdownProps = {
 
   isOpen?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
+  disabled?: boolean;
 };
 
 function ConstructionStatusDropdown({
@@ -25,6 +26,7 @@ function ConstructionStatusDropdown({
   onPartlyTypeChange,
   isOpen: controlledIsOpen,
   onOpenChange,
+  disabled,
 }: ConstructionStatusDropdownProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [submenuOpen, setSubmenuOpen] = useState(false);
@@ -188,9 +190,11 @@ function ConstructionStatusDropdown({
         ref={toggleRef}
         className={`status-dropdown-toggle ${
           isOpen ? "status-dropdown-toggle--open" : ""
-        }`}
+        } ${disabled ? "status-dropdown-toggle--disabled" : ""}`}
+        style={disabled ? { opacity: 0.85, cursor: "not-allowed", background: "#f8fafc" } : undefined}
         onClick={(event) => {
           event.stopPropagation();
+          if (disabled) return;
 
           if (submenuOpen) {
             setSubmenuOpen(false);

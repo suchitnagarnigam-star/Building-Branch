@@ -102,12 +102,20 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
         if (data.notices && data.notices.length > 0) {
           const sec269 = data.notices.find((n: any) => n.notice_type === "269" || n.notice_type === "SECTION_269");
           if (sec269) {
+            setExistingSection269Notice(sec269);
+            setNoticeCheckStatus("already_exists");
             setNonCompoundable({
               noticeNumber: sec269.notice_number || "",
               noticeDate: sec269.issued_at ? sec269.issued_at.split("T")[0] : "",
               noticePhoto: null,
             });
+          } else {
+            setExistingSection269Notice(null);
+            setNoticeCheckStatus("idle");
           }
+        } else {
+          setExistingSection269Notice(null);
+          setNoticeCheckStatus("idle");
         }
 
         const compDone = data.compoundable?.partStatus === "completed";
@@ -131,21 +139,29 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
         if (constStatus === "partly_compoundable") {
           if (compDone && !nonCompDone) {
             setCompoundableType("non_compoundable");
+            setIsDropdownLocked(true);
           } else if (nonCompDone && !compDone) {
             setCompoundableType("compoundable");
+            setIsDropdownLocked(false);
           } else {
             setCompoundableType("full");
+            setIsDropdownLocked(false);
           }
         } else if (constStatus === "compoundable") {
           setCompoundableType("compoundable");
+          setIsDropdownLocked(false);
         } else if (constStatus === "non_compoundable") {
           setCompoundableType("non_compoundable");
+          setIsDropdownLocked(false);
+        } else {
+          setIsDropdownLocked(false);
         }
       } else {
         setCaseRecord(null);
         setCaseError(data.message || `No case found matching "${cleanId}". Please check the Case or Complaint ID.`);
         setStatus("");
         setCompoundableType("full");
+        setIsDropdownLocked(false);
         setCompoundable({
           assessmentStatus: "",
           totalCharges: "",
@@ -191,7 +207,41 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
   // ── Construction Status details ─────────────────────────────────────────────
   const [status, setStatus] = useState<ConstructionStatusType>("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isDropdownLocked, setIsDropdownLocked] = useState(false);
   const [compoundableType, setCompoundableType] = useState<PartlyCompoundableType>("full");
+  const [noticeCheckStatus, setNoticeCheckStatus] = useState<string>("idle");
+  const [existingSection269Notice, setExistingSection269Notice] =
+    useState<any | null>(null);
+
+  const checkNoticeNumber = async (num: string) => {
+    const trimmed = num.trim();
+    if (!trimmed) {
+      setNoticeCheckStatus("idle");
+      setExistingSection269Notice(null);
+      return;
+    }
+    setNoticeCheckStatus("checking");
+    try {
+      const res = await fetch(`/api/notices/check?noticeNumber=${encodeURIComponent(trimmed)}`);
+      const data = await res.json();
+      if (data.success && data.exists) {
+        setNoticeCheckStatus("already_exists");
+        setExistingSection269Notice(data.notice);
+        if (data.notice.issued_at) {
+          setNonCompoundable((prev) => ({
+            ...prev,
+            noticeDate: data.notice.issued_at.split("T")[0],
+          }));
+        }
+      } else {
+        setNoticeCheckStatus("available");
+        setExistingSection269Notice(null);
+      }
+    } catch (e) {
+      console.warn("Error checking notice number", e);
+      setNoticeCheckStatus("idle");
+    }
+  };
   const [compoundable, setCompoundable] = useState<CompoundableDetails>({
     assessmentStatus: "",
     totalCharges: "",
@@ -236,7 +286,11 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
 
     if (newStatus === "partly_compoundable") {
       setCompoundableType("full");
-    } 
+    } else if (newStatus === "compoundable") {
+      setCompoundableType("compoundable");
+    } else if (newStatus === "non_compoundable") {
+      setCompoundableType("non_compoundable");
+    }
   };
 
   const handleCompoundableChange = (
@@ -293,7 +347,7 @@ const validate = (): boolean => {
       errors.assessmentStatus =
         "Status of Assessment is required.";
     } else if (compoundable.assessmentStatus === "Assessed") {
-      if (!compoundable.totalCharges.trim()) {
+      if (!String(compoundable.totalCharges || "").trim()) {
         errors.totalCharges = "Total Charges is required.";
       }
 
@@ -302,7 +356,7 @@ const validate = (): boolean => {
           "Date of Assessment is required.";
       }
 
-      if (!compoundable.receiptNumber.trim()) {
+      if (!String(compoundable.receiptNumber || "").trim()) {
         errors.receiptNumber =
           "Receipt No. is required.";
       }
@@ -319,8 +373,12 @@ const validate = (): boolean => {
     }
   }
 
-  if (needsNonCompoundable) {
-    if (!nonCompoundable.noticeNumber.trim()) {
+  const isNoticeImmutable =
+    Boolean(existingSection269Notice) ||
+    noticeCheckStatus === "already_exists";
+
+  if (needsNonCompoundable && !isNoticeImmutable) {
+    if (!String(nonCompoundable.noticeNumber || "").trim()) {
       errors.noticeNumber = "Notice No. is required.";
     }
 
@@ -476,6 +534,45 @@ if (needsNonCompoundable) {
       setIsSubmitting(false);
       setSubmitError(err instanceof Error ? err.message : "Submission failed. Please check network connection.");
     }
+  };
+
+  const renderCompletedCompoundableFields = (sectionNumber: string, sectionLabel?: string) => {
+    return (
+      <section className="inspection-card">
+        <div className="inspection-card__header">
+          <span className="inspection-card__number">{sectionNumber}</span>
+          <div>
+            <h2>{sectionLabel ?? "Compoundable Details"} (Completed ✓)</h2>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", fontSize: "13px", padding: "8px 0 0" }}>
+          <div>
+            <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Status of Assessment</div>
+            <div style={{ fontWeight: 600, color: "var(--ink)" }}>{compoundable.assessmentStatus || "Assessed"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Total Charges</div>
+            <div style={{ fontWeight: 600, color: "var(--ink)" }}>₹ {compoundable.totalCharges ? Number(compoundable.totalCharges).toLocaleString("en-IN") : "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Date of Assessment</div>
+            <div style={{ fontWeight: 600, color: "var(--ink)" }}>{compoundable.assessmentDate || "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Receipt Number</div>
+            <div style={{ fontWeight: 600, color: "var(--ink)" }}>{compoundable.receiptNumber || casePartsState.compoundableReceipt || "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Receipt Date</div>
+            <div style={{ fontWeight: 600, color: "var(--ink)" }}>{compoundable.receiptDate || "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Status</div>
+            <div style={{ fontWeight: 600, color: "#166534" }}>Completed & Immutable ✓</div>
+          </div>
+        </div>
+      </section>
+    );
   };
 
   const renderCompoundableFields = (sectionNumber: string, sectionLabel?: string) => {
@@ -634,7 +731,42 @@ if (needsNonCompoundable) {
     );
   };
 
-  const renderNonCompoundableFields = (sectionNumber: string, sectionLabel?: string) => (
+  const renderNonCompoundableFields = (sectionNumber: string, sectionLabel?: string) => {
+    const isNoticeImmutable =
+      Boolean(existingSection269Notice) ||
+      noticeCheckStatus === "already_exists";
+
+    if (isNoticeImmutable) {
+      return (
+        <section className="inspection-card">
+          <div className="inspection-card__header">
+            <span className="inspection-card__number">{sectionNumber}</span>
+            <div>
+              <h2>{sectionLabel ?? "Non-Compoundable Details"} (Already Issued ✓)</h2>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", fontSize: "13px", padding: "8px 0 0" }}>
+            <div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Number</div>
+              <div style={{ fontWeight: 600, color: "var(--ink)" }}>{nonCompoundable.noticeNumber || existingSection269Notice?.notice_number || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Notice Date</div>
+              <div style={{ fontWeight: 600, color: "var(--ink)" }}>{nonCompoundable.noticeDate || (existingSection269Notice?.issued_at ? existingSection269Notice.issued_at.split("T")[0] : "—")}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Section</div>
+              <div style={{ fontWeight: 600, color: "var(--ink)" }}>PMC Section 269 (Demolition / Sealing)</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>Status</div>
+              <div style={{ fontWeight: 600, color: "#166534" }}>Already Issued & Immutable ✓</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+    return (
     <section className="inspection-card">
       <div className="inspection-card__header">
         <span className="inspection-card__number">{sectionNumber}</span>
@@ -647,14 +779,49 @@ if (needsNonCompoundable) {
           <label htmlFor="noticeNumber">
             Notice No. <span>*</span>
           </label>
-          <input
-            id="noticeNumber"
-            type="text"
-            required
-            value={nonCompoundable.noticeNumber}
-            onChange={(e) => handleNonCompoundableChange("noticeNumber", e.target.value)}
-            placeholder="Enter notice number"
-          />
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              id="noticeNumber"
+              type="text"
+              required
+              value={nonCompoundable.noticeNumber}
+              onChange={(e) => {
+                handleNonCompoundableChange("noticeNumber", e.target.value);
+                setNoticeCheckStatus("idle");
+                setExistingSection269Notice(null);
+              }}
+              onBlur={(e) => {
+                if (e.target.value.trim()) {
+                  checkNoticeNumber(e.target.value);
+                }
+              }}
+              placeholder="Enter notice number"
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ padding: "8px 12px", fontSize: "12px", height: "38px" }}
+              onClick={() => {
+                if (nonCompoundable.noticeNumber.trim()) {
+                  checkNoticeNumber(nonCompoundable.noticeNumber);
+                }
+              }}
+              disabled={noticeCheckStatus === "checking" || !nonCompoundable.noticeNumber.trim()}
+            >
+              {noticeCheckStatus === "checking" ? "Checking..." : "Check"}
+            </button>
+          </div>
+          {noticeCheckStatus === "already_exists" && (
+            <small style={{ color: "#166534", fontWeight: 600, marginTop: "4px", display: "block" }}>
+              Already Issued ✓
+            </small>
+          )}
+          {noticeCheckStatus === "available" && (
+            <small style={{ color: "#0284c7", fontWeight: 600, marginTop: "4px", display: "block" }}>
+              Notice number available.
+            </small>
+          )}
           {fieldErrors.noticeNumber && (
             <small className="field-error">{fieldErrors.noticeNumber}</small>
           )}
@@ -728,6 +895,7 @@ if (needsNonCompoundable) {
       </div>
     </section>
   );
+  };
 
   const renderReplyByViolatorFields = (sectionNumber: string) => (
     <section className="inspection-card">
@@ -1026,6 +1194,7 @@ if (needsNonCompoundable) {
                 }}
                 isOpen={isOpen}
                 onOpenChange={setIsOpen}
+                disabled={isDropdownLocked}
               />
               {fieldErrors.status && <small className="field-error">{fieldErrors.status}</small>}
 
@@ -1100,12 +1269,18 @@ if (needsNonCompoundable) {
               </>
             )}
 
-            {compoundableType === "non_compoundable" && (
+            {compoundableType === "non_compoundable" && casePartsState.compoundableDone ? (
+              <>
+                {renderCompletedCompoundableFields("02", "SECTION A — Compoundable Part")}
+                {renderNonCompoundableFields("03", "SECTION B — Non-Compoundable Part")}
+                {renderReplyByViolatorFields("04")}
+              </>
+            ) : compoundableType === "non_compoundable" ? (
               <>
                 {renderNonCompoundableFields("02", "SECTION B — Non-Compoundable Part")}
                 {renderReplyByViolatorFields("03")}
               </>
-            )}
+            ) : null}
           </>
         )}
 

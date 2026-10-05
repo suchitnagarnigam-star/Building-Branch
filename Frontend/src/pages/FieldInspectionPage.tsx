@@ -86,6 +86,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   );
   const [existingCaseId, setExistingCaseId] = useState(initialCaseId);
   const [caseLookup, setCaseLookup] = useState<CaseLookup | null>(null);
+  const [caseNotices, setCaseNotices] = useState<any[]>([]);
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState("");
 
@@ -208,6 +209,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
         const result = await response.json() as {
           success?: boolean;
           caseRecord?: CaseLookup;
+          notices?: any[];
           message?: string;
         };
 
@@ -217,6 +219,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
 
         const caseRec = result.caseRecord;
         setCaseLookup(caseRec);
+        if (result.notices) setCaseNotices(result.notices);
         if (caseRec.assigned_bi_id) setReportingOfficer(caseRec.assigned_bi_id);
         if (caseRec.block) setBlock(caseRec.block);
         if (caseRec.ward) setWard(caseRec.ward);
@@ -242,7 +245,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
     user && (user.role === "bi" || (user.officerId && officers.some((o) => o.officerId === user.officerId && isBiOfficer(o))))
   );
 
-  const effectiveReportingOfficer = reportingOfficer || (isBiUser && user?.officerId ? user.officerId : "");
+  const effectiveReportingOfficer = isBiUser && user?.officerId ? user.officerId : reportingOfficer;
 
   const zone = useMemo(() => zoneForBlock(block), [block]);
   const selectedReportingOfficer = useMemo(
@@ -257,6 +260,29 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   }, [selectedReportingOfficer]);
 
   const supervisingAtp = useMemo(() => {
+    // For Proactive Visit (field_visit) when logged-in user is an officer (isBiUser),
+    // auto-fetch that officer's mapped Supervising ATP immediately without requiring block selection.
+    if (sourceOfReport === "field_visit" && isBiUser && user?.officerId) {
+      const loggedInOfficer = officers.find((o) => o.officerId === user.officerId);
+      if (loggedInOfficer) {
+        const officerBlocks = new Set(loggedInOfficer.blocks.map(normalise));
+        const mappedAtp = officers.find(
+          (officer) =>
+            officer.designation.trim().toUpperCase() === "ATP" &&
+            normalise(officer.zone) === normalise(loggedInOfficer.zone) &&
+            officer.blocks.some((officerBlock) => officerBlocks.has(normalise(officerBlock)))
+        );
+        if (mappedAtp) return mappedAtp;
+
+        const zoneAtp = officers.find(
+          (officer) =>
+            officer.designation.trim().toUpperCase() === "ATP" &&
+            normalise(officer.zone) === normalise(loggedInOfficer.zone)
+        );
+        if (zoneAtp) return zoneAtp;
+      }
+    }
+
     const selectedBlock = normalise(block);
     if (!selectedBlock && !zone) return undefined;
 
@@ -293,7 +319,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
       };
     }
     return undefined;
-  }, [block, complaintLookup, officers, zone]);
+  }, [block, complaintLookup, officers, zone, sourceOfReport, isBiUser, user]);
 
   const isComplaintMode = sourceOfReport === "complaint";
   const isCaseMode = sourceOfReport === "case";
@@ -310,7 +336,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
       setExistingCaseId("");
       setCaseLookup(null);
       setCaseError("");
-      setReportingOfficer("");
+      setReportingOfficer(isBiUser && user?.officerId ? user.officerId : "");
       setBlock("");
       setWard("");
       setLocation("");
@@ -399,7 +425,7 @@ const submitInspection = async (
     return;
   }
 
-  if (!reportingOfficer) {
+  if (!effectiveReportingOfficer) {
     setSubmitError(
       "Please select a reporting officer.",
     );
@@ -1035,18 +1061,27 @@ const submitInspection = async (
 
         {inspectionOutcome === "violation_found" && (
           <section className="notice-section">
-            <button type="button" className="notice-section__header" onClick={() => setNoticeOpen((current) => !current)} aria-expanded={noticeOpen}>
-              <span className="notice-section__icon"><Icon name="alert" /></span>
-              <span><strong>Notice 270(1)</strong></span>
-              <span className="notice-section__toggle">{noticeOpen ? "−" : "+"}</span>
-            </button>
-            {noticeOpen && <div className="notice-section__body">
-              <div className="inspection-grid">
-                <div className="form-field"><label htmlFor="noticeNumber">Notice Number <span>*</span></label><input id="noticeNumber" required value={noticeNumber} onChange={(event) => setNoticeNumber(event.target.value)} placeholder="Number" /></div>
-                <div className="form-field"><label htmlFor="noticeDate">Date <span>*</span></label><input id="noticeDate" required type="date" value={noticeDate} onChange={(event) => setNoticeDate(event.target.value)} /></div>
-                <div className="form-field form-field--full"><label>Notice Photo <span>*</span></label><div className="notice-upload"><Icon name="upload" /><span>{noticePhoto ? noticePhoto.name : "Upload photo"}</span><button type="button" className="secondary-button" onClick={() => noticeInputRef.current?.click()}>{noticePhoto ? "Replace" : "Choose"}</button><input ref={noticeInputRef} required={!noticePhoto} type="file" accept="image/*" capture="environment" hidden onChange={(event) => setNoticePhoto(event.target.files?.[0] ?? null)} /></div></div>
+            {caseNotices.find((n) => n.notice_type === "270" || String(n.notice_type).includes("270")) ? (
+              <div className="notice-section__header" style={{ background: "#f0fdf4", color: "#166534" }}>
+                <span className="notice-section__icon"><Icon name="check-circle" /></span>
+                <span><strong>Notice 270(1) — Already Issued &amp; Immutable ✓</strong></span>
               </div>
-            </div>}
+            ) : (
+              <>
+                <button type="button" className="notice-section__header" onClick={() => setNoticeOpen((current) => !current)} aria-expanded={noticeOpen}>
+                  <span className="notice-section__icon"><Icon name="alert" /></span>
+                  <span><strong>Notice 270(1)</strong></span>
+                  <span className="notice-section__toggle">{noticeOpen ? "−" : "+"}</span>
+                </button>
+                {noticeOpen && <div className="notice-section__body">
+                  <div className="inspection-grid">
+                    <div className="form-field"><label htmlFor="noticeNumber">Notice Number <span>*</span></label><input id="noticeNumber" required value={noticeNumber} onChange={(event) => setNoticeNumber(event.target.value)} placeholder="Number" /></div>
+                    <div className="form-field"><label htmlFor="noticeDate">Date <span>*</span></label><input id="noticeDate" required type="date" value={noticeDate} onChange={(event) => setNoticeDate(event.target.value)} /></div>
+                    <div className="form-field form-field--full"><label>Notice Photo <span>*</span></label><div className="notice-upload"><Icon name="upload" /><span>{noticePhoto ? noticePhoto.name : "Upload photo"}</span><button type="button" className="secondary-button" onClick={() => noticeInputRef.current?.click()}>{noticePhoto ? "Replace" : "Choose"}</button><input ref={noticeInputRef} required={!noticePhoto} type="file" accept="image/*" capture="environment" hidden onChange={(event) => setNoticePhoto(event.target.files?.[0] ?? null)} /></div></div>
+                  </div>
+                </div>}
+              </>
+            )}
           </section>
         )}
 
