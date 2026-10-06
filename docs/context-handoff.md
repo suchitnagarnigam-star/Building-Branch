@@ -177,3 +177,48 @@ npm run dev
 | **Case Detail View** | `Frontend/src/pages/CaseDetailPage.tsx` | Complete | Statutory timeline, notices, replies, demolition records, close case & review reply modals |
 | **Operational Dashboard** | `Frontend/src/features/dashboard/DashboardPage.tsx` | Complete | Live role-scoped KPIs, status bars, Needs Attention alerts, recent complaints |
 | **Officers Performance** | `Frontend/src/features/officers/OfficersPage.tsx` | Complete | 4 KPI cards, 3-card Top Performers Podium, workload bars, detail drawer, ATP supervisory rollup |
+
+---
+
+## 6. Prioritized Roadmap & Next Session Execution Order
+
+### 6.1 Honest Priority Stack
+
+1. **Do Immediately (Closes Open Loose Ends)**:
+   - **Section 270 Notification Trigger**: Wire push dispatch in `POST /api/inspections` when `violation_found` / Section 270 notice is recorded to notify the supervising ATP (`case-${caseId}-notice-270`).
+   - **Browser Push Delivery Test**: Test live push receipt on mobile device via Chrome/Safari.
+   - **Frontend `.env.example`**: Create `Frontend/.env.example` documenting `VITE_API_BASE_URL` and environment defaults.
+
+2. **Next Meaningful Feature: PWA Manifest + Installability**:
+   - Enables native **"Add to Home Screen"** on mobile for field inspectors (opens fullscreen without browser chrome, shows app icon on home screen, loads faster, reliable push delivery).
+   - Create `Frontend/public/manifest.webmanifest`.
+   - Add mobile viewport & PWA meta tags in `Frontend/index.html` (`<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="mobile-web-app-capable">`, `<meta name="apple-mobile-web-app-capable">`).
+   - Place standard icons (`icon-192.png`, `icon-512.png`, maskable) in `Frontend/public/`.
+   - **Target Commit**: `"PWA installability : added web manifest, mobile viewport tags, and home screen app icons"`
+
+3. **Following Feature: In-App Notification Bell & Center (PWA Phase 2)**:
+   - Verify PostgreSQL `notifications` table schema; add migration `007_` if any columns (`officer_id`, `title`, `body`, `read`, `created_at`, `case_id`) are missing.
+   - **Dual-Delivery Pattern**: When `pushService.ts` fires a push notification, simultaneously insert a record into the `notifications` table so officers who miss or dismiss browser pushes can still review them in-app.
+   - API endpoints: `GET /api/notifications` (last 20, unread first) and `PATCH /api/notifications/:id/read`.
+   - Frontend UI: Notification bell icon with unread count badge and slide-out dropdown/drawer in `Frontend/src/layout/Topbar.tsx`.
+   - **Target Commit**: `"In-app notification center : implemented notifications API, pushService dual-write, and Topbar notification bell drawer"`
+
+4. **Deferred to Post-MVP Scope (Non-Blocking)**:
+   - **SLA Delayed Case Flagging & Case Score**: Requires background cron/worker infrastructure.
+   - **Statutory Notice PDF Templates**: Physical print generation for Section 270/269 notices.
+   - **Offline Draft Storage & Background Sync**: Complex IndexedDB client-side synchronization for zero-connectivity field inspections.
+
+### 6.2 Next Session Execution Sequence
+```
+1. Wire Section 270 notification trigger in complaintRoutes.ts (10 min)
+2. Verify browser push delivery test on device (20 min)
+3. Create Frontend/.env.example (5 min)
+4. Add manifest.webmanifest + PWA icons + index.html tags (30 min)
+   ─── COMMIT: "PWA installability" ───
+5. Inspect notifications table schema in PostgreSQL (5 min)
+6. Add dual-write insertion into notifications table in pushService.ts (15 min)
+7. Build GET /api/notifications + PATCH /api/notifications/:id/read endpoints (20 min)
+8. Build notification bell dropdown in Topbar.tsx (30 min)
+   ─── COMMIT: "In-app notification center" ───
+```
+

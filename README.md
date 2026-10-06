@@ -36,7 +36,7 @@ The backend runs at `http://localhost:5000`.
 
 ## Authoritative Statutory Enforcement Workflow (`workflow.pdf`)
 
-For full product specifications, legal citations, and architecture, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md) and [`docs/implementation_plan.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/implementation_plan.md).
+For full product specifications, legal citations, and architecture, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md) and [`docs/context-handoff.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/context-handoff.md).
 
 ```mermaid
 flowchart TD
@@ -212,13 +212,20 @@ Processing endpoints:
 - `POST /api/inspections` (geotagged inspection evidence; Section 270 notice recording; block-scoped)
 - `GET /api/cases/:caseId/notices` (retrieves Section 270 and Section 269 notice records for a case)
 
-### Statutory Enforcement & Demolitions
+### Statutory Enforcement, Case Lifecycle & Closures
 - `GET /api/cases` (block-scoped search/list of enforcement cases)
 - `GET /api/cases/:caseId` (fully hydrated case record; block-scoped)
 - `GET /api/cases/:caseId/construction-status` (compoundable assessment & Section 269 notice status)
 - `POST /api/cases/:caseId/construction-status` (upserts section-level construction decisions & violator replies)
+- `POST /api/cases/:caseId/review-reply` (evaluates violator reply as valid or invalid with statutory status transition)
+- `POST /api/cases/:caseId/close` (statutory supervisory case closure with mandatory description and evidence)
 - `GET /api/cases/:caseId/enforcement` (retrieves recorded demolition details, cost recovery, stay orders, & Drive evidence files)
 - `POST /api/cases/:caseId/enforcement` (statutory demolition & enforcement action recording, Google Drive upload, & status transition)
+
+### Web Push Notifications (PWA)
+- `GET /api/push/vapid-public-key` (returns server VAPID public key for browser push subscription)
+- `POST /api/push/subscribe` (upserts officer device push subscription with unique constraints)
+- `DELETE /api/push/subscribe` (removes device endpoint from subscription table)
 
 ### Analytics & Officer Operations
 - `GET /api/analytics/overview` (live operational KPI counts, complaint statuses, zone breakdowns, and statutory Needs Attention flags)

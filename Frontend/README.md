@@ -34,12 +34,22 @@ The frontend uses an application shell pattern:
 | `#/complaints/:id` | `ComplaintDetailPage.tsx` | Complaint metadata, Drive attachment viewer, assigned officers, case file promotion banner & actions |
 | `#/complaints/confirm/:id` | `ComplaintConfirmationPage.tsx` | Registration success receipt with complaint reference number |
 | `#/cases` | `CasesPage.tsx` | Dedicated Enforcement Cases list with Lifecycle Status & Source filters and active case metric segregation |
-| `#/cases/:caseId` | `CaseDetailPage.tsx` | Full statutory Enforcement Case view, statutory milestone progress, audit history, and notices |
-| `#/cases/:caseId/construction-status` | `ConstructionStatusPage.tsx` | Construction status classification form (Compoundable, Partly Compoundable, Non-Compoundable) & fee assessment |
-| `#/construction-status` | `ConstructionStatusPage.tsx` | Dual-lookup intake form with `-- Choose an Existing Case or enter Complaint ID --` prompt |
+| `#/cases/:caseId` | `CaseDetailPage.tsx` | Full statutory Enforcement Case view with timeline, notices, replies, demolition card, Close Case modal, and Review Reply modal |
+| `#/cases/:caseId/construction-status` | `ConstructionStatusForm.tsx` | Construction status classification form (Compoundable, Partly Compoundable, Non-Compoundable) & fee assessment |
+| `#/cases/:caseId/enforcement` | `EnforcementActionForm.tsx` | Statutory demolition tracking with 5 outcome paths, 3-day compliance gate, and Drive preview thumbnails |
+| `#/construction-status` | `ConstructionStatusForm.tsx` | Dual-lookup intake form with `-- Choose an Existing Case or enter Complaint ID --` prompt |
 | `#/field-inspection` | `FieldInspectionPage.tsx` | BI field visit report: GPS geolocation, photos, building classification, and Section 270 notice recording |
-| `#/officers` | `OfficersPage.tsx` | Roster directory showing assigned BI and ATP officers across Zones and Blocks |
+| `#/officers` | `OfficersPage.tsx` | Roster directory showing assigned BI and ATP officers across Zones and Blocks with performance leaderboard |
+| `#/users` | `UsersPage.tsx` | Superadmin user administration and role management portal |
 | `#/settings` | `SettingsPage.tsx` | Profile, system preferences, and root font-size display scaling controls (85%-115%) |
+
+---
+
+## PWA & Web Push Architecture
+
+- **Service Worker (`public/sw.js`)**: Background event listener managing Web Push notifications with statutory deduplication tags (`tag: case-${caseId}-...`) and smart window focus on `notificationclick`.
+- **Subscription Hook (`src/hooks/usePushNotifications.ts`)**: Automatically requests permission and registers officer browser push endpoints with `/api/push/subscribe` using VAPID keys upon authenticated login.
+
 
 ---
 

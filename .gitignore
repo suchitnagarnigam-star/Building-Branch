@@ -52,3 +52,6 @@ desktop.ini
 *.temp
 *.bak
 *.traineddata
+
+# Security scans / pentest artifacts
+strix_runs/
