@@ -3,6 +3,7 @@ import multer from "multer";
 import { pool } from "../db/database";
 import { authenticateToken } from "../middleware/auth";
 import { getUserAssignedBlocks, isBlockAssigned } from "../services/accessControl";
+import { applyTransition } from "../services/workflowService";
 import { createCaseDriveFolder, uploadInspectionFile } from "../services/driveService";
 import path from "node:path";
 import { mkdir, unlink } from "node:fs/promises";
@@ -244,22 +245,22 @@ router.post("/cases/:caseId/enforcement", upload.single("evidencePhoto"), async 
       further_action: "Further Action Required",
     };
     const newStatus = statusMap[outcome] || "Enforcement Action Taken";
+    const targetStatus = stay_granted === 'yes' ? 'stay_granted' : 'enforcement_recorded';
 
-    await pool.query(
-      `UPDATE cases SET current_status = $1, updated_at = NOW() WHERE LOWER(case_id) = LOWER($2)`,
-      [newStatus, caseId]
-    );
-
-    await pool.query(
-      `INSERT INTO case_status_history (case_id, previous_status, new_status, changed_by_name, note)
-       VALUES ($1, (SELECT current_status FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1), $2, $3, $4)`,
-      [caseId, newStatus, (req as any).user?.name || "System Officer", `Enforcement outcome updated: ${newStatus}`]
+    // Transition state machine validation and update
+    await applyTransition(
+      caseId,
+      targetStatus,
+      (req as any).user,
+      pool,
+      `Enforcement outcome updated (${outcome}): ${newStatus}`
     );
 
     res.json({ success: true, demolitionId });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error saving enforcement action:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ success: false, message: error.message || "Internal server error" });
   }
 });
 

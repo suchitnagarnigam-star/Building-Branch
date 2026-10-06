@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Icon from "../shared/components/Icon";
+import { useAuth } from "../context/AuthContext";
 
 type CaseDetailPageProps = {
   caseId: string;
@@ -73,6 +74,24 @@ type ViolatorReply = {
   file_name?: string | null;
   drive_file_url?: string | null;
   created_at?: string;
+  review_status?: string | null;
+  reviewed_by_id?: string | null;
+  reviewed_by_name?: string | null;
+  reviewed_at?: string | null;
+  review_remarks?: string | null;
+};
+
+type CaseClosure = {
+  closure_id: string | number;
+  case_id: string;
+  closed_by_id: string;
+  closed_by_name: string;
+  closed_by_role: string;
+  closure_reason: string;
+  closing_description: string;
+  evidence_file_name?: string | null;
+  evidence_drive_file_url?: string | null;
+  closed_at: string;
 };
 
 type ConstructionSummary = {
@@ -152,6 +171,7 @@ type StatusHistory = {
 };
 
 export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps) {
+  const { user } = useAuth();
   const [caseRecord, setCaseRecord] = useState<CaseRecord | null>(null);
   const [visits, setVisits] = useState<FieldVisitRecord[]>([]);
   const [notices, setNotices] = useState<NoticeRecord[]>([]);
@@ -159,45 +179,40 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const [constructionSummary, setConstructionSummary] = useState<ConstructionSummary | null>(null);
   const [demolitionRecord, setDemolitionRecord] = useState<DemolitionRecord | null>(null);
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
+  const [caseClosure, setCaseClosure] = useState<CaseClosure | null>(null);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [reviewingReply, setReviewingReply] = useState<ViolatorReply | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let ignore = false;
-
-    const fetchCaseData = async () => {
-      try {
-        const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-        const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}`);
-        const data = await res.json();
-        if (ignore) return;
-        if (data.success && data.caseRecord) {
-          setCaseRecord(data.caseRecord);
-          setVisits(data.visits || []);
-          setNotices(data.notices || []);
-          setViolatorReplies(data.violatorReplies || []);
-          setConstructionSummary(data.constructionSummary || null);
-          setDemolitionRecord(data.demolitionRecord || null);
-          setStatusHistory(data.statusHistory || []);
-        } else {
-          setError(data.message || "Failed to load case record.");
-        }
-      } catch {
-        if (!ignore) {
-          setError("Unable to connect to server. Please try again.");
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+  const loadCaseData = useCallback(async () => {
+    try {
+      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}`);
+      const data = await res.json();
+      if (data.success && data.caseRecord) {
+        setCaseRecord(data.caseRecord);
+        setVisits(data.visits || []);
+        setNotices(data.notices || []);
+        setViolatorReplies(data.violatorReplies || []);
+        setConstructionSummary(data.constructionSummary || null);
+        setDemolitionRecord(data.demolitionRecord || null);
+        setStatusHistory(data.statusHistory || []);
+        setCaseClosure(data.caseClosure || null);
+        setError("");
+      } else {
+        setError(data.message || "Failed to load case record.");
       }
-    };
-
-    void fetchCaseData();
-    return () => {
-      ignore = true;
-    };
+    } catch {
+      setError("Unable to connect to server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [caseId]);
+
+  useEffect(() => {
+    void loadCaseData();
+  }, [loadCaseData]);
 
   const formatDate = (isoStr?: string | null) => {
     if (!isoStr) return "N/A";
@@ -274,48 +289,119 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const hasReply = violatorReplies.length > 0;
   const hasConstruction = Boolean(constructionSummary || caseRecord.construction_status);
 
+  const normUserRole = (user?.role || "").toLowerCase();
+  const isBi = normUserRole === "bi";
+  const isCaseClosed = Boolean(caseRecord.current_status && caseRecord.current_status.toLowerCase().includes("closed"));
+  const canReviewReply = ["atp", "mtp", "jc", "superadmin", "admin"].includes(normUserRole);
+
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "16px 24px 60px", fontFamily: "'Inter', sans-serif", color: "var(--ink)" }}>
       {/* ── 1. HEADER / BREADCRUMB BAR ── */}
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => navigate?.("/cases")}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "var(--ink)",
+              }}
+            >
+              ← Case {caseRecord.case_id}
+            </button>
+            <span
+              style={{
+                background: isCaseClosed ? "#dcfce7" : "var(--bridal-blue, #e9f3ff)",
+                color: isCaseClosed ? "#166534" : "var(--midnight, #0b1957)",
+                fontSize: "11px",
+                fontWeight: 600,
+                padding: "2px 10px",
+                borderRadius: "9999px",
+                border: isCaseClosed ? "1px solid #86efac" : "1px solid rgba(11, 25, 87, 0.12)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {caseRecord.current_status || "Open"}
+            </span>
+          </div>
+          <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
+            Location: {caseRecord.location || "Operational Area"} • Block {caseRecord.block || "19"}, Zone {caseRecord.zone || "Zone D"}
+          </p>
+        </div>
+
+        {/* Action Controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button
-            type="button"
-            onClick={() => navigate?.("/cases")}
+            disabled={isBi || isCaseClosed}
+            title={
+              isBi
+                ? "Case closure requires ATP or higher supervisory approval"
+                : isCaseClosed
+                ? "This case is already closed under statutory authority"
+                : "Initiate formal statutory case closure"
+            }
+            onClick={() => setShowCloseModal(true)}
             style={{
-              background: "none",
+              padding: "8px 16px",
+              background: isCaseClosed ? "#16a34a" : "#dc2626",
+              color: "#ffffff",
               border: "none",
-              padding: 0,
-              cursor: "pointer",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: isBi || isCaseClosed ? "not-allowed" : "pointer",
+              opacity: isBi ? 0.45 : 1,
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "var(--ink)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              transition: "all 0.2s ease",
             }}
           >
-            ← Case {caseRecord.case_id}
+            {isCaseClosed ? "✓ Case Closed" : "Close Case"}
           </button>
-          <span
-            style={{
-              background: "var(--bridal-blue, #e9f3ff)",
-              color: "var(--midnight, #0b1957)",
-              fontSize: "11px",
-              fontWeight: 600,
-              padding: "2px 10px",
-              borderRadius: "9999px",
-              border: "1px solid rgba(11, 25, 87, 0.12)",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {caseRecord.current_status || "Open"}
-          </span>
         </div>
-        <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-          Location: {caseRecord.location || "Operational Area"} • Block {caseRecord.block || "19"}, Zone {caseRecord.zone || "Zone D"}
-        </p>
       </div>
+
+      {/* ── STATUTORY CLOSURE BANNER (if case is closed) ── */}
+      {caseClosure && (
+        <section
+          style={{
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            borderRadius: "10px",
+            padding: "14px 18px",
+            marginBottom: "20px",
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>🏛️</span>
+              <div>
+                <strong style={{ fontSize: "14px", color: "#166534" }}>Case Formally Closed under Punjab Municipal Corporation Act 1976</strong>
+                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#15803d" }}>
+                  Reason: <strong>{caseClosure.closure_reason}</strong> • Closed by <strong>{caseClosure.closed_by_name}</strong> ({caseClosure.closed_by_role}) on {formatDate(caseClosure.closed_at)}
+                </p>
+              </div>
+            </div>
+          </div>
+          {caseClosure.closing_description && (
+            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "#14532d", background: "#dcfce7", padding: "8px 12px", borderRadius: "6px" }}>
+              <strong>Closing Findings:</strong> {caseClosure.closing_description}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* ── 2. WORKFLOW PIPELINE CARD ── */}
       <section
@@ -1030,32 +1116,95 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
 
           {hasReply ? (
             <div style={{ fontSize: "13px", display: "flex", flexDirection: "column", gap: "12px" }}>
-              {violatorReplies.map((r) => (
-                <div key={r.reply_id} style={{ border: "1px solid #e2e8f0", borderRadius: "6px", padding: "10px 12px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "11px", color: "var(--muted)" }}>Reply Date: {formatDate(r.reply_date)}</span>
+              {violatorReplies.map((r) => {
+                const isReplyValid = r.review_status === "valid";
+                const isReplyInvalid = r.review_status === "invalid";
+                const isPending = !r.review_status || r.review_status === "pending";
+
+                return (
+                  <div key={r.reply_id} style={{ border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px 14px", background: "#ffffff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "6px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--muted)" }}>Reply Date: {formatDate(r.reply_date)}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {isReplyValid && (
+                          <span style={{ background: "#dcfce7", color: "#166534", fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "9999px" }}>
+                            ✓ Validated (Accepted)
+                          </span>
+                        )}
+                        {isReplyInvalid && (
+                          <span style={{ background: "#fee2e2", color: "#991b1b", fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "9999px" }}>
+                            ✗ Rejected (Invalid)
+                          </span>
+                        )}
+                        {isPending && (
+                          <span style={{ background: "#fef3c7", color: "#92400e", fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "9999px" }}>
+                            Pending Evaluation
+                          </span>
+                        )}
+                        {isPending && canReviewReply && (
+                          <button
+                            type="button"
+                            onClick={() => setReviewingReply(r)}
+                            style={{
+                              background: "var(--midnight, #0b1957)",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              padding: "4px 10px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Evaluate Reply
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ color: "var(--ink)", fontWeight: 500 }}>{r.reply_text || "Document reply submitted"}</div>
+                    {r.drive_file_url && (
+                      <a
+                        href={r.drive_file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "12px",
+                          color: "var(--navy, #0b1957)",
+                          marginTop: "6px",
+                          textDecoration: "underline",
+                        }}
+                      >
+                        <span>📎</span> {r.file_name || "View Reply Attachment"}
+                      </a>
+                    )}
+                    {r.reviewed_by_name && (
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          padding: "8px 12px",
+                          background: isReplyValid ? "#f0fdf4" : "#fef2f2",
+                          border: isReplyValid ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          color: isReplyValid ? "#166534" : "#991b1b",
+                        }}
+                      >
+                        <div>
+                          <strong>Evaluated by:</strong> {r.reviewed_by_name} on {formatDate(r.reviewed_at)}
+                        </div>
+                        {r.review_remarks && (
+                          <div style={{ marginTop: "2px" }}>
+                            <strong>Remarks:</strong> {r.review_remarks}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ color: "var(--ink)", fontWeight: 500 }}>{r.reply_text || "Document reply submitted"}</div>
-                  {r.drive_file_url && (
-                    <a
-                      href={r.drive_file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontSize: "12px",
-                        color: "var(--navy, #0b1957)",
-                        marginTop: "6px",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      <span>📎</span> {r.file_name || "View Reply Attachment"}
-                    </a>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>
@@ -1449,6 +1598,503 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
           )}
         </section>
       </div>
+
+      {/* ── STATUTORY MODALS ── */}
+      {showCloseModal && (
+        <CloseCaseModal
+          caseId={caseRecord.case_id}
+          onClose={() => setShowCloseModal(false)}
+          onSuccess={() => {
+            setShowCloseModal(false);
+            void loadCaseData();
+          }}
+        />
+      )}
+
+      {reviewingReply && (
+        <ReviewReplyModal
+          caseId={caseRecord.case_id}
+          reply={reviewingReply}
+          onClose={() => setReviewingReply(null)}
+          onSuccess={() => {
+            setReviewingReply(null);
+            void loadCaseData();
+          }}
+        />
+      )}
     </div>
   );
 }
+
+function CloseCaseModal({
+  caseId,
+  onClose,
+  onSuccess,
+}: {
+  caseId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [closureReason, setClosureReason] = useState("Violator Complied & Verified");
+  const [closingDescription, setClosingDescription] = useState("");
+  const [evidenceFileName, setEvidenceFileName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!closingDescription.trim()) {
+      setErrorMsg("Please provide closing summary and statutory findings.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMsg("");
+      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          closureReason,
+          closingDescription: closingDescription.trim(),
+          evidenceFileName: evidenceFileName.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.message || "Failed to close case under statutory rules.");
+        return;
+      }
+
+      onSuccess();
+    } catch {
+      setErrorMsg("Network error: Unable to contact server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(15, 23, 42, 0.65)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: "16px",
+      }}
+    >
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: "12px",
+          width: "100%",
+          maxWidth: "540px",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
+          border: "1px solid #cbd5e1",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--ink)" }}>Close Statutory Case</h3>
+            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>Case Reference: {caseId}</p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            style={{ background: "none", border: "none", fontSize: "20px", color: "var(--muted)", cursor: "pointer" }}
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px" }}>
+          {/* Statutory Alert Banner */}
+          <div
+            style={{
+              padding: "12px 14px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: "8px",
+              marginBottom: "16px",
+              fontSize: "12px",
+              color: "#991b1b",
+              lineHeight: 1.5,
+            }}
+          >
+            ⚠️ <strong>Statutory Notice:</strong> Case closure is a permanent legal action under the Punjab Municipal Corporation Act 1976. This action requires verified compliance, satisfied demolition, accepted reply, or paid compounding receipts.
+          </div>
+
+          {errorMsg && (
+            <div
+              style={{
+                padding: "10px 14px",
+                background: "#fee2e2",
+                border: "1px solid #f87171",
+                borderRadius: "6px",
+                marginBottom: "14px",
+                fontSize: "13px",
+                color: "#b91c1c",
+              }}
+            >
+              {errorMsg}
+            </div>
+          )}
+
+          <div style={{ marginBottom: "14px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "6px" }}>
+              Statutory Closure Ground *
+            </label>
+            <select
+              value={closureReason}
+              onChange={(e) => setClosureReason(e.target.value)}
+              disabled={isSubmitting}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "13px",
+                color: "var(--ink)",
+                background: "#ffffff",
+              }}
+            >
+              <option value="Violator Complied & Verified">Violator Complied & Verified by Field Inspection</option>
+              <option value="Compounding Fees Deposited & Cleared">Compounding Fees Deposited & Cleared</option>
+              <option value="Demolition Order Satisfied">Demolition Order Satisfied (Violator / MCL)</option>
+              <option value="Violator Reply Accepted by Authority">Violator Reply Formally Accepted by Authority</option>
+              <option value="Stay / Quashed by Appellate Court">Stay / Quashed by Appellate Court Order</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: "14px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "6px" }}>
+              Closing Summary & Findings *
+            </label>
+            <textarea
+              rows={3}
+              value={closingDescription}
+              onChange={(e) => setClosingDescription(e.target.value)}
+              disabled={isSubmitting}
+              placeholder="Record final statutory findings, order references, or verification details..."
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "13px",
+                color: "var(--ink)",
+                resize: "vertical",
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "6px" }}>
+              Evidence File Reference (Optional)
+            </label>
+            <input
+              type="text"
+              value={evidenceFileName}
+              onChange={(e) => setEvidenceFileName(e.target.value)}
+              disabled={isSubmitting}
+              placeholder="e.g. final_verification_memo_2026.pdf"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "13px",
+                color: "var(--ink)",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              style={{
+                padding: "8px 16px",
+                background: "#f1f5f9",
+                color: "var(--ink)",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                padding: "8px 18px",
+                background: "#dc2626",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: isSubmitting ? "wait" : "pointer",
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
+            >
+              {isSubmitting ? "Closing Case..." : "Confirm & Close Case"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ReviewReplyModal({
+  caseId,
+  reply,
+  onClose,
+  onSuccess,
+}: {
+  caseId: string;
+  reply: ViolatorReply;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [verdict, setVerdict] = useState<"valid" | "invalid">("valid");
+  const [reviewRemarks, setReviewRemarks] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      setIsSubmitting(true);
+      setErrorMsg("");
+      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}/review-reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          replyId: reply.reply_id,
+          verdict,
+          reviewRemarks: reviewRemarks.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.message || "Failed to evaluate reply.");
+        return;
+      }
+
+      onSuccess();
+    } catch {
+      setErrorMsg("Network error: Unable to contact server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(15, 23, 42, 0.65)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: "16px",
+      }}
+    >
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: "12px",
+          width: "100%",
+          maxWidth: "520px",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
+          border: "1px solid #cbd5e1",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--ink)" }}>Evaluate Violator Reply</h3>
+            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>Reply ID #{reply.reply_id} • Case {caseId}</p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            style={{ background: "none", border: "none", fontSize: "20px", color: "var(--muted)", cursor: "pointer" }}
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px" }}>
+          {/* Submitted Reply Content */}
+          <div style={{ background: "#f8fafc", padding: "12px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+            <span style={{ fontSize: "11px", color: "var(--muted)", display: "block", marginBottom: "4px" }}>Submitted Text:</span>
+            <p style={{ margin: 0, fontSize: "13px", color: "var(--ink)", fontWeight: 500 }}>
+              {reply.reply_text || "Document reply submitted without inline text"}
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div
+              style={{
+                padding: "10px 14px",
+                background: "#fee2e2",
+                border: "1px solid #f87171",
+                borderRadius: "6px",
+                marginBottom: "14px",
+                fontSize: "13px",
+                color: "#b91c1c",
+              }}
+            >
+              {errorMsg}
+            </div>
+          )}
+
+          {/* Verdict Radio Selectors */}
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "8px" }}>
+              Supervisory Verdict *
+            </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  border: verdict === "valid" ? "2px solid #22c55e" : "1px solid #cbd5e1",
+                  background: verdict === "valid" ? "#f0fdf4" : "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="verdict"
+                  value="valid"
+                  checked={verdict === "valid"}
+                  onChange={() => setVerdict("valid")}
+                  style={{ marginTop: "3px" }}
+                />
+                <div>
+                  <strong style={{ fontSize: "13px", color: "#166534" }}>Accept as Valid (Legally Justified)</strong>
+                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#15803d" }}>
+                    Violator's justification is accepted. Case becomes eligible for statutory closure.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  border: verdict === "invalid" ? "2px solid #ef4444" : "1px solid #cbd5e1",
+                  background: verdict === "invalid" ? "#fef2f2" : "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="verdict"
+                  value="invalid"
+                  checked={verdict === "invalid"}
+                  onChange={() => setVerdict("invalid")}
+                  style={{ marginTop: "3px" }}
+                />
+                <div>
+                  <strong style={{ fontSize: "13px", color: "#991b1b" }}>Reject as Invalid (Violation Persists)</strong>
+                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#b91c1c" }}>
+                    Reply does not cure the violation. Proceed with statutory demolition / enforcement action.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "6px" }}>
+              Supervisory Remarks / Rationale
+            </label>
+            <textarea
+              rows={3}
+              value={reviewRemarks}
+              onChange={(e) => setReviewRemarks(e.target.value)}
+              disabled={isSubmitting}
+              placeholder="State reasons for acceptance or statutory grounds for rejection..."
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "13px",
+                color: "var(--ink)",
+                resize: "vertical",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              style={{
+                padding: "8px 16px",
+                background: "#f1f5f9",
+                color: "var(--ink)",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                padding: "8px 18px",
+                background: "var(--midnight, #0b1957)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: isSubmitting ? "wait" : "pointer",
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
+            >
+              {isSubmitting ? "Recording..." : "Save Evaluation"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+

@@ -28,6 +28,7 @@ import {pool} from "../db/database";
 import authRoutes from "./authRoutes";
 import { authenticateToken, requireRole } from "../middleware/auth";
 import { getUserAssignedBlocks, isBlockAssigned, normalizeBlock } from "../services/accessControl";
+import { applyTransition, validateCaseTransition, normalizeCaseStatus } from "../services/workflowService";
 
 const router = Router();
 
@@ -740,6 +741,7 @@ router.get("/cases/:caseId", async (req, res) => {
         violatorReplies: repliesResult.rows,
         statusHistory: historyResult.rows,
         demolitionRecord: demolitionResult.rows[0] || null,
+        caseClosure: (await pool.query("SELECT * FROM case_closures WHERE LOWER(case_id) = LOWER($1) ORDER BY closed_at DESC LIMIT 1", [actualCaseId])).rows[0] || null,
         compoundable: compoundablePart ? {
           partStatus: compoundablePart.part_status,
           assessmentStatus: compoundablePart.assessment_status,
@@ -791,6 +793,168 @@ router.get("/cases/:caseId", async (req, res) => {
     statusHistory: [],
   });
 });
+
+// ── POST /api/cases/:caseId/review-reply ──────────────────────────────────────
+router.post(
+  "/cases/:caseId/review-reply",
+  requireRole("atp", "mtp", "jc", "superadmin", "admin"),
+  async (req, res) => {
+    const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const { replyId, verdict, reviewRemarks } = req.body;
+
+    if (!replyId || !verdict || !["valid", "invalid"].includes(verdict)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid payload: replyId and verdict ('valid' or 'invalid') are required.",
+      });
+      return;
+    }
+
+    try {
+      const assignedBlocks = await getUserAssignedBlocks(req.user);
+      const caseCheck = await pool.query(
+        "SELECT case_id, block FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+        [caseId]
+      );
+
+      if (caseCheck.rows.length === 0) {
+        res.status(404).json({ success: false, message: `Case "${caseId}" not found.` });
+        return;
+      }
+
+      if (assignedBlocks !== null && !isBlockAssigned(caseCheck.rows[0].block, assignedBlocks)) {
+        res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+        return;
+      }
+
+      const actualCaseId = caseCheck.rows[0].case_id;
+      const targetStatus = verdict === "valid" ? "reply_reviewed_valid" : "reply_reviewed_invalid";
+
+      // Apply transition through workflow domain service
+      await applyTransition(
+        actualCaseId,
+        targetStatus,
+        req.user!,
+        pool,
+        `Violator reply evaluated as ${verdict.toUpperCase()}: ${reviewRemarks || "No remarks provided"}`
+      );
+
+      // Update review columns in violator_replies
+      await pool.query(
+        `UPDATE violator_replies
+         SET review_status = $1,
+             reviewed_by_id = $2,
+             reviewed_by_name = $3,
+             reviewed_at = NOW(),
+             review_remarks = $4
+         WHERE reply_id = $5 AND LOWER(case_id) = LOWER($6)`,
+        [
+          verdict,
+          req.user?.officerId || String(req.user?.userId),
+          req.user?.name || "Supervisory Officer",
+          reviewRemarks || null,
+          replyId,
+          actualCaseId,
+        ]
+      );
+
+      res.json({
+        success: true,
+        message: `Violator reply successfully evaluated as ${verdict}.`,
+        caseId: actualCaseId,
+        newStatus: targetStatus,
+      });
+    } catch (error: any) {
+      console.error("[Cases] Error reviewing violator reply:", error);
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || "Failed to record reply evaluation.",
+      });
+    }
+  }
+);
+
+// ── POST /api/cases/:caseId/close ─────────────────────────────────────────────
+router.post(
+  "/cases/:caseId/close",
+  requireRole("atp", "mtp", "jc", "superadmin", "admin"),
+  async (req, res) => {
+    const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const { closureReason, closingDescription, evidenceFileName, evidenceUrl, evidenceDriveId } = req.body;
+
+    if (!closureReason || !closingDescription) {
+      res.status(400).json({
+        success: false,
+        message: "Missing required fields: closureReason and closingDescription are required.",
+      });
+      return;
+    }
+
+    try {
+      const assignedBlocks = await getUserAssignedBlocks(req.user);
+      const caseCheck = await pool.query(
+        "SELECT case_id, block, assigned_bi_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+        [caseId]
+      );
+
+      if (caseCheck.rows.length === 0) {
+        res.status(404).json({ success: false, message: `Case "${caseId}" not found.` });
+        return;
+      }
+
+      if (assignedBlocks !== null && !isBlockAssigned(caseCheck.rows[0].block, assignedBlocks)) {
+        res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+        return;
+      }
+
+      const actualCaseId = caseCheck.rows[0].case_id;
+
+      // Apply transition through workflow domain service (governance and statutory checks)
+      await applyTransition(
+        actualCaseId,
+        "closed",
+        req.user!,
+        pool,
+        `Case closed by ${req.user?.name} (${req.user?.role}): ${closureReason} — ${closingDescription}`
+      );
+
+      // Record statutory closure record
+      const closureResult = await pool.query(
+        `INSERT INTO case_closures (
+           case_id, closed_by_id, closed_by_name, closed_by_role, closure_reason,
+           closing_description, evidence_file_name, evidence_drive_file_id, evidence_drive_file_url, closed_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+         RETURNING *`,
+        [
+          actualCaseId,
+          req.user?.officerId || String(req.user?.userId),
+          req.user?.name || "Supervisory Officer",
+          req.user?.role || "ATP",
+          closureReason,
+          closingDescription,
+          evidenceFileName || null,
+          evidenceDriveId || null,
+          evidenceUrl || null,
+        ]
+      );
+
+      res.json({
+        success: true,
+        message: "Case successfully closed under statutory authority.",
+        caseId: actualCaseId,
+        closure: closureResult.rows[0],
+      });
+    } catch (error: any) {
+      console.error("[Cases] Error closing case:", error);
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || "Failed to close case.",
+      });
+    }
+  }
+);
 
 // ── GET /api/notices/check ───────────────────────────────────────────────────
 router.get("/notices/check", async (req, res) => {
