@@ -8,6 +8,9 @@ import { useRouter } from "./shared/hooks/useRouter";
 import { useAuth } from "./context/AuthContext";
 import LoginScreen from "./features/auth/LoginScreen";
 
+// Notifications
+import { usePushNotifications } from "./hooks/usePushNotifications";
+
 // Types
 import type { AppComplaint } from "./shared/types";
 
@@ -101,6 +104,9 @@ function App() {
   const { route, navigate } = useRouter();
   const { user, isLoading, logout } = useAuth();
   const [, setSelectedComplaintId] = useState("");
+
+  // Push notifications registration for officers
+  usePushNotifications();
 
   // Route matching helpers
   const getCaseIdFromRoute = (): string | null => {

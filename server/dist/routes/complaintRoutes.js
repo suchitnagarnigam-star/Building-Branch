@@ -21,6 +21,8 @@ const database_1 = require("../db/database");
 const authRoutes_1 = __importDefault(require("./authRoutes"));
 const auth_1 = require("../middleware/auth");
 const accessControl_1 = require("../services/accessControl");
+const workflowService_1 = require("../services/workflowService");
+const pushService_1 = require("../services/pushService");
 const router = (0, express_1.Router)();
 // Auth routes (public login, protected logout)
 router.use("/auth", authRoutes_1.default);
@@ -336,6 +338,14 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
              updated_at = NOW()
          WHERE case_id = $5`, [biOfficerId, biOfficerName, atpOfficerId, atpOfficerName, caseId]);
             await client.query("COMMIT");
+            if (biOfficerId) {
+                void (0, pushService_1.notifyOfficer)(biOfficerId, {
+                    title: "New Complaint Assigned",
+                    body: `Complaint ${complaintId} assigned. Case: ${caseId}`,
+                    tag: `case-${caseId}-assigned`,
+                    url: `/cases/${encodeURIComponent(caseId)}`,
+                });
+            }
             res.json({
                 success: true,
                 message: "Complaint assigned. Existing case reused.",
@@ -411,6 +421,14 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
         case_id, previous_status, new_status, changed_by_name, reason, note
       ) VALUES ($1, NULL, 'Open', $2, 'Case created from assigned complaint', $3)`, [caseId, biOfficerName || "Operations Desk", `Promoted from complaint ${complaintId}`]);
         await client.query("COMMIT");
+        if (biOfficerId) {
+            void (0, pushService_1.notifyOfficer)(biOfficerId, {
+                title: "New Complaint Assigned",
+                body: `Complaint ${complaintId} assigned. New Case: ${caseId}`,
+                tag: `case-${caseId}-assigned`,
+                url: `/cases/${encodeURIComponent(caseId)}`,
+            });
+        }
         res.status(201).json({
             success: true,
             message: "Complaint assigned and case created successfully.",
@@ -582,6 +600,7 @@ router.get("/cases/:caseId", async (req, res) => {
                 violatorReplies: repliesResult.rows,
                 statusHistory: historyResult.rows,
                 demolitionRecord: demolitionResult.rows[0] || null,
+                caseClosure: (await database_1.pool.query("SELECT * FROM case_closures WHERE LOWER(case_id) = LOWER($1) ORDER BY closed_at DESC LIMIT 1", [actualCaseId])).rows[0] || null,
                 compoundable: compoundablePart ? {
                     partStatus: compoundablePart.part_status,
                     assessmentStatus: compoundablePart.assessment_status,
@@ -630,6 +649,137 @@ router.get("/cases/:caseId", async (req, res) => {
         violatorReplies: [],
         statusHistory: [],
     });
+});
+// ── POST /api/cases/:caseId/review-reply ──────────────────────────────────────
+router.post("/cases/:caseId/review-reply", (0, auth_1.requireRole)("atp", "mtp", "jc", "superadmin", "admin"), async (req, res) => {
+    const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const { replyId, verdict, reviewRemarks } = req.body;
+    if (!replyId || !verdict || !["valid", "invalid"].includes(verdict)) {
+        res.status(400).json({
+            success: false,
+            message: "Invalid payload: replyId and verdict ('valid' or 'invalid') are required.",
+        });
+        return;
+    }
+    try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const caseCheck = await database_1.pool.query("SELECT case_id, block, assigned_bi_id, assigned_atp_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        if (caseCheck.rows.length === 0) {
+            res.status(404).json({ success: false, message: `Case "${caseId}" not found.` });
+            return;
+        }
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
+        const actualCaseId = caseCheck.rows[0].case_id;
+        const targetStatus = verdict === "valid" ? "reply_reviewed_valid" : "reply_reviewed_invalid";
+        // Apply transition through workflow domain service
+        await (0, workflowService_1.applyTransition)(actualCaseId, targetStatus, req.user, database_1.pool, `Violator reply evaluated as ${verdict.toUpperCase()}: ${reviewRemarks || "No remarks provided"}`);
+        // Update review columns in violator_replies
+        await database_1.pool.query(`UPDATE violator_replies
+         SET review_status = $1,
+             reviewed_by_id = $2,
+             reviewed_by_name = $3,
+             reviewed_at = NOW(),
+             review_remarks = $4
+         WHERE reply_id = $5 AND LOWER(case_id) = LOWER($6)`, [
+            verdict,
+            req.user?.officerId || String(req.user?.userId),
+            req.user?.name || "Supervisory Officer",
+            reviewRemarks || null,
+            replyId,
+            actualCaseId,
+        ]);
+        // Web Push notification to assigned Building Inspector
+        if (caseCheck.rows[0].assigned_bi_id) {
+            void (0, pushService_1.notifyOfficer)(caseCheck.rows[0].assigned_bi_id, {
+                title: `Violator Reply ${verdict === "valid" ? "Accepted ✓" : "Rejected ✗"}`,
+                body: `Violator reply for Case ${actualCaseId} was evaluated as ${verdict}`,
+                tag: `case-${actualCaseId}-reply-review`,
+                url: `/cases/${encodeURIComponent(actualCaseId)}`,
+            });
+        }
+        res.json({
+            success: true,
+            message: `Violator reply successfully evaluated as ${verdict}.`,
+            caseId: actualCaseId,
+            newStatus: targetStatus,
+        });
+    }
+    catch (error) {
+        console.error("[Cases] Error reviewing violator reply:", error);
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || "Failed to record reply evaluation.",
+        });
+    }
+});
+// ── POST /api/cases/:caseId/close ─────────────────────────────────────────────
+router.post("/cases/:caseId/close", (0, auth_1.requireRole)("atp", "mtp", "jc", "superadmin", "admin"), async (req, res) => {
+    const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const { closureReason, closingDescription, evidenceFileName, evidenceUrl, evidenceDriveId } = req.body;
+    if (!closureReason || !closingDescription) {
+        res.status(400).json({
+            success: false,
+            message: "Missing required fields: closureReason and closingDescription are required.",
+        });
+        return;
+    }
+    try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const caseCheck = await database_1.pool.query("SELECT case_id, block, assigned_bi_id, assigned_atp_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        if (caseCheck.rows.length === 0) {
+            res.status(404).json({ success: false, message: `Case "${caseId}" not found.` });
+            return;
+        }
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
+        const actualCaseId = caseCheck.rows[0].case_id;
+        // Apply transition through workflow domain service (governance and statutory checks)
+        await (0, workflowService_1.applyTransition)(actualCaseId, "closed", req.user, database_1.pool, `Case closed by ${req.user?.name} (${req.user?.role}): ${closureReason} — ${closingDescription}`);
+        // Record statutory closure record
+        const closureResult = await database_1.pool.query(`INSERT INTO case_closures (
+           case_id, closed_by_id, closed_by_name, closed_by_role, closure_reason,
+           closing_description, evidence_file_name, evidence_drive_file_id, evidence_drive_file_url, closed_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+         RETURNING *`, [
+            actualCaseId,
+            req.user?.officerId || String(req.user?.userId),
+            req.user?.name || "Supervisory Officer",
+            req.user?.role || "ATP",
+            closureReason,
+            closingDescription,
+            evidenceFileName || null,
+            evidenceDriveId || null,
+            evidenceUrl || null,
+        ]);
+        // Web Push notification to both assigned BI and ATP
+        const assignedOfficers = [caseCheck.rows[0].assigned_bi_id, caseCheck.rows[0].assigned_atp_id];
+        void (0, pushService_1.notifyOfficers)(assignedOfficers, {
+            title: "Statutory Case Closed",
+            body: `Case ${actualCaseId} closed by ${req.user?.name}: ${closureReason}`,
+            tag: `case-${actualCaseId}-closed`,
+            url: `/cases/${encodeURIComponent(actualCaseId)}`,
+        });
+        res.json({
+            success: true,
+            message: "Case successfully closed under statutory authority.",
+            caseId: actualCaseId,
+            closure: closureResult.rows[0],
+        });
+    }
+    catch (error) {
+        console.error("[Cases] Error closing case:", error);
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || "Failed to close case.",
+        });
+    }
 });
 // ── GET /api/notices/check ───────────────────────────────────────────────────
 router.get("/notices/check", async (req, res) => {
@@ -944,6 +1094,14 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
                     JSON.stringify({ noticeType: "269", constructionType: status, generatedVia: "field_inspection" })
                 ]);
                 notice269Id = noticeInsert.rows[0].notice_id;
+                if (caseCheck.rows[0]?.assigned_atp_id) {
+                    void (0, pushService_1.notifyOfficer)(caseCheck.rows[0].assigned_atp_id, {
+                        title: "Section 269 Notice Issued",
+                        body: `Notice ${noticeNumber} issued for Case ${actualCaseId}`,
+                        tag: `case-${actualCaseId}-notice-269`,
+                        url: `/cases/${encodeURIComponent(actualCaseId)}`,
+                    });
+                }
             }
             const nonCompoundablePartStatus = "completed";
             await client.query(`INSERT INTO construction_parts (

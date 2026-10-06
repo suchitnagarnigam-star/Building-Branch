@@ -29,6 +29,7 @@ import authRoutes from "./authRoutes";
 import { authenticateToken, requireRole } from "../middleware/auth";
 import { getUserAssignedBlocks, isBlockAssigned, normalizeBlock } from "../services/accessControl";
 import { applyTransition, validateCaseTransition, normalizeCaseStatus } from "../services/workflowService";
+import { notifyOfficer, notifyOfficers } from "../services/pushService";
 
 const router = Router();
 
@@ -435,6 +436,15 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
 
       await client.query("COMMIT");
 
+      if (biOfficerId) {
+        void notifyOfficer(biOfficerId, {
+          title: "New Complaint Assigned",
+          body: `Complaint ${complaintId} assigned. Case: ${caseId}`,
+          tag: `case-${caseId}-assigned`,
+          url: `/cases/${encodeURIComponent(caseId)}`,
+        });
+      }
+
       res.json({
         success: true,
         message: "Complaint assigned. Existing case reused.",
@@ -528,6 +538,15 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
     );
 
     await client.query("COMMIT");
+
+    if (biOfficerId) {
+      void notifyOfficer(biOfficerId, {
+        title: "New Complaint Assigned",
+        body: `Complaint ${complaintId} assigned. New Case: ${caseId}`,
+        tag: `case-${caseId}-assigned`,
+        url: `/cases/${encodeURIComponent(caseId)}`,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -813,7 +832,7 @@ router.post(
     try {
       const assignedBlocks = await getUserAssignedBlocks(req.user);
       const caseCheck = await pool.query(
-        "SELECT case_id, block FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+        "SELECT case_id, block, assigned_bi_id, assigned_atp_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
         [caseId]
       );
 
@@ -858,6 +877,16 @@ router.post(
         ]
       );
 
+      // Web Push notification to assigned Building Inspector
+      if (caseCheck.rows[0].assigned_bi_id) {
+        void notifyOfficer(caseCheck.rows[0].assigned_bi_id, {
+          title: `Violator Reply ${verdict === "valid" ? "Accepted ✓" : "Rejected ✗"}`,
+          body: `Violator reply for Case ${actualCaseId} was evaluated as ${verdict}`,
+          tag: `case-${actualCaseId}-reply-review`,
+          url: `/cases/${encodeURIComponent(actualCaseId)}`,
+        });
+      }
+
       res.json({
         success: true,
         message: `Violator reply successfully evaluated as ${verdict}.`,
@@ -894,7 +923,7 @@ router.post(
     try {
       const assignedBlocks = await getUserAssignedBlocks(req.user);
       const caseCheck = await pool.query(
-        "SELECT case_id, block, assigned_bi_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
+        "SELECT case_id, block, assigned_bi_id, assigned_atp_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1",
         [caseId]
       );
 
@@ -938,6 +967,15 @@ router.post(
           evidenceUrl || null,
         ]
       );
+
+      // Web Push notification to both assigned BI and ATP
+      const assignedOfficers = [caseCheck.rows[0].assigned_bi_id, caseCheck.rows[0].assigned_atp_id];
+      void notifyOfficers(assignedOfficers, {
+        title: "Statutory Case Closed",
+        body: `Case ${actualCaseId} closed by ${req.user?.name}: ${closureReason}`,
+        tag: `case-${actualCaseId}-closed`,
+        url: `/cases/${encodeURIComponent(actualCaseId)}`,
+      });
 
       res.json({
         success: true,
@@ -1379,6 +1417,15 @@ router.post(
             ]
           );
           notice269Id = noticeInsert.rows[0].notice_id;
+
+          if (caseCheck.rows[0]?.assigned_atp_id) {
+            void notifyOfficer(caseCheck.rows[0].assigned_atp_id, {
+              title: "Section 269 Notice Issued",
+              body: `Notice ${noticeNumber} issued for Case ${actualCaseId}`,
+              tag: `case-${actualCaseId}-notice-269`,
+              url: `/cases/${encodeURIComponent(actualCaseId)}`,
+            });
+          }
         }
 
         const nonCompoundablePartStatus = "completed";
