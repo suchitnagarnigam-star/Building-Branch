@@ -93,8 +93,12 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
     return normRole === "superadmin";
   }
 
-  // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
-  // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
+  // /complaints/new (and sub-routes) → not allowed for BI
+  if (currentRoute === "/complaints/new" || currentRoute.startsWith("/complaints/new/")) {
+    return normRole !== "bi";
+  }
+
+  // /complaints, / (dashboard), etc. → allowed: all roles
   return true;
 };
 

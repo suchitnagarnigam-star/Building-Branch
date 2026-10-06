@@ -5,6 +5,7 @@ import { locationData } from "../../data/locationData";
 import { useEffect, useMemo, useState } from "react";
 import { getComplaintAction } from "../../shared/utils/complaintNavigation";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
+import { useAuth } from "../../context/AuthContext";
 
 const ALL_STATUSES = [
   "Registered",
@@ -42,6 +43,8 @@ function isResolved(status: string): boolean {
 }
 
 function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsPageProps) {
+  const { user } = useAuth();
+  const isBI = (user?.role || "").toLowerCase() === "bi";
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [search, setSearch] = useState("");
   const [zone, setZone] = useState("All zones");
@@ -160,13 +163,15 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           <h2 className="complaints-page-title">Complaints & Applications</h2>
           <p className="complaints-page-subtitle">Track, assign, and register building violation complaints</p>
         </div>
-        <button
-          className="primary-button small-button complaints-create-btn"
-          type="button"
-          onClick={() => navigate("/complaints/new")}
-        >
-          <Icon name="plus" /> Register New Complaint
-        </button>
+        {!isBI && (
+          <button
+            className="primary-button small-button complaints-create-btn"
+            type="button"
+            onClick={() => navigate("/complaints/new")}
+          >
+            <Icon name="plus" /> Register New Complaint
+          </button>
+        )}
       </div>
 
       {/* Category Tabs */}
