@@ -269,16 +269,10 @@ router.get("/officers/:officerId", async (req, res) => {
       return;
     }
 
-    const assignedBlocks = await getUserAssignedBlocks(req.user);
-
-    let assignedComplaints = complaints.filter(
+    const assignedComplaints = complaints.filter(
       (complaint) =>
         complaint.assignedOfficerId === officer.officerId,
     );
-
-    if (assignedBlocks !== null) {
-      assignedComplaints = assignedComplaints.filter((c) => isBlockAssigned(c.block, assignedBlocks));
-    }
 
     res.json({
       success: true,

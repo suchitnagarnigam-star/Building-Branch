@@ -78,9 +78,9 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
     return ["bi", "atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
   }
 
-  // /officers → allowed: atp, mtp, jc, superadmin
+  // /officers → allowed: bi, atp, mtp, jc, superadmin
   if (currentRoute === "/officers" || currentRoute.startsWith("/officers/")) {
-    return ["atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
+    return ["bi", "atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
   }
 
   // /settings → allowed: superadmin

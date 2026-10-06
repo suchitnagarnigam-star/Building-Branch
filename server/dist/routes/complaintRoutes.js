@@ -208,11 +208,7 @@ router.get("/officers/:officerId", async (req, res) => {
             });
             return;
         }
-        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
-        let assignedComplaints = complaints.filter((complaint) => complaint.assignedOfficerId === officer.officerId);
-        if (assignedBlocks !== null) {
-            assignedComplaints = assignedComplaints.filter((c) => (0, accessControl_1.isBlockAssigned)(c.block, assignedBlocks));
-        }
+        const assignedComplaints = complaints.filter((complaint) => complaint.assignedOfficerId === officer.officerId);
         res.json({
             success: true,
             officer: {
