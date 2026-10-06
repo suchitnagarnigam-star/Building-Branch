@@ -86,7 +86,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   );
   const [existingCaseId, setExistingCaseId] = useState(initialCaseId);
   const [caseLookup, setCaseLookup] = useState<CaseLookup | null>(null);
-  const [caseNotices, setCaseNotices] = useState<any[]>([]);
+  const [caseNotices, setCaseNotices] = useState<Record<string, unknown>[]>([]);
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState("");
 
@@ -209,7 +209,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
         const result = await response.json() as {
           success?: boolean;
           caseRecord?: CaseLookup;
-          notices?: any[];
+          notices?: Record<string, unknown>[];
           message?: string;
         };
 

@@ -162,33 +162,41 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadCaseData = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}`);
-      const data = await res.json();
-      if (data.success && data.caseRecord) {
-        setCaseRecord(data.caseRecord);
-        setVisits(data.visits || []);
-        setNotices(data.notices || []);
-        setViolatorReplies(data.violatorReplies || []);
-        setConstructionSummary(data.constructionSummary || null);
-        setDemolitionRecord(data.demolitionRecord || null);
-        setStatusHistory(data.statusHistory || []);
-      } else {
-        setError(data.message || "Failed to load case record.");
-      }
-    } catch {
-      setError("Unable to connect to server. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadCaseData();
+    let ignore = false;
+
+    const fetchCaseData = async () => {
+      try {
+        const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+        const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}`);
+        const data = await res.json();
+        if (ignore) return;
+        if (data.success && data.caseRecord) {
+          setCaseRecord(data.caseRecord);
+          setVisits(data.visits || []);
+          setNotices(data.notices || []);
+          setViolatorReplies(data.violatorReplies || []);
+          setConstructionSummary(data.constructionSummary || null);
+          setDemolitionRecord(data.demolitionRecord || null);
+          setStatusHistory(data.statusHistory || []);
+        } else {
+          setError(data.message || "Failed to load case record.");
+        }
+      } catch {
+        if (!ignore) {
+          setError("Unable to connect to server. Please try again.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void fetchCaseData();
+    return () => {
+      ignore = true;
+    };
   }, [caseId]);
 
   const formatDate = (isoStr?: string | null) => {
