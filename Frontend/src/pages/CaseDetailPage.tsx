@@ -143,6 +143,14 @@ type DemolitionRecord = {
   evidence_files?: DemolitionEvidenceFile[];
 };
 
+type StatusHistory = {
+  history_id: string | number;
+  new_status: string;
+  changed_at: string;
+  note?: string | null;
+  changed_by_name?: string | null;
+};
+
 export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps) {
   const [caseRecord, setCaseRecord] = useState<CaseRecord | null>(null);
   const [visits, setVisits] = useState<FieldVisitRecord[]>([]);
