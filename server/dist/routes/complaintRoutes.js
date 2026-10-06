@@ -258,7 +258,14 @@ router.get("/complaints/:complaintId", async (req, res) => {
             res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
             return;
         }
-        res.json({ success: true, complaint });
+        res.json({
+            success: true,
+            complaint: {
+                ...complaint,
+                created_by: complaint.created_by || complaint.createdBy || null,
+                createdBy: complaint.createdBy || complaint.created_by || null,
+            },
+        });
     }
     catch (error) {
         console.error("Error loading complaint:", error);

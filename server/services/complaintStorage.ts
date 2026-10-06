@@ -75,6 +75,14 @@ export const getComplaints = async (
         created_at AS "createdAt",
         drive_folder_url AS "driveFolderUrl",
         submitted_by_user_id AS "submittedByUserId",
+        CASE 
+          WHEN u_sub.user_id IS NOT NULL THEN json_build_object('name', u_sub.name, 'role', u_sub.role)
+          ELSE NULL 
+        END AS "createdBy",
+        CASE 
+          WHEN u_sub.user_id IS NOT NULL THEN json_build_object('name', u_sub.name, 'role', u_sub.role)
+          ELSE NULL 
+        END AS "created_by",
         (
           SELECT case_id FROM cases WHERE primary_complaint_id = complaints.complaint_id
           UNION
@@ -82,8 +90,9 @@ export const getComplaints = async (
           LIMIT 1
         ) AS "caseId"
       FROM complaints
+      LEFT JOIN users u_sub ON u_sub.user_id = complaints.submitted_by_user_id
       ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY complaints.created_at DESC
     `, params);
     return result.rows;
   } catch (error) {

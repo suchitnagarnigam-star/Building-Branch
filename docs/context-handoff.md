@@ -19,9 +19,16 @@ The platform covers the entire pipeline: **Complaint Intake** (manual & AI-extra
 
 ### 2.1 Authentication & Security (JWT & RBAC)
 - **Database Schema**: Created `users` and `officers` tables with bcrypt PIN hashing, designation mapping (`Operator`, `BI`, `ATP`, `MTP`, `JC`, `Superadmin`), and seed scripts.
-- **Backend Auth & Middleware**: Implemented `POST /api/auth/login`, `GET /api/auth/me`, JWT generation/verification, and `authorizeRole(...)` middleware protecting mutating routes.
+- **Backend Auth & Middleware**:
+  - Implemented `POST /api/auth/login` and `GET /api/auth/me` returning enriched profile context: `userId`, `officerId`, `role`, `name`, `zone`, `block`, `blocks`, and `designation`.
+  - JWT tokens encode `JWTPayload` containing officer blocks and designation for zero-roundtrip client-side authorization.
+  - `authorizeRole(...)` middleware protecting mutating administrative and field routes.
+- **Complaint Registration Tracking (`created_by`)**:
+  - `POST /api/complaints`: Records `submitted_by_user_id = req.user.userId`.
+  - `getComplaints()`: Joins `users` to provide `createdBy` / `created_by` `{ name: string, role: string }` on all complaints.
+  - `ComplaintDetailPage.tsx`: Displays "Registered by: [name] ([role])" in the header sub-bar, the Citizen & Location card, and the Status sidebar card.
 - **Frontend Auth Integration**:
-  - `AuthContext.tsx`: Manages authentication state, token persistence in `localStorage`, and an automatic Bearer token interceptor on all API calls.
+  - `AuthContext.tsx`: Manages authentication state, token persistence in `localStorage`, background `/api/auth/me` synchronization, and an automatic Bearer token interceptor on all API calls.
   - `LoginPage.tsx`: Integrated real PIN-based authentication with lockout timers and inline error feedback.
   - Role-based route guards in `App.tsx` and dynamic navigation filtering in `Sidebar.tsx`.
   - `UsersPage.tsx`: Admin user management portal restricted to `superadmin` role.

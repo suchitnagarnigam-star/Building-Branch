@@ -43,6 +43,8 @@ type StoredComplaint = {
   attachments?: StoredAttachment[];
   driveFolderUrl?: string | null;
   caseId?: string | null;
+  created_by?: { name: string; role: string } | null;
+  createdBy?: { name: string; role: string } | null;
 };
 
 const TIMELINE_STAGES = [
@@ -137,7 +139,7 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           setError("");
         }
       } catch (err: unknown) {
-        if (active && !storedComplaint) {
+        if (active) {
           setError(err instanceof Error ? err.message : "Unable to load complaint details.");
         }
       } finally {
@@ -262,6 +264,11 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           <div className="detail-header__info">
             <StatusBadge status={complaint.status} />
             <span>Registered {complaint.registered}</span>
+            {(storedComplaint?.created_by || storedComplaint?.createdBy) && (
+              <span style={{ color: "var(--muted, #64748b)" }}>
+                • Registered by: <strong>{(storedComplaint.created_by || storedComplaint.createdBy)?.name}</strong> ({(storedComplaint.created_by || storedComplaint.createdBy)?.role})
+              </span>
+            )}
           </div>
         </div>
 
@@ -312,6 +319,17 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
             <div><span>Block</span><strong>{complaint.block}</strong></div>
             <div><span>Ward</span><strong>{complaint.ward}</strong></div>
             <div><span>Address</span><strong>{complaint.address}</strong></div>
+            {(storedComplaint?.created_by || storedComplaint?.createdBy) && (
+              <div>
+                <span>Registered by</span>
+                <strong>
+                  {(storedComplaint.created_by || storedComplaint.createdBy)?.name}{" "}
+                  <span style={{ fontSize: "11px", fontWeight: 500, color: "var(--muted, #64748b)" }}>
+                    ({(storedComplaint.created_by || storedComplaint.createdBy)?.role.toUpperCase()})
+                  </span>
+                </strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -436,6 +454,15 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           <h3>Status</h3>
           <div className="status-highlight"><StatusBadge status={complaint.status} /></div>
           <div className="days-open">{complaint.daysOpen} days open</div>
+          {(storedComplaint?.created_by || storedComplaint?.createdBy) && (
+            <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--border, #e2e8f0)", fontSize: "12px", color: "var(--text-secondary, #475569)" }}>
+              <span style={{ color: "var(--muted, #64748b)" }}>Registered by: </span>
+              <strong>{(storedComplaint.created_by || storedComplaint.createdBy)?.name}</strong>{" "}
+              <span style={{ textTransform: "uppercase", fontSize: "11px", color: "var(--muted, #64748b)" }}>
+                ({(storedComplaint.created_by || storedComplaint.createdBy)?.role})
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="panel side-card">

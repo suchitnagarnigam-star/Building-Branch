@@ -98,8 +98,26 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   const [complaintLoading, setComplaintLoading] = useState(false);
   const [complaintError, setComplaintError] = useState("");
   const [officers, setOfficers] = useState<Officer[]>(fallbackOfficers);
-  const [reportingOfficer, setReportingOfficer] = useState("");
-  const [block, setBlock] = useState("");
+  const [reportingOfficer, setReportingOfficer] = useState<string>(() => {
+    if (user?.role === "bi" && user.officerId) return user.officerId;
+    if (user?.role === "atp" && user.zone) {
+      const zoneBis = fallbackOfficers.filter((o) => isBiOfficer(o) && normalise(o.zone) === normalise(user.zone || ""));
+      if (zoneBis.length > 0) return zoneBis[0].officerId;
+    }
+    const firstBi = fallbackOfficers.filter(isBiOfficer)[0];
+    return firstBi?.officerId || "";
+  });
+  const [block, setBlock] = useState<string>(() => {
+    if (user?.role === "bi") {
+      return user.block || (user.blocks && user.blocks[0]) || "";
+    }
+    if (user?.role === "atp" && user.zone) {
+      const zoneBis = fallbackOfficers.filter((o) => isBiOfficer(o) && normalise(o.zone) === normalise(user.zone || ""));
+      if (zoneBis.length > 0 && zoneBis[0].blocks?.length > 0) return zoneBis[0].blocks[0];
+    }
+    const firstBi = fallbackOfficers.filter(isBiOfficer)[0];
+    return firstBi?.blocks?.[0] || "";
+  });
   const [ward, setWard] = useState("");
   const [location, setLocation] = useState("");
   const [buildingType, setBuildingType] = useState("");
@@ -260,6 +278,18 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   }, [selectedReportingOfficer]);
 
   const supervisingAtp = useMemo(() => {
+    // 0. If logged in user is ATP, show themselves as supervising ATP
+    if (user?.role === "atp" || user?.designation?.toUpperCase() === "ATP") {
+      return {
+        officerId: user.officerId || "logged-in-atp",
+        name: user.name,
+        mobile: "",
+        designation: "ATP",
+        zone: user.zone || "",
+        blocks: user.blocks || [],
+      };
+    }
+
     // For Proactive Visit (field_visit) when logged-in user is an officer (isBiUser),
     // auto-fetch that officer's mapped Supervising ATP immediately without requiring block selection.
     if (sourceOfReport === "field_visit" && isBiUser && user?.officerId) {
@@ -336,8 +366,33 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
       setExistingCaseId("");
       setCaseLookup(null);
       setCaseError("");
-      setReportingOfficer(isBiUser && user?.officerId ? user.officerId : "");
-      setBlock("");
+      if (isBiUser && user?.officerId) {
+        setReportingOfficer(user.officerId);
+        const officerObj = officers.find((o) => o.officerId === user.officerId);
+        const officerBlock = user.block || user.blocks?.[0] || officerObj?.blocks?.[0] || "";
+        setBlock(officerBlock);
+      } else if (user?.role === "atp" || user?.designation?.toUpperCase() === "ATP") {
+        const zoneBis = officers.filter(
+          (o) => isBiOfficer(o) && (!user.zone || normalise(o.zone) === normalise(user.zone))
+        );
+        const selectedBi = zoneBis.length > 0 ? zoneBis[0] : officers.filter(isBiOfficer)[0];
+        if (selectedBi) {
+          setReportingOfficer(selectedBi.officerId);
+          setBlock(selectedBi.blocks?.[0] || "");
+        } else {
+          setReportingOfficer("");
+          setBlock("");
+        }
+      } else {
+        const firstBi = officers.filter(isBiOfficer)[0];
+        if (firstBi) {
+          setReportingOfficer(firstBi.officerId);
+          setBlock(firstBi.blocks?.[0] || "");
+        } else {
+          setReportingOfficer("");
+          setBlock("");
+        }
+      }
       setWard("");
       setLocation("");
     } else if (value === "case") {
@@ -918,8 +973,14 @@ const submitInspection = async (
                 required
                 value={effectiveReportingOfficer}
                 onChange={(event) => {
-                  setReportingOfficer(event.target.value);
-                  setBlock("");
+                  const newOfficerId = event.target.value;
+                  setReportingOfficer(newOfficerId);
+                  const found = officers.find((o) => o.officerId === newOfficerId);
+                  if (found && found.blocks && found.blocks.length > 0) {
+                    setBlock(found.blocks[0]);
+                  } else {
+                    setBlock("");
+                  }
                 }}
                 disabled={Boolean(
                   (isComplaintMode && complaintLookup?.assignedOfficerId) ||
@@ -928,11 +989,40 @@ const submitInspection = async (
                 )}
               >
                 <option value="">Select officer</option>
-                {officers.filter(isBiOfficer).map((officer) => (
-                  <option key={officer.officerId} value={officer.officerId}>
-                    {officer.name} ({officer.zone ? `Zone ${officer.zone}` : officer.designation})
-                  </option>
-                ))}
+                {(() => {
+                  const biOfficers = officers.filter(isBiOfficer);
+                  if (user?.role === "atp" && user.zone) {
+                    const zoneBis = biOfficers.filter((o) => normalise(o.zone) === normalise(user.zone || ""));
+                    const otherBis = biOfficers.filter((o) => normalise(o.zone) !== normalise(user.zone || ""));
+                    if (zoneBis.length > 0) {
+                      return (
+                        <>
+                          <optgroup label={`Zone ${user.zone} Supervised Inspectors`}>
+                            {zoneBis.map((officer) => (
+                              <option key={officer.officerId} value={officer.officerId}>
+                                {officer.name} (Blocks: {officer.blocks.join(", ")})
+                              </option>
+                            ))}
+                          </optgroup>
+                          {otherBis.length > 0 && (
+                            <optgroup label="Other Inspectors">
+                              {otherBis.map((officer) => (
+                                <option key={officer.officerId} value={officer.officerId}>
+                                  {officer.name} (Zone {officer.zone})
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </>
+                      );
+                    }
+                  }
+                  return biOfficers.map((officer) => (
+                    <option key={officer.officerId} value={officer.officerId}>
+                      {officer.name} ({officer.zone ? `Zone ${officer.zone}` : officer.designation})
+                    </option>
+                  ));
+                })()}
               </select>
             </div>
 
@@ -1006,7 +1096,8 @@ const submitInspection = async (
                 onChange={(event) => setBlock(event.target.value)}
                 disabled={Boolean(
                   (isComplaintMode && complaintLookup?.block) ||
-                  (isCaseMode && caseLookup?.block)
+                  (isCaseMode && caseLookup?.block) ||
+                  (isBiUser && availableBlocks.length <= 1)
                 )}
               >
                 <option value="">{selectedReportingOfficer ? "Select block" : "Select block (all zones)"}</option>
@@ -1015,7 +1106,7 @@ const submitInspection = async (
                 ))}
               </select>
             </div>
-            <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{caseLookup?.zone || complaintLookup?.zone || zone || "Auto"}</div></div>
+            <div className="form-field"><label htmlFor="zone">Zone</label><div id="zone" className="derived-field"><Icon name="map" />{caseLookup?.zone || complaintLookup?.zone || zone || (user?.zone ? `Zone ${user.zone}` : "Auto")}</div></div>
             <div className="form-field"><label htmlFor="ward">Ward <em>Optional</em></label><input id="ward" readOnly={Boolean((isComplaintMode && complaintLookup?.ward) || (isCaseMode && caseLookup?.ward))} value={ward} onChange={(event) => setWard(event.target.value)} placeholder="Ward" /></div>
             <div className="form-field form-field--wide"><label htmlFor="location">Address / Landmark <span>*</span></label><input id="location" readOnly={Boolean((isComplaintMode && complaintLookup?.address) || (isCaseMode && caseLookup?.location))} required value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Enter location" /></div>
             <div className="form-field form-field--full"><label>GPS Location <span>*</span></label><div className={`location-capture ${coordinates ? "location-capture--success" : ""}`}><div className="location-capture__icon"><Icon name="map" /></div><div className="location-capture__content"><strong>{coordinates ? "Location captured" : "GPS not captured"}</strong>{coordinates ? <span>Lat {coordinates.latitude.toFixed(5)} · Long {coordinates.longitude.toFixed(5)}</span> : <span>Capture site location</span>}</div><button type="button" className="secondary-button" onClick={captureLocation} disabled={locationLoading}>{locationLoading ? "Capturing..." : coordinates ? "Recapture" : "Capture Location"}</button></div>{locationError && <small className="field-error">{locationError}</small>}</div>

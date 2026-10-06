@@ -48,6 +48,8 @@ export interface Complaint {
   createdAt: string;
   caseId?: string | null;
   submittedByUserId?: number | null;
+  createdBy?: { name: string; role: string } | null;
+  created_by?: { name: string; role: string } | null;
 }
 
 export interface AttachmentMeta {

@@ -37,6 +37,7 @@ router.post("/login", async (req: Request, res: Response) => {
       officer_id: string | null;
       zone: string | null;
       blocks: string[] | null;
+      designation: string | null;
     }>(
       `
         SELECT 
@@ -51,7 +52,8 @@ router.post("/login", async (req: Request, res: Response) => {
           u.locked_until,
           o.officer_id,
           o.zone,
-          o.blocks
+          o.blocks,
+          o.designation
         FROM users u
         LEFT JOIN officers o ON o.user_id = u.user_id
         WHERE (u.username = $1 OR REPLACE(u.phone_number, '-', '') = REPLACE($1, '-', ''))
@@ -132,6 +134,8 @@ router.post("/login", async (req: Request, res: Response) => {
     const zone = user.zone || null;
     let blocks: string[] | null = Array.isArray(user.blocks) ? user.blocks : null;
 
+    let designation = user.designation || null;
+
     if (!blocks && (user.role?.toLowerCase() === "bi" || user.role?.toLowerCase() === "atp")) {
       try {
         const { getOfficers } = await import("../services/officerMapping");
@@ -144,11 +148,14 @@ router.post("/login", async (req: Request, res: Response) => {
         );
         if (found) {
           blocks = found.blocks;
+          designation = designation || found.designation;
         }
       } catch {
         // Fallback ignore
       }
     }
+
+    const block = blocks && blocks.length > 0 ? blocks[0] : null;
 
     const payload: JWTPayload = {
       userId: user.user_id,
@@ -156,7 +163,9 @@ router.post("/login", async (req: Request, res: Response) => {
       role: user.role,
       name: user.name,
       zone,
+      block,
       blocks,
+      designation,
     };
 
     const token = generateToken(payload);
@@ -169,7 +178,9 @@ router.post("/login", async (req: Request, res: Response) => {
         role: user.role,
         name: user.name,
         zone,
+        block,
         blocks,
+        designation,
       },
     });
   } catch (error) {
@@ -178,6 +189,98 @@ router.post("/login", async (req: Request, res: Response) => {
       success: false,
       message: "Internal server error during authentication.",
     });
+  }
+});
+
+// ── GET /api/auth/me ──────────────────────────────────────────────────────────
+router.get("/me", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    const result = await pool.query<{
+      user_id: number;
+      username: string | null;
+      phone_number: string | null;
+      role: string;
+      name: string;
+      is_active: boolean;
+      officer_id: string | null;
+      zone: string | null;
+      blocks: string[] | null;
+      designation: string | null;
+    }>(
+      `
+        SELECT 
+          u.user_id,
+          u.username,
+          u.phone_number,
+          u.role,
+          u.name,
+          u.is_active,
+          o.officer_id,
+          o.zone,
+          o.blocks,
+          o.designation
+        FROM users u
+        LEFT JOIN officers o ON o.user_id = u.user_id
+        WHERE u.user_id = $1 AND u.is_active = true
+        LIMIT 1
+      `,
+      [userId]
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ success: false, message: "User not found." });
+      return;
+    }
+
+    const user = result.rows[0];
+    const officerId = user.officer_id || null;
+    const zone = user.zone || null;
+    let blocks: string[] | null = Array.isArray(user.blocks) ? user.blocks : null;
+    let designation = user.designation || null;
+
+    if (!blocks && (user.role?.toLowerCase() === "bi" || user.role?.toLowerCase() === "atp")) {
+      try {
+        const { getOfficers } = await import("../services/officerMapping");
+        const officers = await getOfficers();
+        const found = officers.find(
+          (o) =>
+            (officerId && o.officerId.toLowerCase() === officerId.toLowerCase()) ||
+            (user.name && o.name.toLowerCase() === user.name.toLowerCase()) ||
+            (user.phone_number && o.mobile.replace(/-/g, "").trim() === user.phone_number.replace(/-/g, "").trim())
+        );
+        if (found) {
+          blocks = found.blocks;
+          designation = designation || found.designation;
+        }
+      } catch {
+        // Fallback ignore
+      }
+    }
+
+    const block = blocks && blocks.length > 0 ? blocks[0] : null;
+
+    res.status(200).json({
+      success: true,
+      user: {
+        userId: user.user_id,
+        officerId,
+        role: user.role,
+        name: user.name,
+        zone,
+        block,
+        blocks,
+        designation,
+      },
+    });
+  } catch (error) {
+    console.error("Error in GET /api/auth/me:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 });
 
