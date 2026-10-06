@@ -15,6 +15,7 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
 import { useCountUp } from "../../shared/hooks/useCountUp";
+import { useAuth } from "../../context/AuthContext";
 
 type DashboardPageProps = {
   navigate: (route: string) => void;
@@ -86,6 +87,8 @@ const currentMonth = new Intl.DateTimeFormat("en-IN", {
 
 /* ─── Component ─── */
 function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps) {
+  const { user } = useAuth();
+  const isBI = (user?.role || "").toLowerCase() === "bi";
   const [data, setData] = useState<DashboardData>(INITIAL_DATA);
 
   useEffect(() => {
@@ -586,7 +589,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                 Recent Complaints
               </h3>
               <p className="db-recent-card__subtitle">
-                Latest complaints requiring Building Branch attention
+                {isBI
+                  ? "Latest complaints assigned to you"
+                  : "Latest complaints requiring Building Branch attention"}
               </p>
             </div>
             <button
@@ -614,7 +619,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                     colSpan={5}
                     style={{ textAlign: "center", padding: "24px", color: "var(--muted)" }}
                   >
-                    No complaints found
+                    {isBI ? "No complaints assigned to you yet" : "No complaints found"}
                   </td>
                 </tr>
               ) : (

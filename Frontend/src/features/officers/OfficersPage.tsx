@@ -175,10 +175,14 @@ function OfficersPage() {
     },
   ];
 
-  // 2. Top Performers Podium (Ranked by casesAssigned DESC, fieldVisits DESC)
+  // 2. Top Performers Podium (Top 3 Building Inspectors ranked by casesAssigned DESC, fieldVisits DESC)
   const topPerformers = useMemo(() => {
     if (officers.length === 0) return [];
-    const sorted = [...officers].sort((a, b) => {
+    const biOnly = officers.filter((o) => {
+      const d = (o.designation || "").trim().toUpperCase();
+      return (d === "BI" || d.includes("BI")) && !d.includes("ATP");
+    });
+    const sorted = [...biOnly].sort((a, b) => {
       if ((b.casesAssigned || 0) !== (a.casesAssigned || 0)) {
         return (b.casesAssigned || 0) - (a.casesAssigned || 0);
       }

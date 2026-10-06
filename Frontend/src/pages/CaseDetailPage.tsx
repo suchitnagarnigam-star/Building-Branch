@@ -164,11 +164,14 @@ type DemolitionRecord = {
 
 type StatusHistory = {
   history_id: string | number;
-  new_status: string;
-  changed_at: string;
+  case_id?: string;
+  old_status?: string | null;
+  new_status?: string | null;
   note?: string | null;
   changed_by_name?: string | null;
+  changed_at?: string | null;
 };
+
 
 export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps) {
   const { user } = useAuth();

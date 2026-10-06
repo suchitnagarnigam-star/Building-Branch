@@ -13,8 +13,10 @@ router.get("/overview", async (req: Request, res: Response) => {
     const role = (req.user?.role || "").toLowerCase();
     const userId = req.user?.userId;
     const isOperator = role === "operator" && userId;
-    const assignedBlocks = await getUserAssignedBlocks(req.user);
+    const isBI = role === "bi";
 
+    // Dashboard overview (KPIs, charts, enforcement, attention items) shows
+    // branch-wide metrics across all BIs (or operator's submitted data for operators).
     let opFilter = "";
     let caseFilter = "";
     let opParams: any[] = [];
@@ -23,19 +25,49 @@ router.get("/overview", async (req: Request, res: Response) => {
       opFilter = "WHERE submitted_by_user_id = $1";
       caseFilter = "JOIN complaints c_flt ON cases.primary_complaint_id = c_flt.complaint_id WHERE c_flt.submitted_by_user_id = $1";
       opParams = [userId];
-    } else if (assignedBlocks !== null) {
-      if (assignedBlocks.length === 0) {
-        opFilter = "WHERE 1=0";
-        caseFilter = "WHERE 1=0";
-        opParams = [];
-      } else {
-        opFilter = "WHERE REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($1::text[])";
-        caseFilter = "WHERE REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($1::text[])";
-        opParams = [assignedBlocks.map(normalizeBlock)];
-      }
     }
 
     const hasParams = opParams.length > 0;
+
+    // Recent Complaints filter:
+    // If logged in as BI, only display complaints belonging to this BI.
+    // If logged in as Operator, only display complaints submitted by this operator.
+    // Otherwise, show branch-wide recent complaints.
+    let recentFilter = "";
+    let recentParams: any[] = [];
+
+    if (isOperator) {
+      recentFilter = "WHERE submitted_by_user_id = $1";
+      recentParams = [userId];
+    } else if (isBI) {
+      let biOfficerId = req.user?.officerId || null;
+      let biName = req.user?.name || null;
+
+      if (!biOfficerId && userId) {
+        try {
+          const offRes = await pool.query<{ officer_id: string; name: string }>(
+            "SELECT officer_id, name FROM officers WHERE user_id = $1 LIMIT 1",
+            [userId]
+          );
+          if (offRes.rows[0]) {
+            biOfficerId = offRes.rows[0].officer_id;
+            if (!biName) biName = offRes.rows[0].name;
+          }
+        } catch {
+          // ignore error
+        }
+      }
+
+      const assignedBlocks = await getUserAssignedBlocks(req.user);
+      const normalizedBiBlocks = (assignedBlocks || []).map(normalizeBlock);
+
+      recentFilter = `WHERE (
+        ($1::text IS NOT NULL AND assigned_officer_id = $1)
+        OR ($2::text[] IS NOT NULL AND array_length($2::text[], 1) > 0 AND REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($2::text[]))
+        OR ($3::text IS NOT NULL AND LOWER(TRIM(assigned_officer_name)) = LOWER(TRIM($3)))
+      )`;
+      recentParams = [biOfficerId, normalizedBiBlocks, biName];
+    }
 
     const [
       kpiRes,
@@ -51,18 +83,12 @@ router.get("/overview", async (req: Request, res: Response) => {
           (SELECT COUNT(*)::int FROM complaints ${opFilter}) AS "totalComplaints",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM field_visits fv JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE c.submitted_by_user_id = $1)` 
-            : assignedBlocks !== null
-            ? `(SELECT COUNT(*)::int FROM field_visits fv LEFT JOIN cases ca ON fv.case_id = ca.case_id LEFT JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE REPLACE(LOWER(TRIM(COALESCE(ca.block, c.block))), 'block ', '') = ANY($1::text[]))`
             : `(SELECT COUNT(*)::int FROM field_visits)`} AS "totalFieldVisits",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM field_visits fv JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE fv.complaint_id IS NOT NULL AND c.submitted_by_user_id = $1)` 
-            : assignedBlocks !== null
-            ? `(SELECT COUNT(*)::int FROM field_visits fv LEFT JOIN cases ca ON fv.case_id = ca.case_id LEFT JOIN complaints c ON fv.complaint_id = c.complaint_id WHERE fv.complaint_id IS NOT NULL AND REPLACE(LOWER(TRIM(COALESCE(ca.block, c.block))), 'block ', '') = ANY($1::text[]))`
             : `(SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NOT NULL)`} AS "linkedFieldVisits",
           ${isOperator 
             ? `0` 
-            : assignedBlocks !== null
-            ? `(SELECT COUNT(*)::int FROM field_visits fv JOIN cases ca ON fv.case_id = ca.case_id WHERE fv.complaint_id IS NULL AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[]))`
             : `(SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NULL)`} AS "standaloneFieldVisits",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM cases ca JOIN complaints c ON ca.primary_complaint_id = c.complaint_id WHERE c.submitted_by_user_id = $1)` 
@@ -97,10 +123,10 @@ router.get("/overview", async (req: Request, res: Response) => {
       // 4. Enforcement Activity
       pool.query(`
         SELECT 
-          (SELECT COUNT(*)::int FROM notices n ${assignedBlocks !== null ? "JOIN cases ca ON n.case_id = ca.case_id WHERE n.notice_type = '270' AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : "WHERE notice_type = '270'"}) AS "notices270",
-          (SELECT COUNT(*)::int FROM notices n ${assignedBlocks !== null ? "JOIN cases ca ON n.case_id = ca.case_id WHERE n.notice_type = '269' AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : "WHERE notice_type = '269'"}) AS "notices269",
-          (SELECT COUNT(*)::int FROM field_visits fv ${assignedBlocks !== null ? "JOIN cases ca ON fv.case_id = ca.case_id WHERE fv.complaint_id IS NULL AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : "WHERE complaint_id IS NULL"}) AS "standaloneFieldVisits";
-      `, assignedBlocks !== null ? opParams : []),
+          (SELECT COUNT(*)::int FROM notices WHERE notice_type = '270') AS "notices270",
+          (SELECT COUNT(*)::int FROM notices WHERE notice_type = '269') AS "notices269",
+          (SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NULL) AS "standaloneFieldVisits";
+      `),
 
       // 5. Needs Attention (4 metrics)
       pool.query(`
@@ -109,24 +135,21 @@ router.get("/overview", async (req: Request, res: Response) => {
             SELECT COUNT(*)::int FROM complaints c
             WHERE NOT EXISTS (
               SELECT 1 FROM field_visits fv WHERE fv.complaint_id = c.complaint_id
-            ) ${isOperator ? "AND c.submitted_by_user_id = $1" : assignedBlocks !== null ? "AND REPLACE(LOWER(TRIM(c.block)), 'block ', '') = ANY($1::text[])" : ""}
+            ) ${isOperator ? "AND c.submitted_by_user_id = $1" : ""}
           ) AS "complaintsNoFieldVisit",
           (
             SELECT COUNT(*)::int FROM notices n
-            ${assignedBlocks !== null ? "JOIN cases ca ON n.case_id = ca.case_id" : ""}
             WHERE n.notice_type = '270' 
             AND n.reply_due_at IS NOT NULL AND n.reply_due_at < NOW()
-            ${assignedBlocks !== null ? "AND REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : ""}
           ) AS "notices270Expired",
           (
             SELECT COUNT(*)::int FROM violator_replies vr
-            ${assignedBlocks !== null ? "JOIN cases ca ON vr.case_id = ca.case_id WHERE REPLACE(LOWER(TRIM(ca.block)), 'block ', '') = ANY($1::text[])" : ""}
           ) AS "violatorRepliesPending",
           (
             SELECT COUNT(*)::int FROM cases cs
             WHERE NOT EXISTS (
               SELECT 1 FROM notices n WHERE n.case_id = cs.case_id
-            ) ${assignedBlocks !== null ? "AND REPLACE(LOWER(TRIM(cs.block)), 'block ', '') = ANY($1::text[])" : ""}
+            )
           ) AS "casesNoNotice";
       `, hasParams ? opParams : []),
 
@@ -145,10 +168,10 @@ router.get("/overview", async (req: Request, res: Response) => {
             LIMIT 1
           ) AS "caseId"
         FROM complaints
-        ${opFilter}
+        ${recentFilter}
         ORDER BY created_at DESC
         LIMIT 5;
-      `, opParams),
+      `, recentParams),
     ]);
 
     const kpi = kpiRes.rows[0] || {

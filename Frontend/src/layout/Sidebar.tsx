@@ -19,7 +19,6 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
     case "bi":
       return [
         "/dashboard",
-        "/complaints/new",
         "/complaints",
         "/cases",
         "/field-inspection",
@@ -31,6 +30,7 @@ function isRouteAllowedForRole(itemRoute: string, role: string): boolean {
     case "mtp":
       return [
         "/dashboard",
+        "/complaints/new",
         "/complaints",
         "/cases",
         "/field-inspection",

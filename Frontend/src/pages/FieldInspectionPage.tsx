@@ -548,7 +548,7 @@ const submitInspection = async (
 
   if (!violatorName.trim()) {
     setSubmitError(
-      "Please enter the violator name.",
+      "Please enter the violator / owner name.",
     );
     return;
   }
@@ -1139,7 +1139,7 @@ const submitInspection = async (
           <div className="inspection-grid">
             <div className="form-field form-field--full"><label>Building Type <span>*</span></label><div className="building-type-grid">{["Residential", "Commercial", "Industrial", "Other"].map((type) => <label className={`building-type ${buildingType === type ? "building-type--selected" : ""}`} key={type}><input type="radio" name="buildingType" value={type} required checked={buildingType === type} onChange={(event) => setBuildingType(event.target.value)} /><span>{type}</span></label>)}</div></div>
             {buildingType === "Other" && <div className="form-field form-field--full"><label htmlFor="otherBuildingType">Specify Building Type <span>*</span></label><input id="otherBuildingType" required value={otherBuildingType} onChange={(event) => setOtherBuildingType(event.target.value)} placeholder="Enter building type" /></div>}
-            <div className="form-field"><label htmlFor="violatorName">Violator Name <span>*</span></label><input id="violatorName" required value={violatorName} onChange={(event) => setViolatorName(event.target.value)} placeholder="Enter name" /></div>
+            <div className="form-field"><label htmlFor="violatorName">Violator / Owner Name <span>*</span></label><input id="violatorName" required value={violatorName} onChange={(event) => setViolatorName(event.target.value)} placeholder="Enter name" /></div>
             <div className="form-field"><label htmlFor="mobileNumber">Mobile Number <em>Optional</em></label><input id="mobileNumber" type="tel" value={mobileNumber} onChange={(event) => setMobileNumber(event.target.value)} placeholder="Enter number" /></div>
             <div className="form-field form-field--full"><label htmlFor="description">Description <span>*</span></label><textarea id="description" required rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the violation" /></div>
           </div>
