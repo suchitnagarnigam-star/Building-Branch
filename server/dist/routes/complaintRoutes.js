@@ -2104,6 +2104,15 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                     inspectionOutcome,
                 }),
             ]);
+            // Web Push notification to supervising Assistant Town Planner (ATP)
+            if (atp?.officerId && caseId) {
+                void (0, pushService_1.notifyOfficer)(atp.officerId, {
+                    title: "Section 270 Notice Issued",
+                    body: `Notice ${body.noticeNumber.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
+                    tag: `case-${caseId}-notice-270`,
+                    url: `/cases/${encodeURIComponent(caseId)}`,
+                });
+            }
         }
         /*
          * ------------------------------------------------------

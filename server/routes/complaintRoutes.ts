@@ -2851,7 +2851,18 @@ if (hasNoticeData && inspectionOutcome !== "complete_violated") {
       }),
     ],
   );
+
+  // Web Push notification to supervising Assistant Town Planner (ATP)
+  if (atp?.officerId && caseId) {
+    void notifyOfficer(atp.officerId, {
+      title: "Section 270 Notice Issued",
+      body: `Notice ${body.noticeNumber!.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
+      tag: `case-${caseId}-notice-270`,
+      url: `/cases/${encodeURIComponent(caseId)}`,
+    });
+  }
 }
+
 
       /*
        * ------------------------------------------------------
