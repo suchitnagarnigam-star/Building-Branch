@@ -247,8 +247,48 @@ function OfficersPage() {
         fontFamily: "Inter, sans-serif",
       }}
     >
-      {/* ── TOP HEADER SECTION ─────────────────────────────────────────────── */}
+      {/* ── MOBILE HEADER (Screenshot 12) ── */}
+      <div className="mobile-only mobile-sub-header">
+        <button
+          type="button"
+          className="mobile-back-btn"
+          onClick={() => window.location.hash = "/dashboard"}
+        >
+          <Icon name="arrow-left" />
+          <span>Officers</span>
+        </button>
+      </div>
+
+      {/* ── MOBILE FILTER PILLS (Screenshot 12) ── */}
+      <div className="mobile-only" style={{ marginBottom: "12px" }}>
+        <div className="mobile-pill-tabs">
+          <button
+            type="button"
+            className={`mobile-pill-tab ${designationFilter === "All" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setDesignationFilter("All")}
+          >
+            All ({totalOfficersCount})
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${designationFilter === "BI" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setDesignationFilter("BI")}
+          >
+            BI ({biOfficersCount})
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${designationFilter === "ATP" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setDesignationFilter("ATP")}
+          >
+            ATP ({atpOfficersCount})
+          </button>
+        </div>
+      </div>
+
+      {/* ── TOP HEADER SECTION (Desktop Only) ─────────────────────────────────────────── */}
       <div
+        className="desktop-only"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -317,7 +357,8 @@ function OfficersPage() {
         </button>
       </div>
 
-      {/* ── 1. KPI CARDS ROW (RESTORED WITH LIVE METRICS) ────────────────────── */}
+      {/* ── 1. KPI CARDS ROW (RESTORED WITH LIVE METRICS) (Desktop Only) ────────────────────── */}
+      <div className="desktop-only">
       <div className="db-stats">
         {kpiCards.map((card) => (
           <div className="db-stat-card" key={card.label}>
@@ -404,6 +445,7 @@ function OfficersPage() {
           </div>
         </div>
       )}
+      </div>
 
       {/* ── 3. FILTER CONTROLS BAR ─────────────────────────────────────────── */}
       <div
@@ -545,7 +587,83 @@ function OfficersPage() {
         </div>
       )}
 
-      {/* ── 4. OFFICERS ROSTER TABLE WITH PROPORTIONAL WORKLOAD BARS ─────────── */}
+      {/* ── MOBILE OFFICER CARDS (Screenshot 12) ── */}
+      <div className="mobile-only mobile-card-feed" style={{ marginBottom: "24px" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "32px", color: "var(--muted)" }}>Loading officers...</div>
+        ) : error ? (
+          <div style={{ textAlign: "center", padding: "20px", color: "#dc2626" }}>{error}</div>
+        ) : filteredOfficers.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px", color: "var(--muted)" }}>No officers found.</div>
+        ) : (
+          filteredOfficers.map((o) => {
+            const initial = o.name.replace(/^(Sh\.|Smt\.|Er\.)\s*/i, "").trim().charAt(0).toUpperCase() || "O";
+            return (
+              <div
+                key={o.officerId}
+                className="mobile-feed-card"
+                onClick={() => handleViewOfficer(o.officerId)}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                  <div
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "50%",
+                      background: "#e0f2fe",
+                      color: "#0369a1",
+                      fontWeight: 700,
+                      fontSize: "16px",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>{o.name}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                      {o.designation} • {o.zone}
+                    </div>
+                  </div>
+                  <span className="mobile-feed-card__chevron">
+                    <Icon name="arrow-right" />
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "6px",
+                    background: "#f8fafc",
+                    padding: "8px",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{o.fieldVisits}</div>
+                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>Visits</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{o.noticesIssued}</div>
+                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>Notices</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{o.casesAssigned}</div>
+                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>Cases</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── 4. OFFICERS ROSTER TABLE (Desktop Only) ─────────── */}
+      <div className="desktop-only">
       {!loading && !error && (
         <div
           style={{
@@ -716,6 +834,7 @@ function OfficersPage() {
           </table>
         </div>
       )}
+      </div>
 
       {/* ── 5. RIGHT-SIDE OFFICER PROFILE DRAWER ────────────────────────────── */}
       {(detailsLoading || detailsError || selectedOfficer) && (

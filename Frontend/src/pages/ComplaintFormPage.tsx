@@ -343,22 +343,458 @@ function ComplaintFormPage({
     sourceType === "email" ? "email screenshot / PDF" :
     "file";
 
+  // ── Mobile Wizard Step Handlers ──────────────────────────────────────────
+  const [mobileStep, setMobileStep] = useState<1 | 2 | 3 | 4>(1);
+
+  const handleMobileNext = () => {
+    setSubmitError("");
+    if (mobileStep === 1) {
+      const nextErrors: FormErrors = {};
+      if (!formData.zone) nextErrors.zone = "Please select a zone";
+      if (!formData.block) nextErrors.block = "Please select a block";
+      if (!formData.address.trim()) nextErrors.address = "Address is required";
+      if (Object.keys(nextErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...nextErrors }));
+        return;
+      }
+      setMobileStep(2);
+    } else if (mobileStep === 2) {
+      const nextErrors: FormErrors = {};
+      if (!formData.citizenName.trim()) nextErrors.citizenName = "Name/Source is required";
+      if (!formData.phoneNumber.trim()) {
+        nextErrors.phoneNumber = "Phone number is required";
+      } else if (!/^(\+91)?[6-9]\d{9}$/.test(formData.phoneNumber.trim())) {
+        nextErrors.phoneNumber = "Enter a valid 10-digit phone number";
+      }
+      if (!formData.title.trim()) nextErrors.title = "Complaint title is required";
+      if (!formData.description.trim()) nextErrors.description = "Description is required";
+      if (Object.keys(nextErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...nextErrors }));
+        return;
+      }
+      setMobileStep(3);
+    } else if (mobileStep === 3) {
+      setMobileStep(4);
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="form-page">
-      {isDocumentReview && (
-        <div className="complaint-form-back">
+      {/* ══════════════════════════════════════════════════════════════════════
+          MOBILE VIEW: 4-Step Wizard (Mockup 6)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="mobile-only" style={{ paddingBottom: "70px" }}>
+        {/* Mobile Header Bar */}
+        <div className="mobile-subpage-header">
           <button
             type="button"
-            className="back-link"
-            onClick={() => navigate?.("/complaints/new")}
+            className="mobile-back-btn"
+            onClick={() => {
+              if (mobileStep > 1) {
+                setMobileStep((s) => (s - 1) as 1 | 2 | 3 | 4);
+              } else {
+                navigate?.("/complaints");
+              }
+            }}
           >
-            <Icon name="arrow" /> Back
+            ← Back
           </button>
+          <span className="mobile-subpage-title">
+            {isDocumentReview ? "Review Document Complaint" : "Register Complaint"}
+          </span>
+          <span style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>
+            {mobileStep}/4
+          </span>
         </div>
-      )}
-      <div className={`complaint-form-layout${isDocumentReview ? " complaint-form-layout--extracted" : ""}`}>
+
+        {/* 4-Step Stepper Header */}
+        <div className="mobile-stepper">
+          {[
+            { num: 1, label: "Location" },
+            { num: 2, label: "Details" },
+            { num: 3, label: "Evidence" },
+            { num: 4, label: "Review" },
+          ].map((s) => {
+            const isDone = mobileStep > s.num;
+            const isActive = mobileStep === s.num;
+            return (
+              <div
+                key={s.num}
+                className="mobile-stepper-item"
+                onClick={() => {
+                  if (s.num < mobileStep) setMobileStep(s.num as 1 | 2 | 3 | 4);
+                }}
+              >
+                <div
+                  className={`mobile-stepper-dot ${
+                    isDone ? "mobile-stepper-dot--complete" : isActive ? "mobile-stepper-dot--active" : ""
+                  }`}
+                >
+                  {isDone ? "✓" : s.num}
+                </div>
+                <span className={`mobile-stepper-label ${isActive ? "mobile-stepper-label--active" : ""}`}>
+                  {s.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* STEP 1: LOCATION */}
+        {mobileStep === 1 && (
+          <div className="mobile-feed-card" style={{ padding: "16px" }}>
+            <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px", color: "#0b1957" }}>
+              Step 1: Complaint Location
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Zone <span className="field__required">*</span>
+                </span>
+                <select name="zone" value={formData.zone} onChange={handleChange}>
+                  <option value="">Select Zone</option>
+                  {[...new Set(locationData.map((entry) => entry.zone))].map((zone) => (
+                    <option key={zone} value={zone}>{zone}</option>
+                  ))}
+                </select>
+                {errors.zone && <small className="error-text">{errors.zone}</small>}
+              </div>
+
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Block <span className="field__required">*</span>
+                </span>
+                <select name="block" value={formData.block} onChange={handleChange}>
+                  <option value="">Select Block</option>
+                  {availableBlocks.map((entry) => (
+                    <option key={entry.block} value={entry.block}>{entry.block}</option>
+                  ))}
+                </select>
+                {errors.block && <small className="error-text">{errors.block}</small>}
+              </div>
+
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Ward <span className="field__optional">(optional)</span>
+                </span>
+                <input
+                  name="ward"
+                  type="text"
+                  placeholder="Ward number / name if known"
+                  value={formData.ward ?? ""}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Address / Site Location <span className="field__required">*</span>
+                </span>
+                <textarea
+                  name="address"
+                  rows={2}
+                  placeholder="Exact location / landmark of unauthorized construction"
+                  value={formData.address}
+                  onChange={handleChange}
+                />
+                {errors.address && <small className="error-text">{errors.address}</small>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: DETAILS */}
+        {mobileStep === 2 && (
+          <div className="mobile-feed-card" style={{ padding: "16px" }}>
+            <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 12px", color: "#0b1957" }}>
+              Step 2: Citizen & Complaint Details
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Citizen Name / Source <span className="field__required">*</span>
+                </span>
+                <input
+                  name="citizenName"
+                  type="text"
+                  placeholder="Enter citizen or source name"
+                  value={formData.citizenName}
+                  onChange={handleChange}
+                />
+                {errors.citizenName && <small className="error-text">{errors.citizenName}</small>}
+              </div>
+
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Mobile Number <span className="field__required">*</span>
+                </span>
+                <input
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                />
+                {errors.phoneNumber && <small className="error-text">{errors.phoneNumber}</small>}
+              </div>
+
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Complaint Title <span className="field__required">*</span>
+                </span>
+                <input
+                  name="title"
+                  type="text"
+                  placeholder="e.g. Unauthorized commercial shop addition"
+                  value={formData.title}
+                  onChange={handleChange}
+                />
+                {errors.title && <small className="error-text">{errors.title}</small>}
+              </div>
+
+              <div className="field">
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>
+                  Description <span className="field__required">*</span>
+                </span>
+                <textarea
+                  name="description"
+                  rows={3}
+                  placeholder="Describe the nature of violation in detail"
+                  value={formData.description}
+                  onChange={handleChange}
+                />
+                {errors.description && <small className="error-text">{errors.description}</small>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: EVIDENCE & OCR */}
+        {mobileStep === 3 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div className="mobile-feed-card" style={{ padding: "16px" }}>
+              <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "0 0 6px", color: "#0b1957" }}>
+                Step 3: Complaint Evidence
+              </h3>
+              <p style={{ fontSize: "12px", color: "var(--muted)", margin: "0 0 12px" }}>
+                Attach photos of the site violation.
+              </p>
+
+              <div
+                className="upload-dropzone upload-dropzone--compact"
+                onClick={() => imageInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                style={{ padding: "16px 12px", textAlign: "center" }}
+              >
+                <span className="upload-dropzone__icon"><Icon name="upload" /></span>
+                <strong>Tap to upload site photos</strong>
+                <small>JPG / PNG from camera or gallery</small>
+              </div>
+
+              {complaintImages.length > 0 && (
+                <ul className="upload-file-list" style={{ marginTop: 10 }}>
+                  {complaintImages.map((image, index) => (
+                    <li key={`${image.name}-${index}`} className="upload-file-item">
+                      <button
+                        type="button"
+                        className="image-preview-button"
+                        onClick={() => setPreviewImage(image)}
+                      >
+                        <img src={image.preview!} alt={image.name} className="upload-file-item__thumb" />
+                      </button>
+                      <div className="upload-file-item__meta">
+                        <span className="upload-file-item__name">{image.name}</span>
+                        <span className="upload-file-item__size">{formatBytes(image.size)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="upload-file-item__remove"
+                        onClick={() => removeImage(index)}
+                      >
+                        <Icon name="close" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {imageError && <small className="error-text">{imageError}</small>}
+              {errors.complaintImage && !imageError && (
+                <small className="error-text">{errors.complaintImage}</small>
+              )}
+            </div>
+
+            {/* Document Auto-Fill / OCR Option */}
+            {!isDocumentReview && (
+              <div className="mobile-feed-card" style={{ padding: "16px", background: "#f8fafc" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                  <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>OPTIONAL</span>
+                  <strong style={{ fontSize: "13px", color: "#0f172a" }}>AI / Document Auto-Fill</strong>
+                </div>
+                <p style={{ fontSize: "11.5px", color: "var(--muted)", margin: "0 0 10px" }}>
+                  Have a news clip, email screenshot, or PDF? Upload and extract details automatically.
+                </p>
+
+                <div
+                  className="upload-dropzone upload-dropzone--compact"
+                  onClick={() => sourceFileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  style={{ padding: "12px", background: "#ffffff" }}
+                >
+                  <small>Tap to upload news/email PDF or image</small>
+                </div>
+
+                {sourceFiles.length > 0 && (
+                  <div style={{ marginTop: "10px" }}>
+                    <ul className="upload-file-list">
+                      {sourceFiles.map((file, index) => (
+                        <li key={`${file.name}-${index}`} className="upload-file-item">
+                          <span className="upload-file-item__name">{file.name}</span>
+                          <button
+                            type="button"
+                            className="upload-file-item__remove"
+                            onClick={() => removeSourceFile(index)}
+                          >
+                            <Icon name="close" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      style={{ width: "100%", marginTop: "8px" }}
+                      onClick={handleProcessDocument}
+                      disabled={isProcessingSource}
+                    >
+                      {isProcessingSource ? "Processing Document..." : "Extract from Document"}
+                    </button>
+                  </div>
+                )}
+                {sourceFileError && <small className="error-text">{sourceFileError}</small>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 4: REVIEW & CONFIRM */}
+        {mobileStep === 4 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div className="mobile-feed-card" style={{ padding: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "#0b1957" }}>
+                  Step 4: Review Summary
+                </h3>
+                <span className="status-pill status-pill--blue">Ready to Submit</span>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
+                <div style={{ padding: "10px", background: "#f8fafc", borderRadius: "8px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                    Location
+                  </div>
+                  <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                    {formData.address || "No address entered"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Block {formData.block || "—"}, {formData.zone || "—"} {formData.ward ? `(Ward ${formData.ward})` : ""}
+                  </div>
+                </div>
+
+                <div style={{ padding: "10px", background: "#f8fafc", borderRadius: "8px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                    Citizen & Details
+                  </div>
+                  <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                    {formData.citizenName || "—"} • {formData.phoneNumber || "—"}
+                  </div>
+                  <div style={{ fontWeight: 600, marginTop: "4px", color: "#1e293b" }}>
+                    {formData.title || "—"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                    {formData.description || "—"}
+                  </div>
+                </div>
+
+                <div style={{ padding: "10px", background: "#f8fafc", borderRadius: "8px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                    Evidence
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#0f172a" }}>
+                    {complaintImages.length > 0
+                      ? `✓ ${complaintImages.length} photo(s) attached`
+                      : "No photos attached"}
+                  </div>
+                </div>
+              </div>
+
+              {submitError && (
+                <div className="error-text" style={{ marginTop: "12px", fontSize: "12px" }}>
+                  {submitError}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Sticky Navigation Footer */}
+        <div className="mobile-sticky-footer">
+          {mobileStep > 1 && (
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ flex: 1 }}
+              onClick={() => setMobileStep((s) => (s - 1) as 1 | 2 | 3 | 4)}
+            >
+              Back
+            </button>
+          )}
+          {mobileStep < 4 ? (
+            <button
+              type="button"
+              className="primary-button"
+              style={{ flex: 2 }}
+              onClick={handleMobileNext}
+            >
+              Next Step →
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-button"
+              style={{ flex: 2 }}
+              disabled={isSubmitting}
+              onClick={(e) => {
+                handleSubmit(e as unknown as FormEvent<HTMLFormElement>);
+              }}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Complaint ✓"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP VIEW: Existing 2-Column Direct Form & OCR Layout
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="desktop-only">
+        {isDocumentReview && (
+          <div className="complaint-form-back">
+            <button
+              type="button"
+              className="back-link"
+              onClick={() => navigate?.("/complaints/new")}
+            >
+              <Icon name="arrow" /> Back
+            </button>
+          </div>
+        )}
+        <div className={`complaint-form-layout${isDocumentReview ? " complaint-form-layout--extracted" : ""}`}>
 
         {/* ── Left: manual entry form ── */}
         <div className="page-card complaint-form-card complaint-form-card--manual">
@@ -688,6 +1124,7 @@ function ComplaintFormPage({
           </div>
         )}
 
+      </div>
       </div>
       {previewImage && (
         <div className="image-preview-modal" role="dialog" aria-modal="true" aria-label="Image preview" onClick={() => setPreviewImage(null)}>

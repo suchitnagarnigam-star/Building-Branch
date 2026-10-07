@@ -1034,6 +1034,23 @@ if (needsNonCompoundable) {
 
   return (
     <div className="field-inspection-page">
+      {/* Mobile Header Bar */}
+      <div className="mobile-only">
+        <div className="mobile-subpage-header">
+          <button
+            type="button"
+            className="mobile-back-btn"
+            onClick={() => (targetCaseId ? navigate?.(`/cases/${encodeURIComponent(targetCaseId.trim())}`) : navigate?.("/cases"))}
+          >
+            ← Back
+          </button>
+          <span className="mobile-subpage-title">Construction Status</span>
+          {targetCaseId && (
+            <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>{targetCaseId}</span>
+          )}
+        </div>
+      </div>
+
       <div className="field-inspection-page__intro" style={{ marginBottom: "18px" }}>
         <div>
           <p className="eyebrow" style={{ textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.08em", color: "var(--accent)" }}>

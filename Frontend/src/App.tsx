@@ -17,6 +17,10 @@ import type { AppComplaint } from "./shared/types";
 // Layout
 import Topbar from "./layout/Topbar";
 import Sidebar from "./layout/Sidebar";
+import MobileHeader from "./layout/MobileHeader";
+import MobileNavDrawer from "./layout/MobileNavDrawer";
+import MobileBottomNav from "./layout/MobileBottomNav";
+import { useBreakpoint } from "./shared/hooks/useBreakpoint";
 
 // Dashboard
 import DashboardPage from "./features/dashboard/DashboardPage";
@@ -108,6 +112,8 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
 function App() {
   const { route, navigate } = useRouter();
   const { user, isLoading, logout } = useAuth();
+  const { isMobile } = useBreakpoint();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [, setSelectedComplaintId] = useState("");
 
   // Push notifications registration for officers
@@ -353,28 +359,57 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
-      <Topbar
-        userName={user.name}
-        userRole={user.role}
-        onLogout={logout}
-      />
-
-      <div className="app-workspace">
-        <Sidebar
-          route={route}
-          userRole={user.role}
+    <div className={`app-shell ${isMobile ? "app-shell--mobile" : "app-shell--desktop"}`}>
+      {isMobile ? (
+        <MobileHeader
           userName={user.name}
-          navigate={navigate}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+          onNavigate={navigate}
+        />
+      ) : (
+        <Topbar
+          userName={user.name}
+          userRole={user.role}
           onLogout={logout}
         />
+      )}
 
-        <div className="app-content">
+      <div className="app-workspace">
+        {!isMobile && (
+          <Sidebar
+            route={route}
+            userRole={user.role}
+            userName={user.name}
+            navigate={navigate}
+            onLogout={logout}
+          />
+        )}
+
+        <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
           <main className="page-shell">
             {renderPage()}
           </main>
         </div>
       </div>
+
+      {isMobile && (
+        <>
+          <MobileNavDrawer
+            isOpen={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+            route={route}
+            userRole={user.role}
+            userName={user.name}
+            navigate={navigate}
+            onLogout={logout}
+          />
+          <MobileBottomNav
+            currentRoute={route}
+            navigate={navigate}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -296,9 +296,423 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const isBi = normUserRole === "bi";
   const isCaseClosed = Boolean(caseRecord.current_status && caseRecord.current_status.toLowerCase().includes("closed"));
   const canReviewReply = ["atp", "mtp", "jc", "superadmin", "admin"].includes(normUserRole);
+  const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "notices" | "construction">("overview");
 
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "16px 24px 60px", fontFamily: "'Inter', sans-serif", color: "var(--ink)" }}>
+      {/* ══════════════════════════════════════════════════════════════════════
+          MOBILE VIEW: Case Detail Hub (Mockup 9)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="mobile-only" style={{ paddingBottom: "70px" }}>
+        {/* Mobile Header Bar */}
+        <div className="mobile-subpage-header">
+          <button
+            type="button"
+            className="mobile-back-btn"
+            onClick={() => navigate?.("/cases")}
+          >
+            ← Cases
+          </button>
+          <span className="mobile-subpage-title">{caseRecord.case_id}</span>
+          <span
+            className="status-pill"
+            style={{
+              background: isCaseClosed ? "#dcfce7" : "#e9f3ff",
+              color: isCaseClosed ? "#166534" : "#0b1957",
+              fontSize: "11px",
+            }}
+          >
+            {caseRecord.current_status || "Open"}
+          </span>
+        </div>
+
+        {/* Mobile Hero Summary Card */}
+        <div className="mobile-hero-header">
+          <div className="mobile-hero-header__top">
+            <span className="mobile-hero-header__id">{caseRecord.case_id}</span>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#64748b",
+              }}
+            >
+              {formatSourceType(caseRecord.source_type)}
+            </span>
+          </div>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: "#1e293b", marginBottom: "4px" }}>
+            {caseRecord.building_identity || "Unauthorized Construction"}
+          </div>
+          <div className="mobile-hero-header__sub">
+            {caseRecord.location || "Operational Area"} • Block {caseRecord.block || "—"}, Zone {caseRecord.zone || "—"}
+          </div>
+
+          {/* Mobile Action Buttons Bar */}
+          <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="primary-button"
+              style={{ flex: 1, minWidth: "120px", fontSize: "12px", padding: "8px 10px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+              onClick={() => navigate?.(`/inspections?caseId=${encodeURIComponent(caseRecord.case_id)}`)}
+            >
+              <Icon name="search" size={14} /> Record Visit
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ flex: 1, minWidth: "120px", fontSize: "12px", padding: "8px 10px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+              onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/construction-status`)}
+            >
+              <Icon name="edit" size={14} /> Status Form
+            </button>
+            {!isBi && !isCaseClosed && (
+              <button
+                type="button"
+                style={{
+                  padding: "8px 10px",
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowCloseModal(true)}
+              >
+                Close Case
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tab Pills */}
+        <div className="mobile-pills" style={{ marginBottom: "12px" }}>
+          {[
+            { id: "overview", label: "Overview" },
+            { id: "timeline", label: `Timeline (${visits.length})` },
+            { id: "notices", label: `Notices (${notices.length})` },
+            { id: "construction", label: "Construction" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`mobile-pill ${mobileTab === tab.id ? "mobile-pill--active" : ""}`}
+              onClick={() => setMobileTab(tab.id as typeof mobileTab)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB 1: OVERVIEW */}
+        {mobileTab === "overview" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {/* Case Info Card */}
+            <div className="mobile-feed-card" style={{ padding: "14px" }}>
+              <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 10px", color: "#0b1957" }}>
+                Case Information
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "12.5px" }}>
+                <div>
+                  <div style={{ color: "#64748b", fontSize: "11px" }}>Primary Complaint</div>
+                  <div style={{ fontWeight: 600, marginTop: "2px" }}>
+                    {caseRecord.primary_complaint_id ? (
+                      <button
+                        type="button"
+                        style={{ background: "none", border: "none", padding: 0, color: "#0b1957", textDecoration: "underline", fontWeight: 600, fontSize: "12.5px" }}
+                        onClick={() => navigate?.(`/complaints/${encodeURIComponent(caseRecord.primary_complaint_id!)}`)}
+                      >
+                        {caseRecord.primary_complaint_id}
+                      </button>
+                    ) : "Proactive Visit"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: "#64748b", fontSize: "11px" }}>Ward</div>
+                  <div style={{ fontWeight: 600, marginTop: "2px" }}>{caseRecord.ward || "Unassigned"}</div>
+                </div>
+                <div>
+                  <div style={{ color: "#64748b", fontSize: "11px" }}>Zone & Block</div>
+                  <div style={{ fontWeight: 600, marginTop: "2px" }}>
+                    {caseRecord.zone || "—"} • {caseRecord.block || "—"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: "#64748b", fontSize: "11px" }}>Created On</div>
+                  <div style={{ fontWeight: 600, marginTop: "2px" }}>{formatDate(caseRecord.created_at)}</div>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{ color: "#64748b", fontSize: "11px" }}>Site Address</div>
+                  <div style={{ fontWeight: 600, marginTop: "2px", color: "#1e293b" }}>{caseRecord.location || "Operational Area"}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Officer Assignment Card */}
+            <div className="mobile-feed-card" style={{ padding: "14px" }}>
+              <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 10px", color: "#0b1957" }}>
+                Supervisory Officers
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", borderRadius: "6px" }}>
+                  <div>
+                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Building Inspector (BI)</span>
+                    <strong style={{ color: "#0f172a" }}>{caseRecord.assigned_bi_name || "Unassigned"}</strong>
+                  </div>
+                  <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>BI</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", borderRadius: "6px" }}>
+                  <div>
+                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Asst. Town Planner (ATP)</span>
+                    <strong style={{ color: "#0f172a" }}>{caseRecord.assigned_atp_name || "Unassigned"}</strong>
+                  </div>
+                  <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>ATP</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Statutory Closure Banner if closed */}
+            {caseClosure && (
+              <div style={{ padding: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "10px" }}>
+                <strong style={{ color: "#166534", fontSize: "13px" }}>🏛️ Case Closed under PMC Act 1976</strong>
+                <p style={{ fontSize: "12px", color: "#15803d", margin: "4px 0 0" }}>
+                  Reason: {caseClosure.closure_reason} • By {caseClosure.closed_by_name} on {formatDate(caseClosure.closed_at)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: TIMELINE / FIELD VISITS */}
+        {mobileTab === "timeline" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {visits.length > 0 ? (
+              visits.map((v, i) => (
+                <div key={v.visit_id || i} className="mobile-feed-card" style={{ padding: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#0b1957" }}>
+                      Visit #{visits.length - i}
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#64748b" }}>
+                      {formatDate(v.submitted_at)}
+                    </span>
+                  </div>
+                  <div style={{ marginBottom: "6px" }}>
+                    <span
+                      className="status-pill"
+                      style={{
+                        background: v.inspection_outcome === "violation_found" ? "#fee2e2" : "#f1f5f9",
+                        color: v.inspection_outcome === "violation_found" ? "#991b1b" : "#475569",
+                        fontSize: "11px",
+                      }}
+                    >
+                      {formatOutcomeName(v.inspection_outcome)}
+                    </span>
+                  </div>
+                  {v.violator_name && (
+                    <div style={{ fontSize: "12px", color: "#475569", marginBottom: "4px" }}>
+                      <strong>Violator:</strong> {v.violator_name} {v.violator_mobile ? `(${v.violator_mobile})` : ""}
+                    </div>
+                  )}
+                  {v.report && (
+                    <p style={{ fontSize: "12px", color: "#334155", margin: "4px 0 8px", background: "#f8fafc", padding: "8px", borderRadius: "6px" }}>
+                      {v.report}
+                    </p>
+                  )}
+                  {v.evidence_files && v.evidence_files.length > 0 && (
+                    <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingTop: "4px" }}>
+                      {v.evidence_files.map((ev, evIdx) => (
+                        <a
+                          key={ev.evidence_id || evIdx}
+                          href={ev.drive_file_url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ width: "50px", height: "50px", borderRadius: "6px", overflow: "hidden", border: "1px solid #e2e8f0", display: "grid", placeItems: "center", background: "#f1f5f9", flexShrink: 0 }}
+                        >
+                          {ev.drive_file_id ? (
+                            <img
+                              src={`https://lh3.googleusercontent.com/d/${ev.drive_file_id}`}
+                              alt={ev.file_name}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: "14px" }}>📷</span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="mobile-feed-card" style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>
+                No field inspection visits recorded yet.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: NOTICES */}
+        {mobileTab === "notices" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {/* Notices List */}
+            {notices.length > 0 ? (
+              notices.map((n, i) => (
+                <div key={n.notice_id || i} className="mobile-feed-card" style={{ padding: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span className="status-pill status-pill--blue" style={{ fontSize: "11px" }}>
+                      Section {n.notice_type} Notice
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#64748b" }}>
+                      {formatDate(n.created_at)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
+                    Notice No: {n.notice_number || "—"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Issued by {n.issued_by_name || "MCL Building Branch"}
+                  </div>
+                  {n.drive_file_url && (
+                    <a
+                      href={n.drive_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="primary-button"
+                      style={{ marginTop: "8px", fontSize: "11.5px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                    >
+                      <Icon name="file" size={12} /> View Notice PDF
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="mobile-feed-card" style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>
+                No statutory notices issued yet.
+              </div>
+            )}
+
+            {/* Violator Replies */}
+            {violatorReplies.length > 0 && (
+              <div className="mobile-feed-card" style={{ padding: "14px" }}>
+                <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px", color: "#0b1957" }}>
+                  Citizen / Violator Replies
+                </h4>
+                {violatorReplies.map((r, i) => (
+                  <div key={r.reply_id || i} style={{ borderTop: i > 0 ? "1px solid #f1f5f9" : "none", paddingTop: i > 0 ? "8px" : 0, marginTop: i > 0 ? "8px" : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "11.5px", fontWeight: 600 }}>Reply Date: {formatDate(r.reply_date)}</span>
+                      <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>
+                        {r.review_status || "Pending Review"}
+                      </span>
+                    </div>
+                    {r.reply_text && (
+                      <p style={{ fontSize: "12px", color: "#334155", margin: "4px 0", background: "#f8fafc", padding: "6px 8px", borderRadius: "4px" }}>
+                        {r.reply_text}
+                      </p>
+                    )}
+                    {canReviewReply && !r.review_status && (
+                      <button
+                        type="button"
+                        className="primary-button"
+                        style={{ fontSize: "11px", padding: "4px 8px", marginTop: "4px" }}
+                        onClick={() => setReviewingReply(r)}
+                      >
+                        Review Reply
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: CONSTRUCTION STATUS & ENFORCEMENT */}
+        {mobileTab === "construction" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div className="mobile-feed-card" style={{ padding: "14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <h4 style={{ fontSize: "13px", fontWeight: 700, margin: 0, color: "#0b1957" }}>
+                  Construction Status
+                </h4>
+                <span className="status-pill status-pill--blue" style={{ fontSize: "11px" }}>
+                  {constructionSummary?.construction_type || caseRecord.construction_status || "Pending Evaluation"}
+                </span>
+              </div>
+
+              {constructionSummary ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12.5px" }}>
+                  {constructionSummary.compoundable_part_status && (
+                    <div style={{ padding: "8px 10px", background: "#f8fafc", borderRadius: "6px" }}>
+                      <strong>Compoundable Portion:</strong> {constructionSummary.compoundable_part_status}
+                      {constructionSummary.total_charges && (
+                        <div>Charges: ₹{constructionSummary.total_charges}</div>
+                      )}
+                      {constructionSummary.receipt_number && (
+                        <div>Receipt: {constructionSummary.receipt_number}</div>
+                      )}
+                    </div>
+                  )}
+                  {constructionSummary.non_compoundable_part_status && (
+                    <div style={{ padding: "8px 10px", background: "#fef2f2", borderRadius: "6px" }}>
+                      <strong style={{ color: "#991b1b" }}>Non-Compoundable Portion:</strong> {constructionSummary.non_compoundable_part_status}
+                      {constructionSummary.notice_269_number && (
+                        <div>Notice 269 No: {constructionSummary.notice_269_number}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 10px" }}>
+                  No construction status recorded yet.
+                </p>
+              )}
+
+              <button
+                type="button"
+                className="primary-button"
+                style={{ width: "100%", marginTop: "10px", fontSize: "12px", padding: "8px" }}
+                onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/construction-status`)}
+              >
+                Record / Update Construction Status
+              </button>
+            </div>
+
+            {/* Demolition / Enforcement Card */}
+            <div className="mobile-feed-card" style={{ padding: "14px" }}>
+              <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px", color: "#0b1957" }}>
+                Demolition & Enforcement
+              </h4>
+              {demolitionRecord ? (
+                <div style={{ fontSize: "12.5px" }}>
+                  <div><strong>Outcome:</strong> {formatOutcomeName(demolitionRecord.enforcement_outcome || "")}</div>
+                  <div><strong>Order No:</strong> {demolitionRecord.demolition_order_number || "—"}</div>
+                  <div><strong>Date:</strong> {formatDate(demolitionRecord.action_date || demolitionRecord.order_date)}</div>
+                </div>
+              ) : (
+                <p style={{ fontSize: "12px", color: "var(--muted)", margin: "0 0 8px" }}>
+                  No demolition or enforcement action recorded yet.
+                </p>
+              )}
+              <button
+                type="button"
+                className="secondary-button"
+                style={{ width: "100%", marginTop: "8px", fontSize: "12px", padding: "8px" }}
+                onClick={() => navigate?.(`/cases/${encodeURIComponent(caseRecord.case_id)}/enforcement`)}
+              >
+                Record Enforcement Action
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DESKTOP VIEW: Existing 2-Column Grid & Cards
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="desktop-only">
       {/* ── 1. HEADER / BREADCRUMB BAR ── */}
       <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
         <div>
@@ -1600,6 +2014,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             </p>
           )}
         </section>
+      </div>
       </div>
 
       {/* ── STATUTORY MODALS ── */}

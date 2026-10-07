@@ -744,7 +744,23 @@ const submitInspection = async (
   if (sourceOfReport === "case") {
     return (
       <div className="field-inspection-page">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
+        {/* Mobile Header Bar */}
+        <div className="mobile-only">
+          <div className="mobile-subpage-header">
+            <button
+              type="button"
+              className="mobile-back-btn"
+              onClick={() => navigate("/dashboard")}
+            >
+              ← Back
+            </button>
+            <span className="mobile-subpage-title">Field Inspection - Case</span>
+            <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>BI</span>
+          </div>
+        </div>
+
+        {/* Desktop Header Bar */}
+        <div className="desktop-only" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
           <div>
             <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--ink)" }}>Field Inspection - Existing Case</h1>
             <p style={{ color: "var(--muted)", fontSize: "12px", margin: "2px 0 0" }}>Fetch existing case details and proceed to construction status</p>
@@ -923,7 +939,23 @@ const submitInspection = async (
 
   return (
     <div className="field-inspection-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
+      {/* Mobile Header Bar */}
+      <div className="mobile-only">
+        <div className="mobile-subpage-header">
+          <button
+            type="button"
+            className="mobile-back-btn"
+            onClick={() => navigate("/dashboard")}
+          >
+            ← Back
+          </button>
+          <span className="mobile-subpage-title">Field Inspection</span>
+          <span className="status-pill status-pill--blue" style={{ fontSize: "10px" }}>BI</span>
+        </div>
+      </div>
+
+      {/* Desktop Header Bar */}
+      <div className="desktop-only" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "0 2px" }}>
         <div>
           <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--ink)" }}>Field Inspection</h1>
           <p style={{ color: "var(--muted)", fontSize: "12px", margin: "2px 0 0" }}>Record field inspection report or construction status</p>

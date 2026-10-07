@@ -158,7 +158,31 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   return (
     <div className="panel panel--table">
-      <div className="complaints-page-header">
+      {/* ─── Mobile Sub-header (Screenshot 5) ─── */}
+      <div className="mobile-only mobile-sub-header">
+        <button
+          type="button"
+          className="mobile-back-btn"
+          onClick={() => navigate("/dashboard")}
+        >
+          <Icon name="arrow-left" />
+          <span>Complaints</span>
+        </button>
+        <div className="mobile-sub-actions">
+          {!isBI && (
+            <button
+              type="button"
+              className="mobile-circle-btn"
+              onClick={() => navigate("/complaints/new")}
+              aria-label="Register Complaint"
+            >
+              <Icon name="plus" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="complaints-page-header desktop-only">
         <div>
           <h2 className="complaints-page-title">Complaints & Applications</h2>
           <p className="complaints-page-subtitle">Track, assign, and register building violation complaints</p>
@@ -174,36 +198,36 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
         )}
       </div>
 
-      {/* Category Tabs */}
-      <div style={{ marginBottom: "16px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-        <div className="source-type-tabs">
+      {/* Category Tabs (Desktop & Mobile Pills) */}
+      <div style={{ marginBottom: "16px" }}>
+        <div className="mobile-pill-tabs">
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "all" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "all" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("all")}
           >
-            All Complaints ({categoryCounts.all})
+            All ({categoryCounts.all})
           </button>
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "unassigned" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "unassigned" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("unassigned")}
           >
-            Active / Unassigned ({categoryCounts.unassigned})
+            Active ({categoryCounts.unassigned})
           </button>
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "assigned_case" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "assigned_case" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("assigned_case")}
           >
-            Assigned / Converted to Case ({categoryCounts.assigned_case})
+            Assigned ({categoryCounts.assigned_case})
           </button>
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "resolved" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "resolved" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("resolved")}
           >
-            Resolved / Closed ({categoryCounts.resolved})
+            Resolved ({categoryCounts.resolved})
           </button>
         </div>
       </div>
@@ -212,16 +236,62 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
         <div className="complaints-filters">
           <div className="search-box complaints-search">
             <Icon name="search" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} type="text" placeholder="Complaint ID, case, citizen, block" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} type="text" placeholder="Search complaint ID, citizen..." />
           </div>
           <select value={zone} onChange={(event) => handleZoneChange(event.target.value)}>{zones.map((item) => <option key={item}>{item}</option>)}</select>
           <select value={block} onChange={(event) => handleBlockChange(event.target.value)}>{blocks.map((item) => <option key={item}>{item}</option>)}</select>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>{statuses.map((item) => <option key={item}>{item}</option>)}</select>
-          <button className="secondary-button small-button complaints-export" type="button">
+          <button className="secondary-button small-button complaints-export desktop-only" type="button">
             <Icon name="download"/>Export CSV</button>
         </div>
       </div>
 
+      {/* ─── Mobile Card Feed (Screenshot 5) ─── */}
+      <div className="mobile-only mobile-card-feed">
+        {loading && <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>Loading complaints...</div>}
+        {!loading && error && <div style={{ textAlign: "center", padding: "20px", color: "#dc2626" }}>{error}</div>}
+        {!loading && !error && visibleComplaints.length === 0 && (
+          <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>No complaints match the selected filters.</div>
+        )}
+        {!loading && !error && visibleComplaints.map((complaint) => {
+          const action = getComplaintAction(complaint);
+          return (
+            <div
+              key={complaint.complaintId}
+              className="mobile-feed-card"
+              onClick={() => {
+                setSelectedComplaintId(complaint.complaintId);
+                navigate(action.route);
+              }}
+            >
+              <div className="mobile-feed-card__header">
+                <span className="mobile-feed-card__id">{complaint.complaintId}</span>
+                <span className="mobile-feed-card__date">
+                  {new Date(complaint.createdAt).toLocaleDateString("en-IN")}
+                </span>
+              </div>
+              <div className="mobile-feed-card__title">{complaint.citizenName}</div>
+              <div className="mobile-feed-card__meta-row">
+                <Icon name="pin" />
+                <span>{complaint.block} • {complaint.zone}</span>
+              </div>
+              <div className="mobile-feed-card__meta-row">
+                <Icon name="user" />
+                <span>{complaint.assignedOfficerName ?? "Pending assignment"}</span>
+              </div>
+              <div className="mobile-feed-card__footer">
+                <StatusBadge status={complaint.status} />
+                <span className="mobile-feed-card__chevron">
+                  <Icon name="arrow-right" />
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── Desktop Table (Preserved Existing UI) ─── */}
+      <div className="desktop-only">
       <table className="data-table">
         <thead>
           <tr>
@@ -313,6 +383,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

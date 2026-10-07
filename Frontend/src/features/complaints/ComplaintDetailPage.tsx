@@ -77,6 +77,7 @@ function readLocalComplaint(complaintId: string): StoredComplaint | null {
 }
 
 function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, navigate }: ComplaintDetailPageProps) {
+  const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "evidence" | "case">("overview");
   const [storedComplaint, setStoredComplaint] = useState<StoredComplaint | null>(
     () => readLocalComplaint(complaintId),
   );
@@ -217,7 +218,247 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const registeredAt = new Date(timelineSource.createdAt).toLocaleString();
 
   return (
-    <div className="detail-page">
+    <div>
+      {/* ─── MOBILE VIEW (Screenshot 7) ─── */}
+      <div className="mobile-only" style={{ paddingBottom: "24px" }}>
+        {/* Header Bar */}
+        <div className="mobile-sub-header">
+          <button
+            type="button"
+            className="mobile-back-btn"
+            onClick={() => navigate("/complaints")}
+          >
+            <Icon name="arrow-left" />
+            <span>Complaint Details</span>
+          </button>
+          <div className="mobile-sub-actions">
+            <button
+              type="button"
+              className="mobile-circle-btn"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: `Complaint ${complaint.id}`,
+                    text: `MCL Complaint ${complaint.id}: ${complaint.title}`,
+                    url: window.location.href,
+                  }).catch(() => {});
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Link copied to clipboard!");
+                }
+              }}
+              aria-label="Share Complaint"
+            >
+              <Icon name="share" />
+            </button>
+          </div>
+        </div>
+
+        {/* Hero Header Card */}
+        <div className="mobile-hero-header">
+          <div className="mobile-hero-header__top">
+            <span className="mobile-hero-header__id">{complaint.id}</span>
+            <StatusBadge status={complaint.status} />
+          </div>
+          <div className="mobile-hero-header__sub">
+            Registered on {complaint.registered || "Recent"}
+          </div>
+        </div>
+
+        {/* Tab Pills */}
+        <div className="mobile-pill-tabs">
+          <button
+            type="button"
+            className={`mobile-pill-tab ${mobileTab === "overview" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setMobileTab("overview")}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${mobileTab === "timeline" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setMobileTab("timeline")}
+          >
+            Timeline
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${mobileTab === "evidence" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setMobileTab("evidence")}
+          >
+            Evidence
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${mobileTab === "case" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setMobileTab("case")}
+          >
+            Case
+          </button>
+        </div>
+
+        {/* Tab 1: Overview */}
+        {mobileTab === "overview" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* Citizen Information Card */}
+            <div className="panel detail-panel" style={{ margin: 0, padding: "16px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 12px", color: "#0f172a" }}>
+                Citizen Information
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Icon name="user" />
+                  <div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>Name</div>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{complaint.citizen}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Icon name="phone" />
+                  <div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>Phone</div>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{complaint.phone || "—"}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Icon name="pin" />
+                  <div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>Address</div>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{complaint.address || `${complaint.block}, ${complaint.zone}`}</div>
+                  </div>
+                </div>
+                {complaint.ward && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Icon name="map-pin" />
+                    <div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>Ward</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{complaint.ward}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Complaint Details Card */}
+            <div className="panel detail-panel" style={{ margin: 0, padding: "16px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 8px", color: "#0f172a" }}>
+                Complaint Details
+              </h3>
+              <div style={{ marginBottom: "8px" }}>
+                <span style={{ fontSize: "11px", color: "#64748b" }}>Title</span>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>{complaint.title}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", color: "#64748b" }}>Description</span>
+                <p style={{ fontSize: "13px", color: "#334155", margin: "4px 0 0", lineHeight: "1.5" }}>
+                  {complaint.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Officer Assignment Card */}
+            <div className="panel detail-panel" style={{ margin: 0, padding: "16px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 10px", color: "#0f172a" }}>
+                Officer Assignment
+              </h3>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "#0b1957", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: "12px" }}>
+                  BI
+                </div>
+                <div>
+                  <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{complaint.assignedOfficer || "Pending Assignment"}</div>
+                  <div style={{ fontSize: "11px", color: "#64748b" }}>Building Inspector</div>
+                </div>
+              </div>
+              <div style={{ fontSize: "12px", color: "#64748b", borderTop: "1px dashed #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
+                <span>Supervising ATP: </span><strong>{complaint.atp || "Zonal ATP"}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Timeline */}
+        {mobileTab === "timeline" && (
+          <div className="panel detail-panel" style={{ margin: 0, padding: "16px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 12px", color: "#0f172a" }}>
+              Complaint Progression
+            </h3>
+            <div className="timeline-list">
+              {TIMELINE_STAGES.map((stage, index) => {
+                const isComplete = index < currentTimelineStage;
+                const isCurrent = index === currentTimelineStage;
+                return (
+                  <div
+                    key={stage.label}
+                    className={`timeline-item${isComplete ? " timeline-item--complete" : ""}${isCurrent ? " timeline-item--current" : ""}`}
+                  >
+                    <div className={`timeline-marker timeline-marker--${stage.accent}`}>
+                      {isComplete ? <Icon name="check" /> : <span />}
+                    </div>
+                    <div>
+                      <div className="timeline-item__label">{stage.label}</div>
+                      <div className="timeline-item__meta">
+                        {index <= currentTimelineStage ? `${registeredAt} • ${index === 0 ? "Operator Desk" : complaint.assignedOfficer}` : "Pending"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Evidence */}
+        {mobileTab === "evidence" && (
+          <div className="panel detail-panel" style={{ margin: 0, padding: "16px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 12px", color: "#0f172a" }}>
+              Uploaded Evidence & Documents
+            </h3>
+            {(storedComplaint?.attachments ?? []).length === 0 && driveFiles.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>No evidence attachments found.</p>
+            ) : (
+              <div className="attachment-grid">
+                {(storedComplaint?.attachments ?? []).map((_attachment, index) => (
+                  <div key={index} style={{ fontSize: "12px", color: "#334155" }}>
+                    Attachment {index + 1}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 4: Case */}
+        {mobileTab === "case" && (
+          <div className="panel detail-panel" style={{ margin: 0, padding: "16px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 12px", color: "#0f172a" }}>
+              Linked Enforcement Case
+            </h3>
+            {storedComplaint?.caseId ? (
+              <div>
+                <p style={{ fontSize: "13px", color: "#166534", fontWeight: 600 }}>
+                  Case ID: {storedComplaint.caseId}
+                </p>
+                <button
+                  type="button"
+                  className="primary-button button-full"
+                  style={{ marginTop: "12px" }}
+                  onClick={() => navigate(`/cases/${encodeURIComponent(storedComplaint.caseId!)}`)}
+                >
+                  View Case Details →
+                </button>
+              </div>
+            ) : (
+              <p style={{ fontSize: "13px", color: "#64748b" }}>
+                This complaint has not been converted to a statutory case yet.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ─── DESKTOP VIEW (Preserved Existing UI) ─── */}
+      <div className="desktop-only detail-page">
       <div className="detail-main">
         <button className="back-link" type="button" onClick={() => navigate("/complaints")}>
           <Icon name="arrow" /> All complaints
@@ -430,6 +671,7 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           )}
         </div>
       </aside>
+      </div>
     </div>
   );
 }
