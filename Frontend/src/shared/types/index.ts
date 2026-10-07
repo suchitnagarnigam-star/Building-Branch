@@ -26,6 +26,7 @@ export type AppComplaint = {
   assignedOfficer: string;
   atp: string;
   daysOpen: number;
+  timeline?: any[];
 };
 
 export type Officer = {

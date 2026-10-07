@@ -42,39 +42,39 @@ export const getComplaints = async (
 
     if (filterByUserId) {
       params.push(filterByUserId);
-      whereConditions.push(`submitted_by_user_id = $${params.length}`);
+      whereConditions.push(`complaints.submitted_by_user_id = $${params.length}`);
     }
 
     if (assignedBlocks !== null && assignedBlocks !== undefined) {
       params.push(assignedBlocks.map(normalizeBlock));
-      whereConditions.push(`REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($${params.length}::text[])`);
+      whereConditions.push(`REPLACE(LOWER(TRIM(complaints.block)), 'block ', '') = ANY($${params.length}::text[])`);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
 
     const result = await pool.query<Complaint>(`
       SELECT
-        complaint_id AS "complaintId",
-        registration_source AS "registrationSource",
-        citizen_name AS "citizenName",
-        phone_number AS "phoneNumber",
-        zone,
-        block,
-        ward,
-        address,
-        title,
-        description,
-        attachments,
-        assigned_officer_id AS "assignedOfficerId",
-        assigned_officer_name AS "assignedOfficerName",
-        assigned_officer_mobile AS "assignedOfficerMobile",
-        assigned_atp_id AS "assignedAtpId",
-        assigned_atp_name AS "assignedAtpName",
-        assigned_atp_mobile AS "assignedAtpMobile",
-        status,
-        created_at AS "createdAt",
-        drive_folder_url AS "driveFolderUrl",
-        submitted_by_user_id AS "submittedByUserId",
+        complaints.complaint_id AS "complaintId",
+        complaints.registration_source AS "registrationSource",
+        complaints.citizen_name AS "citizenName",
+        complaints.phone_number AS "phoneNumber",
+        complaints.zone,
+        complaints.block,
+        complaints.ward,
+        complaints.address,
+        complaints.title,
+        complaints.description,
+        complaints.attachments,
+        complaints.assigned_officer_id AS "assignedOfficerId",
+        complaints.assigned_officer_name AS "assignedOfficerName",
+        complaints.assigned_officer_mobile AS "assignedOfficerMobile",
+        complaints.assigned_atp_id AS "assignedAtpId",
+        complaints.assigned_atp_name AS "assignedAtpName",
+        complaints.assigned_atp_mobile AS "assignedAtpMobile",
+        complaints.status,
+        complaints.created_at AS "createdAt",
+        complaints.drive_folder_url AS "driveFolderUrl",
+        complaints.submitted_by_user_id AS "submittedByUserId",
         CASE 
           WHEN u_sub.user_id IS NOT NULL THEN json_build_object('name', u_sub.name, 'role', u_sub.role)
           ELSE NULL 

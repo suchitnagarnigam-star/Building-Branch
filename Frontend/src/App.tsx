@@ -60,6 +60,7 @@ const EMPTY_COMPLAINT: AppComplaint = {
   assignedOfficer: "",
   atp: "",
   daysOpen: 0,
+  timeline: [],
 };
 
 const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean => {
