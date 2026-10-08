@@ -140,16 +140,9 @@ export default function CasesPage({ navigate }: CasesPageProps) {
 
   return (
     <div className="field-inspection-page" style={{ maxWidth: "1120px", margin: "0 auto", paddingBottom: "48px" }}>
-      {/* ── MOBILE HEADER (Screenshot 8) ── */}
+      {/* ── MOBILE HEADER ── */}
       <div className="mobile-only mobile-sub-header">
-        <button
-          type="button"
-          className="mobile-back-btn"
-          onClick={() => navigate?.("/dashboard")}
-        >
-          <Icon name="arrow-left" />
-          <span>Enforcement Cases</span>
-        </button>
+        <h1 className="mobile-page-title">Enforcement Cases</h1>
         <div className="mobile-sub-actions">
           <button
             type="button"
@@ -157,7 +150,7 @@ export default function CasesPage({ navigate }: CasesPageProps) {
             onClick={() => navigate?.("/field-inspection")}
             aria-label="New Inspection"
           >
-            <Icon name="plus" />
+            <Icon name="plus" size={18} />
           </button>
         </div>
       </div>
@@ -354,11 +347,11 @@ export default function CasesPage({ navigate }: CasesPageProps) {
                 {c.building_identity || c.location || "Building Site"}
               </div>
               <div className="mobile-feed-card__meta-row">
-                <Icon name="pin" />
+                <Icon name="pin" size={15} />
                 <span>{c.zone || "Zone"} • {c.block ? `Block ${c.block}` : "Block"}</span>
               </div>
               <div className="mobile-feed-card__meta-row">
-                <Icon name="user" />
+                <Icon name="user" size={15} />
                 <span>{c.assigned_bi_name || "Unassigned BI"}</span>
               </div>
               <div className="mobile-feed-card__footer">
@@ -366,7 +359,7 @@ export default function CasesPage({ navigate }: CasesPageProps) {
                   Registered: {formatDate(c.created_at)}
                 </span>
                 <span className="mobile-feed-card__chevron">
-                  <Icon name="arrow-right" />
+                  <Icon name="chevron-right" size={16} />
                 </span>
               </div>
             </div>

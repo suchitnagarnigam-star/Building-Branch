@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 const commonProps = {
   viewBox: "0 0 24 24",
+  width: 20,
+  height: 20,
   fill: "none",
   stroke: "currentColor",
   strokeWidth: 1.8,
@@ -193,6 +195,40 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <path d="m9 18 6-6-6-6" />
     </svg>
   ),
+  "chevron-right": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  ),
+  "arrow-left": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  ),
+  "chevron-left": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  ),
+  "chevron-down": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  ),
+  "chevron-up": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m18 15-6-6-6 6" />
+    </svg>
+  ),
+  share: (className) => (
+    <svg {...commonProps} className={className}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  ),
   camera: (className) => (
     <svg {...commonProps} className={className}>
       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
@@ -242,7 +278,8 @@ type IconProps = {
 
 function Icon({ name, className = "", size, color }: IconProps) {
   const render = icons[name] ?? icons.dashboard;
-  const svgNode = render(className);
+  const fullClassName = className ? `app-icon ${className}` : "app-icon";
+  const svgNode = render(fullClassName);
 
   if (isValidElement(svgNode)) {
     const extraProps: any = {};

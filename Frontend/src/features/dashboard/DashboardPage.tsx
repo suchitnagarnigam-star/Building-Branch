@@ -323,51 +323,43 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
           </div>
         </div>
 
-        {/* 2x2 Metric Cards */}
+        {/* 2x2 Metric Cards (Section 4) */}
         <div className="mobile-kpi-grid">
           <div className="mobile-kpi-card">
-            <div className="mobile-kpi-card__top">
-              <span className="mobile-kpi-card__label">Complaints</span>
-              <div className="mobile-kpi-card__icon mobile-kpi-card__icon--blue">
-                <Icon name="file" />
-              </div>
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--blue">
+              <Icon name="file" size={20} />
             </div>
+            <div className="mobile-kpi-card__label">Complaints</div>
             <div className="mobile-kpi-card__value">{data.kpi.totalComplaints}</div>
           </div>
 
           <div className="mobile-kpi-card">
-            <div className="mobile-kpi-card__top">
-              <span className="mobile-kpi-card__label">Field Visits</span>
-              <div className="mobile-kpi-card__icon mobile-kpi-card__icon--green">
-                <Icon name="pin" />
-              </div>
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--green">
+              <Icon name="pin" size={20} />
             </div>
+            <div className="mobile-kpi-card__label">Field Visits</div>
             <div className="mobile-kpi-card__value">{data.kpi.totalFieldVisits}</div>
           </div>
 
           <div className="mobile-kpi-card">
-            <div className="mobile-kpi-card__top">
-              <span className="mobile-kpi-card__label">Cases</span>
-              <div className="mobile-kpi-card__icon mobile-kpi-card__icon--orange">
-                <Icon name="folder" />
-              </div>
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--orange">
+              <Icon name="folder" size={20} />
             </div>
+            <div className="mobile-kpi-card__label">Cases</div>
             <div className="mobile-kpi-card__value">{data.kpi.totalCases}</div>
           </div>
 
           <div className="mobile-kpi-card">
-            <div className="mobile-kpi-card__top">
-              <span className="mobile-kpi-card__label">Resolved</span>
-              <div className="mobile-kpi-card__icon mobile-kpi-card__icon--purple">
-                <Icon name="check-circle" />
-              </div>
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--purple">
+              <Icon name="check-circle" size={20} />
             </div>
+            <div className="mobile-kpi-card__label">Resolved</div>
             <div className="mobile-kpi-card__value">{data.kpi.resolvedCases}</div>
           </div>
         </div>
 
         {/* Quick Actions (2x2 Grid) */}
-        <div style={{ marginBottom: "8px", fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
+        <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
           Quick Actions
         </div>
         <div className="mobile-quick-actions">
@@ -376,7 +368,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             className="mobile-quick-action-btn"
             onClick={() => navigate("/complaints/new")}
           >
-            <Icon name="plus" />
+            <div className="mobile-quick-action-icon">
+              <Icon name="plus" size={18} />
+            </div>
             <span>Register Complaint</span>
           </button>
           <button
@@ -384,7 +378,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             className="mobile-quick-action-btn"
             onClick={() => navigate("/field-inspection")}
           >
-            <Icon name="search" />
+            <div className="mobile-quick-action-icon">
+              <Icon name="search" size={18} />
+            </div>
             <span>Start Inspection</span>
           </button>
           <button
@@ -392,7 +388,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             className="mobile-quick-action-btn"
             onClick={() => navigate("/cases")}
           >
-            <Icon name="folder" />
+            <div className="mobile-quick-action-icon">
+              <Icon name="folder" size={18} />
+            </div>
             <span>View Cases</span>
           </button>
           <button
@@ -400,7 +398,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             className="mobile-quick-action-btn"
             onClick={() => navigate("/officers")}
           >
-            <Icon name="users" />
+            <div className="mobile-quick-action-icon">
+              <Icon name="users" size={18} />
+            </div>
             <span>Officers</span>
           </button>
         </div>

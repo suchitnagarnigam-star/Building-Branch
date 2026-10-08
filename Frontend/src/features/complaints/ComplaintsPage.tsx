@@ -158,16 +158,9 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   return (
     <div className="panel panel--table">
-      {/* ─── Mobile Sub-header (Screenshot 5) ─── */}
+      {/* ─── Mobile Sub-header ─── */}
       <div className="mobile-only mobile-sub-header">
-        <button
-          type="button"
-          className="mobile-back-btn"
-          onClick={() => navigate("/dashboard")}
-        >
-          <Icon name="arrow-left" />
-          <span>Complaints</span>
-        </button>
+        <h1 className="mobile-page-title">Complaints</h1>
         <div className="mobile-sub-actions">
           {!isBI && (
             <button
@@ -176,7 +169,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
               onClick={() => navigate("/complaints/new")}
               aria-label="Register Complaint"
             >
-              <Icon name="plus" />
+              <Icon name="plus" size={18} />
             </button>
           )}
         </div>
@@ -199,7 +192,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
       </div>
 
       {/* Category Tabs (Desktop & Mobile Pills) */}
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "12px" }}>
         <div className="mobile-pill-tabs">
           <button
             type="button"
@@ -235,7 +228,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
       <div className="complaints-toolbar">
         <div className="complaints-filters">
           <div className="search-box complaints-search">
-            <Icon name="search" />
+            <Icon name="search" size={16} />
             <input value={search} onChange={(event) => setSearch(event.target.value)} type="text" placeholder="Search complaint ID, citizen..." />
           </div>
           <select value={zone} onChange={(event) => handleZoneChange(event.target.value)}>{zones.map((item) => <option key={item}>{item}</option>)}</select>
@@ -246,15 +239,20 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
         </div>
       </div>
 
-      {/* ─── Mobile Card Feed (Screenshot 5) ─── */}
+      {/* ─── Mobile Card Feed ─── */}
       <div className="mobile-only mobile-card-feed">
-        {loading && <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>Loading complaints...</div>}
+        {loading && <div style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>Loading complaints...</div>}
         {!loading && error && <div style={{ textAlign: "center", padding: "20px", color: "#dc2626" }}>{error}</div>}
         {!loading && !error && visibleComplaints.length === 0 && (
-          <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>No complaints match the selected filters.</div>
+          <div style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>No complaints match the selected filters.</div>
         )}
         {!loading && !error && visibleComplaints.map((complaint) => {
           const action = getComplaintAction(complaint);
+          const formattedDate = new Date(complaint.createdAt).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          });
           return (
             <div
               key={complaint.complaintId}
@@ -266,23 +264,21 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
             >
               <div className="mobile-feed-card__header">
                 <span className="mobile-feed-card__id">{complaint.complaintId}</span>
-                <span className="mobile-feed-card__date">
-                  {new Date(complaint.createdAt).toLocaleDateString("en-IN")}
-                </span>
+                <span className="mobile-feed-card__date">{formattedDate}</span>
               </div>
               <div className="mobile-feed-card__title">{complaint.citizenName}</div>
               <div className="mobile-feed-card__meta-row">
-                <Icon name="pin" />
-                <span>{complaint.block} • {complaint.zone}</span>
+                <Icon name="pin" size={15} />
+                <span>{complaint.block ? `${complaint.block} • ` : ""}{complaint.zone}</span>
               </div>
               <div className="mobile-feed-card__meta-row">
-                <Icon name="user" />
+                <Icon name="user" size={15} />
                 <span>{complaint.assignedOfficerName ?? "Pending assignment"}</span>
               </div>
               <div className="mobile-feed-card__footer">
                 <StatusBadge status={complaint.status} />
                 <span className="mobile-feed-card__chevron">
-                  <Icon name="arrow-right" />
+                  <Icon name="chevron-right" size={16} />
                 </span>
               </div>
             </div>

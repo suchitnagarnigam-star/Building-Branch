@@ -191,6 +191,25 @@ function OfficersPage() {
     return sorted.slice(0, 3);
   }, [officers]);
 
+  // Mobile podium layout order: Rank 2 (Left), Rank 1 (Center/Elevated), Rank 3 (Right)
+  const mobilePodiumItems = useMemo(() => {
+    if (topPerformers.length === 0) return [];
+    if (topPerformers.length === 1) {
+      return [{ officer: topPerformers[0], rank: 1 }];
+    }
+    if (topPerformers.length === 2) {
+      return [
+        { officer: topPerformers[1], rank: 2 },
+        { officer: topPerformers[0], rank: 1 },
+      ];
+    }
+    return [
+      { officer: topPerformers[1], rank: 2 },
+      { officer: topPerformers[0], rank: 1 },
+      { officer: topPerformers[2], rank: 3 },
+    ];
+  }, [topPerformers]);
+
   // Max cases for workload bar calculation
   const maxCases = useMemo(() => {
     return Math.max(1, ...officers.map((o) => o.casesAssigned || 0));
@@ -247,42 +266,158 @@ function OfficersPage() {
         fontFamily: "Inter, sans-serif",
       }}
     >
-      {/* ── MOBILE HEADER (Screenshot 12) ── */}
+      {/* ── MOBILE HEADER ── */}
       <div className="mobile-only mobile-sub-header">
-        <button
-          type="button"
-          className="mobile-back-btn"
-          onClick={() => window.location.hash = "/dashboard"}
-        >
-          <Icon name="arrow-left" />
-          <span>Officers</span>
-        </button>
+        <h1 className="mobile-page-title">Officers</h1>
       </div>
 
-      {/* ── MOBILE FILTER PILLS (Screenshot 12) ── */}
-      <div className="mobile-only" style={{ marginBottom: "12px" }}>
-        <div className="mobile-pill-tabs">
-          <button
-            type="button"
-            className={`mobile-pill-tab ${designationFilter === "All" ? "mobile-pill-tab--active" : ""}`}
-            onClick={() => setDesignationFilter("All")}
+      {/* ── MOBILE TOP ENFORCEMENT OFFICERS PODIUM (Sections 1-6) ── */}
+      {!loading && !error && mobilePodiumItems.length > 0 && (
+        <div className="mobile-only mobile-podium-section">
+          <div className="mobile-podium-header">
+            <div className="mobile-podium-header-left">
+              <span className="mobile-podium-trophy-icon">🏆</span>
+              <div>
+                <h2 className="mobile-podium-title">Top Enforcement Officers</h2>
+                <p className="mobile-podium-subtitle">Ranked by active cases &amp; field inspections</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="mobile-podium-view-all"
+              onClick={() => {
+                const listEl = document.querySelector(".officer-mobile-filter-section, .officer-card-mobile");
+                listEl?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              View All
+            </button>
+          </div>
+
+          <div className="mobile-podium-container">
+            {mobilePodiumItems.map(({ officer, rank }) => {
+              const initial = officer.name
+                ? officer.name.replace(/^(Sh\.|Smt\.|Er\.)\s*/i, "").trim().charAt(0).toUpperCase() || "O"
+                : "O";
+              const zoneStr = officer.zone
+                ? (officer.zone.startsWith("Zone") ? officer.zone : `Zone ${officer.zone}`)
+                : "Zone";
+
+              return (
+                <div
+                  key={officer.officerId}
+                  className={`mobile-podium-card mobile-podium-card--rank-${rank}`}
+                  onClick={() => handleViewOfficer(officer.officerId)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleViewOfficer(officer.officerId);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${officer.name}, Rank ${rank}, ${officer.casesAssigned} cases assigned`}
+                >
+                  <div className="mobile-podium-card__rank-wrap">
+                    <span className={`mobile-podium-card__rank-pill mobile-podium-card__rank-pill--${rank}`}>
+                      <span className="mobile-podium-medal">
+                        {rank === 1 ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                          </svg>
+                        ) : rank === 2 ? (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm-3.5 1l-2.5 6 6-2.5 6 2.5-2.5-6h-7z" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="mobile-podium-rank-num">#{rank}</span>
+                    </span>
+                  </div>
+
+                  <div className={`mobile-podium-card__avatar mobile-podium-card__avatar--${rank}`}>
+                    {initial}
+                  </div>
+
+                  <div className="mobile-podium-card__info">
+                    <div className="mobile-podium-card__name" title={officer.name}>
+                      {officer.name}
+                    </div>
+                    <div className="mobile-podium-card__meta">
+                      <span className="mobile-podium-card__meta-desig">{officer.designation || "Officer"}</span>
+                      {zoneStr && <span className="mobile-podium-card__meta-sep">•</span>}
+                      {zoneStr && <span className="mobile-podium-card__meta-zone">{zoneStr}</span>}
+                    </div>
+                  </div>
+
+                  <div className="mobile-podium-card__hero">
+                    <span className="mobile-podium-card__hero-val">{officer.casesAssigned}</span>
+                    <span className="mobile-podium-card__hero-lbl">Cases Assigned</span>
+                  </div>
+
+                  <div className="mobile-podium-card__stats">
+                    <div className="mobile-podium-card__stat-item">
+                      <span className="mobile-podium-card__stat-val">{officer.fieldVisits}</span>
+                      <span className="mobile-podium-card__stat-lbl">Visits</span>
+                    </div>
+                    <div className="mobile-podium-card__stat-item">
+                      <span className="mobile-podium-card__stat-val">{officer.noticesIssued}</span>
+                      <span className="mobile-podium-card__stat-lbl">Notices</span>
+                    </div>
+                    <div className="mobile-podium-card__stat-item">
+                      <span className="mobile-podium-card__stat-val">{officer.casesAssigned}</span>
+                      <span className="mobile-podium-card__stat-lbl">Cases</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE FILTER SECTION (Search -> Role Segmented + Zone Dropdown) ── */}
+      <div className="mobile-only officer-mobile-filter-section">
+        <div className="officer-mobile-search">
+          <Icon name="search" size={16} />
+          <input
+            type="text"
+            placeholder="Search officer name, designation..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="officer-mobile-filter-row">
+          <div className="officer-role-segmented">
+            {(["All", "BI", "ATP"] as const).map((desig) => (
+              <button
+                key={desig}
+                type="button"
+                className={`officer-role-tab ${designationFilter === desig ? "officer-role-tab--active" : ""}`}
+                onClick={() => setDesignationFilter(desig)}
+              >
+                {desig === "All" ? "All Roles" : desig}
+              </button>
+            ))}
+          </div>
+
+          <select
+            className="officer-mobile-zone-select"
+            value={selectedZone}
+            onChange={(e) => setSelectedZone(e.target.value)}
           >
-            All ({totalOfficersCount})
-          </button>
-          <button
-            type="button"
-            className={`mobile-pill-tab ${designationFilter === "BI" ? "mobile-pill-tab--active" : ""}`}
-            onClick={() => setDesignationFilter("BI")}
-          >
-            BI ({biOfficersCount})
-          </button>
-          <button
-            type="button"
-            className={`mobile-pill-tab ${designationFilter === "ATP" ? "mobile-pill-tab--active" : ""}`}
-            onClick={() => setDesignationFilter("ATP")}
-          >
-            ATP ({atpOfficersCount})
-          </button>
+            <option value="All Zones">All Zones</option>
+            {availableZones.map((z) => (
+              <option key={z} value={z}>
+                {z}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -447,8 +582,9 @@ function OfficersPage() {
       )}
       </div>
 
-      {/* ── 3. FILTER CONTROLS BAR ─────────────────────────────────────────── */}
+      {/* ── 3. FILTER CONTROLS BAR (Desktop Only) ─────────────────────────── */}
       <div
+        className="desktop-only"
         style={{
           background: "#fff",
           border: "1px solid var(--border)",
@@ -601,59 +737,36 @@ function OfficersPage() {
             return (
               <div
                 key={o.officerId}
-                className="mobile-feed-card"
+                className="officer-card-mobile"
                 onClick={() => handleViewOfficer(o.officerId)}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                  <div
-                    style={{
-                      width: "42px",
-                      height: "42px",
-                      borderRadius: "50%",
-                      background: "#e0f2fe",
-                      color: "#0369a1",
-                      fontWeight: 700,
-                      fontSize: "16px",
-                      display: "grid",
-                      placeItems: "center",
-                      flexShrink: 0,
-                    }}
-                  >
+                <div className="officer-card-mobile__header">
+                  <div className="officer-card-mobile__avatar">
                     {initial}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>{o.name}</div>
-                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                  <div className="officer-card-mobile__info">
+                    <div className="officer-card-mobile__name">{o.name}</div>
+                    <div className="officer-card-mobile__meta">
                       {o.designation} • {o.zone}
                     </div>
                   </div>
-                  <span className="mobile-feed-card__chevron">
-                    <Icon name="arrow-right" />
+                  <span className="officer-card-mobile__chevron">
+                    <Icon name="chevron-right" size={16} />
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "6px",
-                    background: "#f8fafc",
-                    padding: "8px",
-                    borderRadius: "8px",
-                    textAlign: "center",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{o.fieldVisits}</div>
-                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>Visits</div>
+                <div className="officer-card-mobile__stats">
+                  <div className="officer-card-mobile__stat-item">
+                    <span className="officer-card-mobile__stat-val">{o.fieldVisits}</span>
+                    <span className="officer-card-mobile__stat-lbl">Visits</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{o.noticesIssued}</div>
-                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>Notices</div>
+                  <div className="officer-card-mobile__stat-item">
+                    <span className="officer-card-mobile__stat-val">{o.noticesIssued}</span>
+                    <span className="officer-card-mobile__stat-lbl">Notices</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>{o.casesAssigned}</div>
-                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>Cases</div>
+                  <div className="officer-card-mobile__stat-item">
+                    <span className="officer-card-mobile__stat-val">{o.casesAssigned}</span>
+                    <span className="officer-card-mobile__stat-lbl">Cases</span>
                   </div>
                 </div>
               </div>

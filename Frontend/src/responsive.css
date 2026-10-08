@@ -43,49 +43,70 @@ div.desktop-only {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: var(--slate, #f7f4ed);
+  color: #0f172a;
 }
 
 .app-content--mobile {
   width: 100% !important;
   margin-left: 0 !important;
-  padding: 12px 14px calc(76px + env(safe-area-inset-bottom)) !important;
-  min-height: calc(100vh - 56px);
+  padding: 14px 16px calc(76px + env(safe-area-inset-bottom)) !important;
+  min-height: calc(100vh - 54px);
   box-sizing: border-box;
 }
 
-/* ─── Mobile Header ─── */
+@media (max-width: 340px) {
+  .app-content--mobile {
+    padding: 10px 12px calc(76px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Reset outer desktop panel on mobile to avoid double-nested card padding */
+@media (max-width: 767px) {
+  .panel,
+  .panel--table {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* ─── Mobile Header (Section 2) ─── */
 .mobile-header {
   position: sticky;
   top: 0;
   z-index: 40;
-  height: 56px;
+  height: 54px;
   background: #0b1957;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  box-shadow: 0 2px 8px rgba(11, 25, 87, 0.2);
+  box-shadow: 0 1px 4px rgba(11, 25, 87, 0.2);
 }
 
 .mobile-header__left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .mobile-header__menu-btn {
   background: transparent;
   border: none;
   color: #ffffff;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   display: grid;
   place-items: center;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
   transition: background 0.15s ease;
 }
 
@@ -93,17 +114,26 @@ div.desktop-only {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.mobile-header__menu-btn svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
 .mobile-header__title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 600;
   letter-spacing: -0.2px;
   color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mobile-header__right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .mobile-header__icon-btn {
@@ -111,42 +141,50 @@ div.desktop-only {
   background: transparent;
   border: none;
   color: #ffffff;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   cursor: pointer;
 }
 
+.mobile-header__icon-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
 .mobile-header__badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 7px;
+  right: 7px;
   background: #ef4444;
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
-  width: 16px;
+  min-width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 8px;
+  padding: 0 3px;
   display: grid;
   place-items: center;
   border: 1.5px solid #0b1957;
+  line-height: 1;
 }
 
 .mobile-header__avatar {
-  width: 34px;
-  height: 34px;
+  width: 33px;
+  height: 33px;
   border-radius: 50%;
   background: #2563eb;
   color: #ffffff;
   font-weight: 700;
   font-size: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   display: grid;
   place-items: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* ─── Mobile Navigation Drawer ─── */
@@ -323,18 +361,18 @@ div.desktop-only {
   color: #dc2626 !important;
 }
 
-/* ─── Mobile Bottom Navigation Bar ─── */
+/* ─── Mobile Bottom Navigation Bar (Section 3) ─── */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 35;
-  height: calc(58px + env(safe-area-inset-bottom));
+  height: calc(60px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -346,11 +384,11 @@ div.desktop-only {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
+  min-height: 48px;
   background: transparent;
   border: none;
   color: #64748b;
-  height: 100%;
   cursor: pointer;
   padding: 4px 0;
   transition: color 0.15s ease;
@@ -368,26 +406,32 @@ div.desktop-only {
   place-items: center;
 }
 
+.mobile-bottom-nav__icon svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
 .mobile-bottom-nav__label {
   font-size: 10.5px;
   font-weight: 500;
+  line-height: 1;
 }
 
 .mobile-bottom-nav__center {
-  flex: 0 0 54px;
+  flex: 0 0 52px;
   display: flex;
   justify-content: center;
-  margin-top: -22px;
+  margin-top: -18px;
 }
 
 .mobile-bottom-nav__fab {
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: #0b1957;
   color: #ffffff;
   border: 3px solid #ffffff;
-  box-shadow: 0 4px 14px rgba(11, 25, 87, 0.35);
+  box-shadow: 0 3px 10px rgba(11, 25, 87, 0.3);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -399,12 +443,26 @@ div.desktop-only {
   background: #162975;
 }
 
+.mobile-bottom-nav__fab svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
 /* ─── Mobile Screen Header & Back Bar ─── */
 .mobile-sub-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0 12px;
+  padding: 4px 0 12px;
+  gap: 8px;
+}
+
+.mobile-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0b1957;
+  letter-spacing: -0.3px;
+  margin: 0;
 }
 
 .mobile-back-btn {
@@ -413,11 +471,17 @@ div.desktop-only {
   gap: 6px;
   background: transparent;
   border: none;
-  color: #0f172a;
+  color: #0b1957;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0;
+  min-height: 44px;
+}
+
+.mobile-back-btn svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .mobile-sub-actions {
@@ -427,24 +491,30 @@ div.desktop-only {
 }
 
 .mobile-circle-btn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  border: 1px solid #cbd5e1;
+  color: #0b1957;
   display: grid;
   place-items: center;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-/* ─── Mobile Tab Pills ─── */
+.mobile-circle-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* ─── Mobile Tab Pills (Section 7) ─── */
 .mobile-pill-tabs {
   display: flex;
   align-items: center;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   scrollbar-width: none;
   margin-bottom: 12px;
 }
@@ -455,15 +525,19 @@ div.desktop-only {
 
 .mobile-pill-tab {
   flex-shrink: 0;
-  padding: 7px 14px;
+  padding: 6px 13px;
   border-radius: 20px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .mobile-pill-tab--active {
@@ -471,25 +545,82 @@ div.desktop-only {
   color: #ffffff !important;
   border-color: #0b1957 !important;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(11, 25, 87, 0.2);
+  box-shadow: 0 1px 4px rgba(11, 25, 87, 0.2);
 }
 
-/* ─── Mobile Card Feeds (Complaints, Cases, Officers) ─── */
+/* ─── Mobile Filter Controls (Section 7) ─── */
+@media (max-width: 767px) {
+  .complaints-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .complaints-filters {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .complaints-search {
+    height: 40px !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .complaints-search svg {
+    width: 16px !important;
+    height: 16px !important;
+    color: #64748b !important;
+    flex-shrink: 0 !important;
+  }
+
+  .complaints-search input {
+    font-size: 13px !important;
+    color: #0f172a !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+  }
+
+  .complaints-filters select {
+    height: 40px !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    font-size: 13px !important;
+    color: #0f172a !important;
+    padding: 0 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    outline: none !important;
+  }
+}
+
+/* ─── Mobile Card Feeds (Sections 5, 6 & 10) ─── */
 .mobile-card-feed {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px; /* 8-10px spacing */
 }
 
 .mobile-feed-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 11px;
+  padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-sizing: border-box;
 }
 
 .mobile-feed-card:active {
@@ -497,53 +628,93 @@ div.desktop-only {
   background: #f8fafc;
 }
 
+/* ROW 1: Complaint ID & Date */
 .mobile-feed-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  gap: 8px;
 }
 
 .mobile-feed-card__id {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 600;
   color: #0b1957;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .mobile-feed-card__date {
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: #64748b;
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
+/* ROW 2: Complaint title */
 .mobile-feed-card__title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #0f172a;
-  margin-bottom: 6px;
+  line-height: 1.25;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* ROW 3 & ROW 4: Metadata (Location & Officer) */
 .mobile-feed-card__meta-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 4px;
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.2;
 }
 
+.mobile-feed-card__meta-row svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.mobile-feed-card__meta-row span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ROW 5: Status Badge & Right Arrow */
 .mobile-feed-card__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 8px;
+  margin-top: 2px;
+  padding-top: 6px;
   border-top: 1px dashed #f1f5f9;
+}
+
+.mobile-feed-card__footer .status-badge,
+.mobile-feed-card__footer .status-pill {
+  font-size: 10.5px;
+  padding: 2.5px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .mobile-feed-card__chevron {
   color: #94a3b8;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-feed-card__chevron svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: #94a3b8;
 }
 
 /* ─── Mobile Hero Header Card ─── */
@@ -794,13 +965,13 @@ div.desktop-only {
   text-transform: uppercase;
 }
 
-/* ─── Mobile Greeting & Dashboard Layout ─── */
+/* ─── Mobile Greeting & Dashboard Layout (Section 4) ─── */
 .mobile-greeting-card {
   background: linear-gradient(135deg, #0b1957 0%, #162975 100%);
   color: #ffffff;
-  border-radius: 14px;
-  padding: 18px 16px;
-  margin-bottom: 14px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -809,21 +980,22 @@ div.desktop-only {
   position: absolute;
   right: -10px;
   bottom: -10px;
-  width: 140px;
-  opacity: 0.18;
+  width: 100px;
+  opacity: 0.12;
   pointer-events: none;
 }
 
 .mobile-greeting-card__time {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #93c5fd;
   margin-bottom: 2px;
+  font-weight: 500;
 }
 
 .mobile-greeting-card__user {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .mobile-kpi-grid {
@@ -836,24 +1008,25 @@ div.desktop-only {
 .mobile-kpi-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 11px;
+  padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.mobile-kpi-card__top {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  flex-direction: column;
 }
 
 .mobile-kpi-card__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   display: grid;
   place-items: center;
+  margin-bottom: 6px;
+}
+
+.mobile-kpi-card__icon svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .mobile-kpi-card__icon--blue { background: #e0f2fe; color: #0284c7; }
@@ -865,26 +1038,29 @@ div.desktop-only {
   font-size: 11.5px;
   color: #64748b;
   font-weight: 500;
+  margin-bottom: 2px;
 }
 
 .mobile-kpi-card__value {
   font-size: 24px;
-  font-weight: 800;
-  color: #0f172a;
+  font-weight: 700;
+  color: #0b1957;
+  line-height: 1.1;
 }
 
 .mobile-quick-actions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .mobile-quick-action-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 12px;
+  padding: 10px 12px;
+  min-height: 44px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -892,26 +1068,50 @@ div.desktop-only {
   font-weight: 600;
   color: #0f172a;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .mobile-quick-action-btn:active {
   background: #f1f5f9;
 }
 
+.mobile-quick-action-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #0b1957;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-quick-action-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+.mobile-quick-action-btn span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .mobile-attention-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 11px;
+  padding: 14px;
   margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .mobile-attention-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .mobile-attention-title {
@@ -922,25 +1122,26 @@ div.desktop-only {
 
 .mobile-attention-view-all {
   font-size: 12px;
-  color: #2563eb;
+  color: #0b1957;
   font-weight: 600;
   background: transparent;
   border: none;
   cursor: pointer;
+  padding: 4px;
 }
 
 .mobile-attention-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .mobile-attention-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 6px 0;
+  border-bottom: 1px solid #f8fafc;
   cursor: pointer;
 }
 
@@ -968,6 +1169,630 @@ div.desktop-only {
   font-size: 13px;
   font-weight: 700;
   color: #0f172a;
+}
+
+/* ─── Mobile Officers Performance Page Reset ─── */
+@media (max-width: 767px) {
+  .officers-performance-page {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ─── Mobile Top Enforcement Officers Podium (Sections 1-6) ─── */
+.mobile-podium-section {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.mobile-podium-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.mobile-podium-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-podium-trophy-icon {
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-podium-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0b1957;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.mobile-podium-subtitle {
+  font-size: 10.5px;
+  color: #64748b;
+  margin: 2px 0 0;
+  line-height: 1.2;
+}
+
+.mobile-podium-view-all {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0 4px 8px;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.mobile-podium-view-all:active {
+  color: #1d4ed8;
+}
+
+.mobile-podium-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 7px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mobile-podium-card {
+  width: 100%;
+  min-width: 0;
+  background: #ffffff;
+  border-radius: 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+  user-select: none;
+  padding: 10px 5px 9px;
+}
+
+.mobile-podium-card:active {
+  transform: scale(0.98);
+}
+
+/* Rank 1: Gold / Winner / Center (Taller & Prominently Highlighted) */
+.mobile-podium-card--rank-1 {
+  min-height: 262px;
+  height: 265px;
+  border: 2px solid #f59e0b;
+  background: linear-gradient(180deg, #fffdf2 0%, #ffffff 45%);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.16), 0 1px 3px rgba(0, 0, 0, 0.04);
+  z-index: 2;
+}
+
+/* Rank 2: Silver / 2nd (Left) */
+.mobile-podium-card--rank-2 {
+  min-height: 242px;
+  height: 245px;
+  border: 1.5px solid #dbeafe;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(11, 25, 87, 0.05);
+}
+
+/* Rank 3: Bronze / 3rd (Right) */
+.mobile-podium-card--rank-3 {
+  min-height: 242px;
+  height: 245px;
+  border: 1.5px solid #fed7aa;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(11, 25, 87, 0.05);
+}
+
+.mobile-podium-card__rank-wrap {
+  margin-bottom: 2px;
+}
+
+.mobile-podium-card__rank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mobile-podium-card__rank-pill--1 {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 3px 8px;
+}
+
+.mobile-podium-card__rank-pill--2 {
+  background: #eff6ff;
+  color: #1e3a8a;
+  border: 1px solid #dbeafe;
+}
+
+.mobile-podium-card__rank-pill--3 {
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+}
+
+.mobile-podium-medal {
+  font-size: 11px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-podium-rank-num {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.mobile-podium-card__avatar {
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.mobile-podium-card__avatar--1 {
+  width: 44px;
+  height: 44px;
+  font-size: 17px;
+  font-weight: 800;
+  background: #fef08a;
+  color: #854d0e;
+  border: 2px solid #fde68a;
+}
+
+.mobile-podium-card__avatar--2 {
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1e3a8a;
+  border: 2px solid #bfdbfe;
+}
+
+.mobile-podium-card__avatar--3 {
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 700;
+  background: #ffedd5;
+  color: #9a3412;
+  border: 2px solid #fed7aa;
+}
+
+.mobile-podium-card__info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.mobile-podium-card__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b1957;
+  margin: 0;
+  line-height: 1.25;
+  min-height: 30px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  text-align: center;
+  width: 100%;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0b1957;
+}
+
+.mobile-podium-card__meta {
+  font-size: 9.5px;
+  color: #64748b;
+  margin: 2px 0 0;
+  line-height: 1.2;
+  text-align: center;
+  min-height: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 3px;
+  row-gap: 0;
+  width: 100%;
+}
+
+.mobile-podium-card__meta-desig {
+  font-weight: 500;
+}
+
+.mobile-podium-card__meta-sep {
+  color: #94a3b8;
+  font-size: 8px;
+}
+
+.mobile-podium-card__meta-zone {
+  font-weight: 500;
+}
+
+.mobile-podium-card__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 8px;
+  padding: 5px 3px;
+  box-sizing: border-box;
+  background: #eff6ff;
+  border: 1px solid rgba(191, 219, 254, 0.4);
+  margin: 3px 0 4px;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__hero {
+  background: #fef9c3;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.mobile-podium-card__hero-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0b1957;
+  line-height: 1;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__hero-val {
+  font-size: 19px;
+  color: #0b1957;
+}
+
+.mobile-podium-card__hero-lbl {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: none;
+  letter-spacing: -0.1px;
+  margin-top: 2px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__hero-lbl {
+  color: #78350f;
+}
+
+.mobile-podium-card__stats {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: none;
+}
+
+.mobile-podium-card__stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.mobile-podium-card__stat-val {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0b1957;
+  line-height: 1.1;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__stat-val {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mobile-podium-card__stat-lbl {
+  font-size: 8.5px;
+  color: #64748b;
+  font-weight: 500;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* ─── Mobile Officers Filter Section & Cards (Sections 8 & 9) ─── */
+.officer-mobile-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.officer-mobile-search {
+  height: 40px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.officer-mobile-search svg {
+  width: 16px !important;
+  height: 16px !important;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.officer-mobile-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: #0f172a;
+  width: 100%;
+}
+
+.officer-mobile-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.officer-role-segmented {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+  flex: 1.2;
+}
+
+.officer-role-tab {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 6px;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: #475569;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.officer-role-tab--active {
+  background: #ffffff !important;
+  color: #0b1957 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.officer-mobile-zone-select {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #0f172a;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.officer-card-mobile {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.officer-card-mobile:active {
+  transform: scale(0.99);
+  background: #f8fafc;
+}
+
+.officer-card-mobile__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.officer-card-mobile__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.officer-card-mobile__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.officer-card-mobile__name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.officer-card-mobile__meta {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.officer-card-mobile__chevron {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.officer-card-mobile__chevron svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: #94a3b8;
+}
+
+.officer-card-mobile__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: #f8fafc;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #f1f5f9;
+}
+
+.officer-card-mobile__stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.officer-card-mobile__stat-val {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0b1957;
+  line-height: 1.2;
+}
+
+.officer-card-mobile__stat-lbl {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ─── Responsive Width Adaptations (Section 14: 320px, 360px, 375px, 390px, 412px, 430px) ─── */
+@media (max-width: 350px) {
+  /* 320px optimizations */
+  .mobile-header__title {
+    font-size: 13.5px !important;
+  }
+  .mobile-feed-card__id {
+    font-size: 11px !important;
+  }
+  .mobile-feed-card__title {
+    font-size: 13px !important;
+  }
+  .mobile-kpi-card__value {
+    font-size: 21px !important;
+  }
+  .mobile-quick-action-btn {
+    padding: 8px 10px !important;
+    font-size: 11.5px !important;
+  }
+  .officer-role-tab {
+    font-size: 10.5px !important;
+    padding: 5px 2px !important;
+  }
+  .mobile-podium-container {
+    gap: 5px !important;
+  }
+  .mobile-podium-card {
+    padding: 8px 3px 7px !important;
+  }
+  .mobile-podium-card--rank-1 {
+    min-height: 252px !important;
+    height: 255px !important;
+  }
+  .mobile-podium-card--rank-2,
+  .mobile-podium-card--rank-3 {
+    min-height: 234px !important;
+    height: 238px !important;
+  }
+  .mobile-podium-card__avatar--1 {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 15px !important;
+  }
+  .mobile-podium-card__avatar--2,
+  .mobile-podium-card__avatar--3 {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 13px !important;
+  }
+  .mobile-podium-card__name {
+    font-size: 11px !important;
+    min-height: 28px !important;
+  }
+  .mobile-podium-card--rank-1 .mobile-podium-card__name {
+    font-size: 11.5px !important;
+  }
+  .mobile-podium-card__hero-lbl {
+    font-size: 8.5px !important;
+  }
+  .mobile-podium-card__stat-val {
+    font-size: 10.5px !important;
+  }
+  .mobile-podium-card__stat-lbl {
+    font-size: 8px !important;
+  }
+}
+
+@media (min-width: 410px) and (max-width: 767px) {
+  /* 412px - 430px optimization: allow full fluid width without oversized elements */
+  .mobile-feed-card,
+  .officer-card-mobile,
+  .mobile-kpi-card,
+  .mobile-attention-card {
+    width: 100%;
+  }
 }
 
 /* ─── Mobile Field Inspection & Construction Form Styles ─── */
