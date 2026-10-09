@@ -1,17 +1,17 @@
 # Graph Report - building branch  (2026-10-09)
 
 ## Corpus Check
-- 97 files · ~193,314 words
+- 98 files · ~200,451 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 9 file(s) not represented in the graph (top: .css 4, (none) 2, .example 2)
+- Unclassified: 8 file(s) not represented in the graph (top: .css 4, (none) 2, .example 2)
 
 ## Summary
-- 749 nodes · 1250 edges · 59 communities (57 shown, 2 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 29 edges (avg confidence: 0.91)
+- 807 nodes · 1324 edges · 68 communities (64 shown, 4 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 33 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f0676a1c`
+- Built from commit: `9f8c5603`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,8 +19,8 @@
 - Icon
 - Frontend/package.json
 - complaintApi.ts
-- ComplaintsPage.tsx
-- authRoutes.ts
+- DashboardPage.tsx
+- auth.ts
 - complaintRoutes.ts
 - CaseDetailPage.tsx
 - compilerOptions
@@ -36,7 +36,7 @@
 - app.ts
 - devDependencies
 - compilerOptions
-- complaintStorage.ts
+- 2. Comprehensive Progress Breakdown: Implemented Features
 - package.json
 - dotenv
 - scripts
@@ -44,8 +44,8 @@
 - Frontend/tsconfig.json
 - MCL-BB
 - 41.1 Primary API Endpoints
-- AuthContext.tsx
 - react
+- Topbar.tsx
 - 25. Data Architecture Direction
 - Phases
 - 34. Suggested 1–1.5 Week Prototype Timeline
@@ -55,14 +55,14 @@
 - MCL-BB — Frontend Application
 - 37. Open Decisions and Verification
 - CasesPage.tsx
-- workflowService.ts
+- Phase 2: In-App Notification Center (Commit 2)
 - 39. Implementation Priorities
 - 5. Users and Roles
 - UsersPage.tsx
 - 16. Construction Status & Three Enforcement Pathways
 - 21. Analytics
 - 8. Complaint Workflow
-- ConfirmationScreen.tsx
+- ComplaintsPage.tsx
 - 10. ATP Review of Complaint
 - 19. Status Ownership
 - 27. Backend Principles
@@ -74,39 +74,47 @@
 - 32. Two-Developer Plan
 - 6. System Scope
 - 7. Core Workflows Overview
+- manifest.json
+- pushRoutes.ts
+- push_subscriptions
+- claudeService.ts
+- 004_create_demolition_tables.sql
+- 005_case_closures.sql
+- 007_create_notifications_table.sql
+- idx_complaints_submitted_by
 
 ## God Nodes (most connected - your core abstractions)
-1. `Icon()` - 45 edges
+1. `Icon()` - 47 edges
 2. `App()` - 30 edges
 3. `react` - 27 edges
 4. `useAuth()` - 20 edges
 5. `compilerOptions` - 19 edges
 6. `compilerOptions` - 15 edges
 7. `ComplaintFormPage()` - 13 edges
-8. `pool` - 12 edges
-9. `25. Data Architecture Direction` - 10 edges
-10. `authenticateToken()` - 9 edges
+8. `pool` - 13 edges
+9. `2. Comprehensive Progress Breakdown: Implemented Features` - 12 edges
+10. `authenticateToken()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Frontend PWA Integration` --references--> `usePushNotifications()`  [INFERRED]
   docs/superpowers/plans/2026-10-06-pwa-push-notifications.md → Frontend/src/hooks/usePushNotifications.ts
+- `2.11 Mobile Responsive Redesign & Upstream Sync` --references--> `useBreakpoint()`  [INFERRED]
+  docs/context-handoff.md → Frontend/src/shared/hooks/useBreakpoint.ts
+- `3. Technology Stack & Configuration` --references--> `useCountUp()`  [INFERRED]
+  docs/context-handoff.md → Frontend/src/shared/hooks/useCountUp.ts
 - `2.2 Role-Based Data Access Control (`server/services/accessControl.ts`)` --references--> `getUserAssignedBlocks()`  [INFERRED]
   docs/context-handoff.md → server/services/accessControl.ts
 - `Verification & Quality Gates` --references--> `notifyOfficer()`  [INFERRED]
   docs/superpowers/plans/2026-10-06-pwa-push-notifications.md → server/services/pushService.ts
-- `3. Technology Stack & Configuration` --references--> `useCountUp()`  [INFERRED]
-  docs/context-handoff.md → Frontend/src/shared/hooks/useCountUp.ts
-- `MCL Building Branch (MCL-BB) — Context Handoff & Progress Report` --references--> `main()`  [INFERRED]
-  docs/context-handoff.md → server/db/testConnection.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (59 total, 2 thin omitted)
+## Communities (68 total, 4 thin omitted)
 
 ### Community 0 - "Icon"
-Cohesion: 0.15
-Nodes (15): ExternalUploadSuccessScreen(), ExternalUploadSuccessScreenProps, ReviewScreen(), UploadScreen(), UploadScreenProps, MobileBottomNav(), MobileBottomNavProps, MobileHeader() (+7 more)
+Cohesion: 0.14
+Nodes (16): ConfirmationScreen(), ConfirmationScreenProps, readSavedComplaint(), SavedComplaint, ExternalUploadSuccessScreen(), ExternalUploadSuccessScreenProps, ReviewScreen(), UploadScreen() (+8 more)
 
 ### Community 1 - "Frontend/package.json"
 Cohesion: 0.05
@@ -114,23 +122,23 @@ Nodes (42): dependencies, react, react-dom, recharts, tailwindcss, @tailwindcss/
 
 ### Community 2 - "complaintApi.ts"
 Cohesion: 0.06
-Nodes (46): BlockZoneEntry, locationData, zoneForBlock(), FallbackOfficer, fallbackOfficers, ExtractedComplaintPage(), ExtractedComplaintPageProps, ComplaintFormPage() (+38 more)
+Nodes (48): BlockZoneEntry, locationData, zoneForBlock(), FallbackOfficer, fallbackOfficers, ExtractedComplaintPage(), ExtractedComplaintPageProps, ComplaintFormPage() (+40 more)
 
-### Community 3 - "ComplaintsPage.tsx"
-Cohesion: 0.07
-Nodes (35): 3. Technology Stack & Configuration, ComplaintDetailPage(), ComplaintDetailPageProps, DriveFile, getTimelineStage(), readLocalComplaint(), StoredAttachment, StoredComplaint (+27 more)
+### Community 3 - "DashboardPage.tsx"
+Cohesion: 0.12
+Nodes (21): ComplaintDetailPage(), ComplaintDetailPageProps, DriveFile, getTimelineStage(), readLocalComplaint(), StoredAttachment, StoredComplaint, TIMELINE_STAGES (+13 more)
 
-### Community 4 - "authRoutes.ts"
-Cohesion: 0.18
-Nodes (17): 2.1 Authentication & Security (JWT & RBAC), jsonwebtoken, authenticateToken(), Express, Request, requireRole(), router, ALLOWED_ROLES (+9 more)
+### Community 4 - "auth.ts"
+Cohesion: 0.19
+Nodes (16): 2.1 Authentication & Security (JWT & RBAC), jsonwebtoken, authenticateToken(), Express, Request, requireRole(), ALLOWED_ROLES, RoleType (+8 more)
 
 ### Community 5 - "complaintRoutes.ts"
-Cohesion: 0.10
-Nodes (11): @anthropic-ai/sdk, parentDirectory, storage, upload, uploadDirectory, anthropic, complaintSchema, extractComplaintFromOCR() (+3 more)
+Cohesion: 0.12
+Nodes (14): parentDirectory, storage, upload, uploadDirectory, isBlockAssigned(), normalizeBlock(), generateComplaintId(), getComplaints() (+6 more)
 
 ### Community 6 - "CaseDetailPage.tsx"
-Cohesion: 0.05
-Nodes (37): 1. Executive Summary, 2.2 Role-Based Data Access Control (`server/services/accessControl.ts`), 2.3 Statutory Case State Machine (`server/services/workflowService.ts`), 2.5 OCR Ingestion Pipeline with Local Tesseract Fallback (`server/services/ocrService.ts`), 2.6 Statutory Demolition & Enforcement Actions (`server/routes/enforcementRoutes.ts`), 2.7 Live Operations Analytics with ATP Supervisory Rollup (`server/routes/analyticsRoutes.ts`), 2.8 Frontend Architecture & User Experience (`Frontend/src/`), 2. Comprehensive Progress Breakdown: Implemented Features (+29 more)
+Cohesion: 0.07
+Nodes (30): 2.3 Statutory Case State Machine (`server/services/workflowService.ts`), Backend Endpoints, Database Migration, Domain Service, Frontend UI Integration, Proposed Changes, Statutory Case Lifecycle & State Machine Implementation Plan, User Review Required (+22 more)
 
 ### Community 7 - "compilerOptions"
 Cohesion: 0.10
@@ -141,24 +149,24 @@ Cohesion: 0.14
 Nodes (18): callDriveService(), createCaseDriveFolder(), createComplaintDriveFolder(), createInspectionDriveFolder(), DriveCreateFolderResponse, DriveFile, DriveFileType, DriveGetFileResponse (+10 more)
 
 ### Community 9 - "enforcementRoutes.ts"
-Cohesion: 0.15
-Nodes (14): bcrypt, multer, mapDesignationToRole(), OfficerRecord, seedUsers(), parentDirectory, router, storage (+6 more)
+Cohesion: 0.16
+Nodes (13): bcrypt, mapDesignationToRole(), OfficerRecord, seedUsers(), parentDirectory, router, storage, upload (+5 more)
 
 ### Community 10 - "App.tsx"
-Cohesion: 0.18
-Nodes (19): App(), EMPTY_COMPLAINT, isRoutePermittedForRole(), useAuth(), LoginScreen(), ComplaintsPage(), NewComplaintScreen(), NewComplaintScreenProps (+11 more)
+Cohesion: 0.24
+Nodes (10): App(), EMPTY_COMPLAINT, isRoutePermittedForRole(), NewComplaintScreen(), NewComplaintScreenProps, MobileBottomNav(), MobileBottomNavProps, CaseDetailPage() (+2 more)
 
 ### Community 11 - "server/package.json"
-Cohesion: 0.11
-Nodes (18): tsx, @types/bcrypt, @types/cors, @types/express, @types/jsonwebtoken, @types/multer, @types/pdf-parse, @types/pg (+10 more)
+Cohesion: 0.10
+Nodes (20): cors, multer, tsx, @types/bcrypt, @types/cors, @types/express, @types/jsonwebtoken, @types/multer (+12 more)
 
 ### Community 12 - "compilerOptions"
 Cohesion: 0.12
 Nodes (16): compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection, noEmit, noFallthroughCasesInSwitch (+8 more)
 
 ### Community 13 - "ConstructionStatusForm.tsx"
-Cohesion: 0.17
-Nodes (15): ASSESSMENT_STATUS_OPTIONS, CaseRecord, ConstructionStatusForm(), ConstructionStatusFormProps, ConstructionStatusDropdown(), ConstructionStatusDropdownProps, PartlyCompoundableType, Breakpoints (+7 more)
+Cohesion: 0.18
+Nodes (14): ASSESSMENT_STATUS_OPTIONS, CaseRecord, ConstructionStatusFormProps, ConstructionStatusDropdown(), ConstructionStatusDropdownProps, PartlyCompoundableType, Breakpoints, useBreakpoint() (+6 more)
 
 ### Community 14 - "dependencies"
 Cohesion: 0.14
@@ -166,15 +174,15 @@ Nodes (14): dependencies, @anthropic-ai/sdk, bcrypt, cors, dotenv, express, json
 
 ### Community 15 - "EnforcementActionForm.tsx"
 Cohesion: 0.17
-Nodes (11): CaseData, DemolitionType, EnforcementActionFormProps, EnforcementOutcome, getWorkflowSteps(), NoticeRecord, VerificationStatus, VisitRecord (+3 more)
+Nodes (12): CaseData, DemolitionType, EnforcementActionForm(), EnforcementActionFormProps, EnforcementOutcome, getWorkflowSteps(), NoticeRecord, VerificationStatus (+4 more)
 
 ### Community 16 - "ocrService.ts"
 Cohesion: 0.24
 Nodes (11): @mistralai/mistralai, pdf-parse, tesseract.js, IMAGE_MIME_TYPES, OCRResult, pdfParse, processFileWithOCR(), processImageWithMistralOCR() (+3 more)
 
 ### Community 17 - "app.ts"
-Cohesion: 0.18
-Nodes (14): 2.4 PWA Web Push Notifications (`server/services/pushService.ts` & `Frontend/public/sw.js`), cors, express, web-push, app, pool, testDatabaseConnection(), main() (+6 more)
+Cohesion: 0.25
+Nodes (9): express, app, pool, testDatabaseConnection(), main(), router, router, router (+1 more)
 
 ### Community 18 - "devDependencies"
 Cohesion: 0.18
@@ -184,9 +192,9 @@ Nodes (11): devDependencies, tsx, @types/bcrypt, @types/cors, @types/express, @t
 Cohesion: 0.18
 Nodes (10): compilerOptions, esModuleInterop, module, outDir, rootDir, skipLibCheck, strict, target (+2 more)
 
-### Community 20 - "complaintStorage.ts"
-Cohesion: 0.36
-Nodes (8): isBlockAssigned(), normalizeBlock(), generateComplaintId(), getComplaints(), getLocalComplaints(), LOCAL_STORAGE_FILE, saveComplaint(), saveLocalComplaint()
+### Community 20 - "2. Comprehensive Progress Breakdown: Implemented Features"
+Cohesion: 0.11
+Nodes (17): 1. Executive Summary, 2.10 Internal Officer Profile Portal (`Frontend/src/pages/ProfilePage.tsx`), 2.11 Mobile Responsive Redesign & Upstream Sync, 2.2 Role-Based Data Access Control (`server/services/accessControl.ts`), 2.5 OCR Ingestion Pipeline with Local Tesseract Fallback (`server/services/ocrService.ts`), 2.6 Statutory Demolition & Enforcement Actions (`server/routes/enforcementRoutes.ts`), 2.7 Live Operations Analytics with ATP Supervisory Rollup (`server/routes/analyticsRoutes.ts`), 2.8 Frontend Architecture & User Experience (`Frontend/src/`) (+9 more)
 
 ### Community 21 - "package.json"
 Cohesion: 0.22
@@ -212,13 +220,13 @@ Nodes (19): Administration, Analytics & Officer Operations, Authentication & Aut
 Cohesion: 0.15
 Nodes (13): 1. `POST /api/inspections`, 2. `POST /api/complaints/:complaintId/assign`, 3. `GET /api/cases`, 41.1 Primary API Endpoints, 41.2 Table-by-Table Database Population, 41. Operational API Endpoints & Inspection Data Flow, 4. `GET /api/cases/:caseId`, 5. `POST /api/cases/:caseId/construction-status` (+5 more)
 
-### Community 29 - "AuthContext.tsx"
-Cohesion: 0.18
-Nodes (7): AuthContext, AuthContextValue, AuthProvider(), AuthUser, LoginScreenProps, savedFontScale, react-dom
+### Community 29 - "react"
+Cohesion: 0.12
+Nodes (18): AuthContext, AuthContextValue, AuthProvider(), AuthUser, useAuth(), LoginScreen(), LoginScreenProps, urlBase64ToUint8Array() (+10 more)
 
-### Community 30 - "react"
-Cohesion: 0.27
-Nodes (8): SettingsPage(), Topbar(), TopbarProps, applyFontScaleToDOM(), useFontScale(), getCurrentRoute(), useRouter(), react
+### Community 30 - "Topbar.tsx"
+Cohesion: 0.31
+Nodes (8): SettingsPage(), formatTimeAgo(), getNotificationStripeColor(), InAppNotification, Topbar(), TopbarProps, applyFontScaleToDOM(), useFontScale()
 
 ### Community 31 - "25. Data Architecture Direction"
 Cohesion: 0.20
@@ -233,7 +241,7 @@ Cohesion: 0.22
 Nodes (9): 34. Suggested 1–1.5 Week Prototype Timeline, Buffer, Day 1, Day 2, Day 3, Day 4, Day 5, Day 6 (+1 more)
 
 ### Community 34 - "MobileNavDrawer.tsx"
-Cohesion: 0.28
+Cohesion: 0.25
 Nodes (7): isRouteAllowedForRole(), MobileNavDrawer(), MobileNavDrawerProps, isRouteAllowedForRole(), Sidebar(), SidebarProps, NAV_ITEMS
 
 ### Community 35 - "4. Core Design Principles"
@@ -256,9 +264,9 @@ Nodes (7): 37. Open Decisions and Verification, Existing Case Matching, Flag Thr
 Cohesion: 0.57
 Nodes (6): CaseRow, CasesPage(), CasesPageProps, isCaseActive(), isCasePending(), isCaseSolved()
 
-### Community 40 - "workflowService.ts"
-Cohesion: 0.33
-Nodes (6): pg, CASE_TRANSITIONS, normalizeCaseStatus(), STATUS_DISPLAY_NAMES, validateCaseTransition(), ValidationResult
+### Community 40 - "Phase 2: In-App Notification Center (Commit 2)"
+Cohesion: 0.17
+Nodes (11): Automated Checks, Global Constraints, Manual Checks, Phase 1: PWA Installability (Commit 1), Phase 2: In-App Notification Center (Commit 2), Proposed Changes, PWA & In-App Notification Center Implementation Plan, Task 1: Generate PWA Icons & Web App Manifest (+3 more)
 
 ### Community 41 - "39. Implementation Priorities"
 Cohesion: 0.33
@@ -269,8 +277,8 @@ Cohesion: 0.33
 Nodes (6): 5. Users and Roles, ATP — Assistant Town Planner, BI — Building Inspector, JC, MTP, Super Admin
 
 ### Community 43 - "UsersPage.tsx"
-Cohesion: 0.47
-Nodes (5): getRoleLabel(), getRoleTone(), ManagedUser, ROLES, UsersPage()
+Cohesion: 0.19
+Nodes (11): Complaint, OfficerAnalyticsRecord, OfficerDetailsResponse, OfficersPage(), getRoleLabel(), getRoleTone(), ManagedUser, ROLES (+3 more)
 
 ### Community 44 - "16. Construction Status & Three Enforcement Pathways"
 Cohesion: 0.40
@@ -284,9 +292,9 @@ Nodes (5): 21. Analytics, Access Direction, ATP Context, BI Metrics, Higher Over
 Cohesion: 0.40
 Nodes (5): 8.1 Complaint Sources, 8.2 Intake Data, 8.3 Assignment, 8.4 Notifications, 8. Complaint Workflow
 
-### Community 47 - "ConfirmationScreen.tsx"
-Cohesion: 0.50
-Nodes (4): ConfirmationScreen(), ConfirmationScreenProps, readSavedComplaint(), SavedComplaint
+### Community 47 - "ComplaintsPage.tsx"
+Cohesion: 0.24
+Nodes (9): ALL_STATUSES, CategoryFilter, ComplaintRecord, ComplaintsPage(), ComplaintsPageProps, isResolved(), ComplaintAction, ComplaintNavInput (+1 more)
 
 ### Community 48 - "10. ATP Review of Complaint"
 Cohesion: 0.50
@@ -332,25 +340,53 @@ Nodes (3): 6. System Scope, In Scope, Not Immediate Prototype Scope
 Cohesion: 0.67
 Nodes (3): 7.1 Two Intake Streams, 7.2 The Statutory Enforcement Lifecycle (`workflow.pdf`), 7. Core Workflows Overview
 
+### Community 59 - "manifest.json"
+Cohesion: 0.20
+Nodes (9): background_color, description, display, icons, name, orientation, short_name, start_url (+1 more)
+
+### Community 60 - "pushRoutes.ts"
+Cohesion: 0.33
+Nodes (7): 2.4 PWA Web Push Notifications (`server/services/pushService.ts` & `Frontend/public/sw.js`), Task 2: Database Migration & pushService.ts Dual-Write, web-push, router, notifyOfficer(), notifyOfficers(), PushPayload
+
+### Community 61 - "push_subscriptions"
+Cohesion: 0.38
+Nodes (5): officers, users, idx_push_subscriptions_endpoint, idx_push_subscriptions_officer_id, push_subscriptions
+
+### Community 62 - "claudeService.ts"
+Cohesion: 0.33
+Nodes (5): @anthropic-ai/sdk, anthropic, complaintSchema, extractComplaintFromOCR(), ExtractedComplaint
+
+### Community 63 - "004_create_demolition_tables.sql"
+Cohesion: 0.53
+Nodes (4): demolition_evidence, demolition_records, idx_demolition_evidence_demolition_id, idx_demolition_records_case_id
+
+### Community 64 - "005_case_closures.sql"
+Cohesion: 0.40
+Nodes (3): case_closures, idx_case_closures_case_id, idx_violator_replies_review_status
+
+### Community 65 - "007_create_notifications_table.sql"
+Cohesion: 0.83
+Nodes (3): idx_notifications_read_at, idx_notifications_recipient, notifications
+
 ## Knowledge Gaps
 - **16 isolated node(s):** `tailwindcss`, `@types/node`, `@types/react`, `@types/react-dom`, `typescript` (+11 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 430 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 455 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `usePushNotifications()` connect `App.tsx` to `Proposed Changes`?**
-  _High betweenness centrality (0.114) - this node is a cross-community bridge._
+- **Why does `2. Comprehensive Progress Breakdown: Implemented Features` connect `2. Comprehensive Progress Breakdown: Implemented Features` to `auth.ts`, `CaseDetailPage.tsx`, `pushRoutes.ts`?**
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
 - **What connects `tailwindcss`, `@types/node`, `@types/react` to the rest of the system?**
   _16 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Icon` be split into smaller, more focused modules?**
-  _Cohesion score 0.14761904761904762 - nodes in this community are weakly interconnected._
-- **Why does `Frontend PWA Integration` connect `Proposed Changes` to `App.tsx`?**
-  _High betweenness centrality (0.113) - this node is a cross-community bridge._
+  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
+- **Why does `useBreakpoint()` connect `ConstructionStatusForm.tsx` to `App.tsx`, `2. Comprehensive Progress Breakdown: Implemented Features`?**
+  _High betweenness centrality (0.142) - this node is a cross-community bridge._
 - **Should `Frontend/package.json` be split into smaller, more focused modules?**
   _Cohesion score 0.050241545893719805 - nodes in this community are weakly interconnected._
+- **Why does `2.11 Mobile Responsive Redesign & Upstream Sync` connect `2. Comprehensive Progress Breakdown: Implemented Features` to `ConstructionStatusForm.tsx`?**
+  _High betweenness centrality (0.141) - this node is a cross-community bridge._
 - **Should `complaintApi.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.061952861952861954 - nodes in this community are weakly interconnected._
-- **Should `ComplaintsPage.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.07053140096618357 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06077694235588972 - nodes in this community are weakly interconnected._

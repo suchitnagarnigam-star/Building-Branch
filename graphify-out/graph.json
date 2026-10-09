@@ -7,6 +7,32 @@
   },
   "nodes": [
     {
+      "id": "frontend_src_features_complaints_confirmationscreen_confirmationscreenprops",
+      "label": "ConfirmationScreenProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Icon",
+      "file_type": "code",
+      "norm_label": "confirmationscreenprops",
+      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
+      "source_location": "L3"
+    },
+    {
+      "id": "frontend_src_features_complaints_confirmationscreen_savedcomplaint",
+      "label": "SavedComplaint",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Icon",
+      "file_type": "code",
+      "norm_label": "savedcomplaint",
+      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
+      "source_location": "L8"
+    },
+    {
       "id": "frontend_src_features_complaints_externaluploadsuccessscreen_externaluploadsuccessscreenprops",
       "label": "ExternalUploadSuccessScreenProps",
       "_callable": true,
@@ -33,19 +59,6 @@
       "source_location": "L3"
     },
     {
-      "id": "frontend_src_layout_mobilebottomnav_mobilebottomnavprops",
-      "label": "MobileBottomNavProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "Icon",
-      "file_type": "code",
-      "norm_label": "mobilebottomnavprops",
-      "source_file": "Frontend/src/layout/MobileBottomNav.tsx",
-      "source_location": "L3"
-    },
-    {
       "id": "frontend_src_layout_mobileheader_mobileheaderprops",
       "label": "MobileHeaderProps",
       "_callable": true,
@@ -57,19 +70,6 @@
       "norm_label": "mobileheaderprops",
       "source_file": "Frontend/src/layout/MobileHeader.tsx",
       "source_location": "L3"
-    },
-    {
-      "id": "frontend_src_services_complaintapi_ocrimageresult",
-      "label": "OCRImageResult",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "Icon",
-      "file_type": "code",
-      "norm_label": "ocrimageresult",
-      "source_file": "Frontend/src/services/complaintApi.ts",
-      "source_location": "L131"
     },
     {
       "id": "frontend_src_shared_components_icon_iconprops",
@@ -98,17 +98,17 @@
       "source_location": "L3"
     },
     {
-      "id": "frontend_src_pages_profilepage_profilepageprops",
-      "label": "ProfilePageProps",
+      "id": "frontend_src_layout_mobilebottomnav_mobilebottomnavprops",
+      "label": "MobileBottomNavProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 10,
       "community_name": "App.tsx",
       "file_type": "code",
-      "norm_label": "profilepageprops",
-      "source_file": "Frontend/src/pages/ProfilePage.tsx",
-      "source_location": "L6"
+      "norm_label": "mobilebottomnavprops",
+      "source_file": "Frontend/src/layout/MobileBottomNav.tsx",
+      "source_location": "L3"
     },
     {
       "id": "frontend_src_pages_constructionstatusform_caserecord",
@@ -397,19 +397,6 @@
       "source_location": "L18"
     },
     {
-      "id": "server_services_pushservice_pushpayload",
-      "label": "PushPayload",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "code",
-      "norm_label": "pushpayload",
-      "source_file": "server/services/pushService.ts",
-      "source_location": "L16"
-    },
-    {
       "id": "frontend_src_data_locationdata_blockzoneentry",
       "label": "BlockZoneEntry",
       "_callable": true,
@@ -605,6 +592,19 @@
       "source_location": "L161"
     },
     {
+      "id": "frontend_src_services_complaintapi_ocrimageresult",
+      "label": "OCRImageResult",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "complaintApi.ts",
+      "file_type": "code",
+      "norm_label": "ocrimageresult",
+      "source_file": "Frontend/src/services/complaintApi.ts",
+      "source_location": "L131"
+    },
+    {
       "id": "frontend_src_services_complaintapi_processsourceresponse",
       "label": "ProcessSourceResponse",
       "_callable": true,
@@ -715,7 +715,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "authcontextvalue",
       "source_file": "Frontend/src/context/AuthContext.tsx",
@@ -728,7 +728,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "authuser",
       "source_file": "Frontend/src/context/AuthContext.tsx",
@@ -741,11 +741,37 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "loginscreenprops",
       "source_file": "Frontend/src/features/auth/LoginScreen.tsx",
       "source_location": "L6"
+    },
+    {
+      "id": "frontend_src_pages_profilepage_profilepageprops",
+      "label": "ProfilePageProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "profilepageprops",
+      "source_file": "Frontend/src/pages/ProfilePage.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "frontend_src_shared_types_index_role",
+      "label": "Role",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "role",
+      "source_file": "Frontend/src/shared/types/index.ts",
+      "source_location": "L1"
     },
     {
       "id": "frontend_src_features_complaints_complaintdetailpage_complaintdetailpageprops",
@@ -754,7 +780,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "complaintdetailpageprops",
       "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
@@ -767,7 +793,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "drivefile",
       "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
@@ -780,7 +806,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "storedattachment",
       "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
@@ -793,50 +819,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "storedcomplaint",
       "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
       "source_location": "L28"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage_categoryfilter",
-      "label": "CategoryFilter",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "categoryfilter",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L38"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage_complaintrecord",
-      "label": "ComplaintRecord",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintrecord",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L21"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage_complaintspageprops",
-      "label": "ComplaintsPageProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintspageprops",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L32"
     },
     {
       "id": "frontend_src_features_dashboard_dashboardpage_dashboarddata",
@@ -845,7 +832,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "dashboarddata",
       "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
@@ -858,50 +845,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "dashboardpageprops",
       "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
       "source_location": "L20"
-    },
-    {
-      "id": "frontend_src_features_officers_officerspage_complaint",
-      "label": "Complaint",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaint",
-      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
-      "source_location": "L18"
-    },
-    {
-      "id": "frontend_src_features_officers_officerspage_officeranalyticsrecord",
-      "label": "OfficerAnalyticsRecord",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "officeranalyticsrecord",
-      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "frontend_src_features_officers_officerspage_officerdetailsresponse",
-      "label": "OfficerDetailsResponse",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "officerdetailsresponse",
-      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
-      "source_location": "L27"
     },
     {
       "id": "frontend_src_shared_components_statusbadge_statusbadgeprops",
@@ -910,7 +858,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "statusbadgeprops",
       "source_file": "Frontend/src/shared/components/StatusBadge.tsx",
@@ -923,7 +871,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "appcomplaint",
       "source_file": "Frontend/src/shared/types/index.ts",
@@ -936,7 +884,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "notification",
       "source_file": "Frontend/src/shared/types/index.ts",
@@ -949,24 +897,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "officer",
       "source_file": "Frontend/src/shared/types/index.ts",
       "source_location": "L32"
-    },
-    {
-      "id": "frontend_src_shared_types_index_role",
-      "label": "Role",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "role",
-      "source_file": "Frontend/src/shared/types/index.ts",
-      "source_location": "L1"
     },
     {
       "id": "frontend_src_shared_types_index_status",
@@ -975,37 +910,24 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community_name": "DashboardPage.tsx",
       "file_type": "code",
       "norm_label": "status",
       "source_file": "Frontend/src/shared/types/index.ts",
       "source_location": "L3"
     },
     {
-      "id": "frontend_src_shared_utils_complaintnavigation_complaintaction",
-      "label": "ComplaintAction",
+      "id": "frontend_src_layout_topbar_inappnotification",
+      "label": "InAppNotification",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
+      "community": 30,
+      "community_name": "Topbar.tsx",
       "file_type": "code",
-      "norm_label": "complaintaction",
-      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
-      "source_location": "L7"
-    },
-    {
-      "id": "frontend_src_shared_utils_complaintnavigation_complaintnavinput",
-      "label": "ComplaintNavInput",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintnavinput",
-      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
-      "source_location": "L1"
+      "norm_label": "inappnotification",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L6"
     },
     {
       "id": "frontend_src_layout_topbar_topbarprops",
@@ -1014,11 +936,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 30,
-      "community_name": "react",
+      "community_name": "Topbar.tsx",
       "file_type": "code",
       "norm_label": "topbarprops",
       "source_file": "Frontend/src/layout/Topbar.tsx",
-      "source_location": "L4"
+      "source_location": "L50"
     },
     {
       "id": "frontend_src_layout_mobilenavdrawer_mobilenavdrawerprops",
@@ -1079,7 +1001,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "request",
       "source_file": "server/middleware/auth.ts",
@@ -1092,7 +1014,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "roletype",
       "source_file": "server/routes/userRoutes.ts",
@@ -1105,24 +1027,50 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "jwtpayload",
       "source_file": "server/services/authService.ts",
       "source_location": "L5"
     },
     {
-      "id": "server_services_workflowservice_validationresult",
-      "label": "ValidationResult",
+      "id": "frontend_src_features_officers_officerspage_complaint",
+      "label": "Complaint",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 40,
-      "community_name": "workflowService.ts",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
       "file_type": "code",
-      "norm_label": "validationresult",
-      "source_file": "server/services/workflowService.ts",
-      "source_location": "L88"
+      "norm_label": "complaint",
+      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
+      "source_location": "L18"
+    },
+    {
+      "id": "frontend_src_features_officers_officerspage_officeranalyticsrecord",
+      "label": "OfficerAnalyticsRecord",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
+      "file_type": "code",
+      "norm_label": "officeranalyticsrecord",
+      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "frontend_src_features_officers_officerspage_officerdetailsresponse",
+      "label": "OfficerDetailsResponse",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
+      "file_type": "code",
+      "norm_label": "officerdetailsresponse",
+      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
+      "source_location": "L27"
     },
     {
       "id": "frontend_src_features_users_userspage_manageduser",
@@ -1138,43 +1086,69 @@
       "source_location": "L6"
     },
     {
-      "id": "frontend_src_features_complaints_confirmationscreen_confirmationscreenprops",
-      "label": "ConfirmationScreenProps",
+      "id": "frontend_src_features_complaints_complaintspage_categoryfilter",
+      "label": "CategoryFilter",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 47,
-      "community_name": "ConfirmationScreen.tsx",
+      "community_name": "ComplaintsPage.tsx",
       "file_type": "code",
-      "norm_label": "confirmationscreenprops",
-      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
-      "source_location": "L3"
+      "norm_label": "categoryfilter",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L38"
     },
     {
-      "id": "frontend_src_features_complaints_confirmationscreen_savedcomplaint",
-      "label": "SavedComplaint",
+      "id": "frontend_src_features_complaints_complaintspage_complaintrecord",
+      "label": "ComplaintRecord",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 47,
-      "community_name": "ConfirmationScreen.tsx",
+      "community_name": "ComplaintsPage.tsx",
       "file_type": "code",
-      "norm_label": "savedcomplaint",
-      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
-      "source_location": "L8"
+      "norm_label": "complaintrecord",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L21"
     },
     {
-      "id": "server_services_claudeservice_extractedcomplaint",
-      "label": "ExtractedComplaint",
+      "id": "frontend_src_features_complaints_complaintspage_complaintspageprops",
+      "label": "ComplaintsPageProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 5,
-      "community_name": "complaintRoutes.ts",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
       "file_type": "code",
-      "norm_label": "extractedcomplaint",
-      "source_file": "server/services/claudeService.ts",
-      "source_location": "L13"
+      "norm_label": "complaintspageprops",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L32"
+    },
+    {
+      "id": "frontend_src_shared_utils_complaintnavigation_complaintaction",
+      "label": "ComplaintAction",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
+      "file_type": "code",
+      "norm_label": "complaintaction",
+      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
+      "source_location": "L7"
+    },
+    {
+      "id": "frontend_src_shared_utils_complaintnavigation_complaintnavinput",
+      "label": "ComplaintNavInput",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
+      "file_type": "code",
+      "norm_label": "complaintnavinput",
+      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
+      "source_location": "L1"
     },
     {
       "id": "frontend_src_pages_casedetailpage_caseclosure",
@@ -1333,6 +1307,45 @@
       "source_location": "L4"
     },
     {
+      "id": "server_services_workflowservice_validationresult",
+      "label": "ValidationResult",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "CaseDetailPage.tsx",
+      "file_type": "code",
+      "norm_label": "validationresult",
+      "source_file": "server/services/workflowService.ts",
+      "source_location": "L88"
+    },
+    {
+      "id": "server_services_pushservice_pushpayload",
+      "label": "PushPayload",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "code",
+      "norm_label": "pushpayload",
+      "source_file": "server/services/pushService.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "server_services_claudeservice_extractedcomplaint",
+      "label": "ExtractedComplaint",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 62,
+      "community_name": "claudeService.ts",
+      "file_type": "code",
+      "norm_label": "extractedcomplaint",
+      "source_file": "server/services/claudeService.ts",
+      "source_location": "L13"
+    },
+    {
       "id": "server_services_driveservice_drivecreatefolderresponse",
       "label": "DriveCreateFolderResponse",
       "_callable": true,
@@ -1450,6 +1463,30 @@
       "source_location": "L4"
     },
     {
+      "id": "frontend_src_features_complaints_confirmationscreen_confirmationscreen",
+      "label": "ConfirmationScreen()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Icon",
+      "file_type": "code",
+      "norm_label": "confirmationscreen()",
+      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
+      "source_location": "L31"
+    },
+    {
+      "id": "frontend_src_features_complaints_confirmationscreen_readsavedcomplaint",
+      "label": "readSavedComplaint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Icon",
+      "file_type": "code",
+      "norm_label": "readsavedcomplaint()",
+      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
+      "source_location": "L19"
+    },
+    {
       "id": "frontend_src_features_complaints_externaluploadsuccessscreen_externaluploadsuccessscreen",
       "label": "ExternalUploadSuccessScreen()",
       "_callable": true,
@@ -1484,18 +1521,6 @@
       "norm_label": "uploadscreen()",
       "source_file": "Frontend/src/features/complaints/UploadScreen.tsx",
       "source_location": "L7"
-    },
-    {
-      "id": "frontend_src_layout_mobilebottomnav_mobilebottomnav",
-      "label": "MobileBottomNav()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "Icon",
-      "file_type": "code",
-      "norm_label": "mobilebottomnav()",
-      "source_file": "Frontend/src/layout/MobileBottomNav.tsx",
-      "source_location": "L9"
     },
     {
       "id": "frontend_src_layout_mobileheader_mobileheader",
@@ -1558,42 +1583,6 @@
       "source_location": "L71"
     },
     {
-      "id": "frontend_src_context_authcontext_useauth",
-      "label": "useAuth()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "useauth()",
-      "source_file": "Frontend/src/context/AuthContext.tsx",
-      "source_location": "L206"
-    },
-    {
-      "id": "frontend_src_features_auth_loginscreen_loginscreen",
-      "label": "LoginScreen()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "loginscreen()",
-      "source_file": "Frontend/src/features/auth/LoginScreen.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage_complaintspage",
-      "label": "ComplaintsPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "complaintspage()",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L45"
-    },
-    {
       "id": "frontend_src_features_complaints_newcomplaintscreen_newcomplaintscreen",
       "label": "NewComplaintScreen()",
       "_callable": true,
@@ -1606,64 +1595,16 @@
       "source_location": "L13"
     },
     {
-      "id": "frontend_src_features_dashboard_dashboardpage_dashboardpage",
-      "label": "DashboardPage()",
+      "id": "frontend_src_layout_mobilebottomnav_mobilebottomnav",
+      "label": "MobileBottomNav()",
       "_callable": true,
       "_origin": "ast",
       "community": 10,
       "community_name": "App.tsx",
       "file_type": "code",
-      "norm_label": "dashboardpage()",
-      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
-      "source_location": "L89"
-    },
-    {
-      "id": "frontend_src_features_officers_officerspage_officerspage",
-      "label": "OfficersPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "officerspage()",
-      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
-      "source_location": "L41"
-    },
-    {
-      "id": "frontend_src_hooks_usepushnotifications_urlbase64touint8array",
-      "label": "urlBase64ToUint8Array()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "urlbase64touint8array()",
-      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
-      "source_location": "L7"
-    },
-    {
-      "id": "frontend_src_hooks_usepushnotifications_usepushnotifications",
-      "label": "usePushNotifications()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "usepushnotifications()",
-      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
-      "source_location": "L22"
-    },
-    {
-      "id": "frontend_src_hooks_usepushnotifications_usepushnotifications_registerandsubscribe",
-      "label": "registerAndSubscribe()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "registerandsubscribe()",
-      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
-      "source_location": "L40"
+      "norm_label": "mobilebottomnav()",
+      "source_file": "Frontend/src/layout/MobileBottomNav.tsx",
+      "source_location": "L9"
     },
     {
       "id": "frontend_src_pages_casedetailpage_casedetailpage",
@@ -1678,40 +1619,16 @@
       "source_location": "L176"
     },
     {
-      "id": "frontend_src_pages_enforcementactionform_enforcementactionform",
-      "label": "EnforcementActionForm()",
+      "id": "frontend_src_pages_constructionstatusform_constructionstatusform",
+      "label": "ConstructionStatusForm()",
       "_callable": true,
       "_origin": "ast",
       "community": 10,
       "community_name": "App.tsx",
       "file_type": "code",
-      "norm_label": "enforcementactionform()",
-      "source_file": "Frontend/src/pages/EnforcementActionForm.tsx",
-      "source_location": "L113"
-    },
-    {
-      "id": "frontend_src_pages_fieldinspectionpage_fieldinspectionpage",
-      "label": "FieldInspectionPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "fieldinspectionpage()",
-      "source_file": "Frontend/src/pages/FieldInspectionPage.tsx",
-      "source_location": "L72"
-    },
-    {
-      "id": "frontend_src_pages_profilepage_profilepage",
-      "label": "ProfilePage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "profilepage()",
-      "source_file": "Frontend/src/pages/ProfilePage.tsx",
-      "source_location": "L11"
+      "norm_label": "constructionstatusform()",
+      "source_file": "Frontend/src/pages/ConstructionStatusForm.tsx",
+      "source_location": "L32"
     },
     {
       "id": "frontend_src_shared_components_comingsoonpage_comingsoonpage",
@@ -1724,18 +1641,6 @@
       "norm_label": "comingsoonpage()",
       "source_file": "Frontend/src/shared/components/ComingSoonPage.tsx",
       "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_pages_constructionstatusform_constructionstatusform",
-      "label": "ConstructionStatusForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "ConstructionStatusForm.tsx",
-      "file_type": "code",
-      "norm_label": "constructionstatusform()",
-      "source_file": "Frontend/src/pages/ConstructionStatusForm.tsx",
-      "source_location": "L32"
     },
     {
       "id": "frontend_src_shared_components_constructionstatusdropdown_constructionstatusdropdown",
@@ -1760,6 +1665,18 @@
       "norm_label": "usebreakpoint()",
       "source_file": "Frontend/src/shared/hooks/useBreakpoint.ts",
       "source_location": "L10"
+    },
+    {
+      "id": "frontend_src_pages_enforcementactionform_enforcementactionform",
+      "label": "EnforcementActionForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "EnforcementActionForm.tsx",
+      "file_type": "code",
+      "norm_label": "enforcementactionform()",
+      "source_file": "Frontend/src/pages/EnforcementActionForm.tsx",
+      "source_location": "L113"
     },
     {
       "id": "frontend_src_pages_enforcementactionform_getworkflowsteps",
@@ -1858,30 +1775,6 @@
       "source_location": "L3"
     },
     {
-      "id": "server_services_pushservice_notifyofficer",
-      "label": "notifyOfficer()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "code",
-      "norm_label": "notifyofficer()",
-      "source_file": "server/services/pushService.ts",
-      "source_location": "L28"
-    },
-    {
-      "id": "server_services_pushservice_notifyofficers",
-      "label": "notifyOfficers()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "code",
-      "norm_label": "notifyofficers()",
-      "source_file": "server/services/pushService.ts",
-      "source_location": "L66"
-    },
-    {
       "id": "frontend_src_data_locationdata_zoneforblock",
       "label": "zoneForBlock()",
       "_callable": true,
@@ -1928,6 +1821,18 @@
       "norm_label": "formatbytes()",
       "source_file": "Frontend/src/pages/ComplaintFormPage.tsx",
       "source_location": "L37"
+    },
+    {
+      "id": "frontend_src_pages_fieldinspectionpage_fieldinspectionpage",
+      "label": "FieldInspectionPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "complaintApi.ts",
+      "file_type": "code",
+      "norm_label": "fieldinspectionpage()",
+      "source_file": "Frontend/src/pages/FieldInspectionPage.tsx",
+      "source_location": "L72"
     },
     {
       "id": "frontend_src_pages_fieldinspectionpage_getapibaseurl",
@@ -2122,90 +2027,6 @@
       "source_location": "L23"
     },
     {
-      "id": "server_services_accesscontrol_isblockassigned",
-      "label": "isBlockAssigned()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "isblockassigned()",
-      "source_file": "server/services/accessControl.ts",
-      "source_location": "L24"
-    },
-    {
-      "id": "server_services_accesscontrol_normalizeblock",
-      "label": "normalizeBlock()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "normalizeblock()",
-      "source_file": "server/services/accessControl.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "server_services_complaintstorage_generatecomplaintid",
-      "label": "generateComplaintId()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "generatecomplaintid()",
-      "source_file": "server/services/complaintStorage.ts",
-      "source_location": "L111"
-    },
-    {
-      "id": "server_services_complaintstorage_getcomplaints",
-      "label": "getComplaints()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "getcomplaints()",
-      "source_file": "server/services/complaintStorage.ts",
-      "source_location": "L31"
-    },
-    {
-      "id": "server_services_complaintstorage_getlocalcomplaints",
-      "label": "getLocalComplaints()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "getlocalcomplaints()",
-      "source_file": "server/services/complaintStorage.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "server_services_complaintstorage_savecomplaint",
-      "label": "saveComplaint()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "savecomplaint()",
-      "source_file": "server/services/complaintStorage.ts",
-      "source_location": "L135"
-    },
-    {
-      "id": "server_services_complaintstorage_savelocalcomplaint",
-      "label": "saveLocalComplaint()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "savelocalcomplaint()",
-      "source_file": "server/services/complaintStorage.ts",
-      "source_location": "L18"
-    },
-    {
       "id": "server_services_googlesheetsservice_appendcomplainttogooglesheet",
       "label": "appendComplaintToGoogleSheet()",
       "_callable": true,
@@ -2235,162 +2056,90 @@
       "_callable": true,
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "authprovider()",
       "source_file": "Frontend/src/context/AuthContext.tsx",
       "source_location": "L64"
     },
     {
-      "id": "frontend_src_features_complaints_complaintdetailpage_complaintdetailpage",
-      "label": "ComplaintDetailPage()",
+      "id": "frontend_src_context_authcontext_useauth",
+      "label": "useAuth()",
       "_callable": true,
       "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintdetailpage()",
-      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
-      "source_location": "L79"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintdetailpage_gettimelinestage",
-      "label": "getTimelineStage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "gettimelinestage()",
-      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
-      "source_location": "L58"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintdetailpage_readlocalcomplaint",
-      "label": "readLocalComplaint()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "readlocalcomplaint()",
-      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
-      "source_location": "L67"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage_isresolved",
-      "label": "isResolved()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "isresolved()",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L40"
-    },
-    {
-      "id": "frontend_src_shared_components_statusbadge_statusbadge",
-      "label": "StatusBadge()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "statusbadge()",
-      "source_file": "Frontend/src/shared/components/StatusBadge.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "frontend_src_shared_constants_navigation_formatpagetitle",
-      "label": "formatPageTitle()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "formatpagetitle()",
-      "source_file": "Frontend/src/shared/constants/navigation.ts",
-      "source_location": "L24"
-    },
-    {
-      "id": "frontend_src_shared_hooks_usecountup_usecountup",
-      "label": "useCountUp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "usecountup()",
-      "source_file": "Frontend/src/shared/hooks/useCountUp.ts",
-      "source_location": "L3"
-    },
-    {
-      "id": "frontend_src_shared_utils_complaintnavigation_getcomplaintaction",
-      "label": "getComplaintAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "getcomplaintaction()",
-      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "frontend_src_features_settings_settingspage_settingspage",
-      "label": "SettingsPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "settingspage()",
-      "source_file": "Frontend/src/features/settings/SettingsPage.tsx",
-      "source_location": "L3"
+      "norm_label": "useauth()",
+      "source_file": "Frontend/src/context/AuthContext.tsx",
+      "source_location": "L206"
     },
     {
-      "id": "frontend_src_layout_topbar_topbar",
-      "label": "Topbar()",
+      "id": "frontend_src_features_auth_loginscreen_loginscreen",
+      "label": "LoginScreen()",
       "_callable": true,
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "topbar()",
-      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "norm_label": "loginscreen()",
+      "source_file": "Frontend/src/features/auth/LoginScreen.tsx",
       "source_location": "L11"
     },
     {
-      "id": "frontend_src_shared_hooks_usefontscale_applyfontscaletodom",
-      "label": "applyFontScaleToDOM()",
+      "id": "frontend_src_hooks_usepushnotifications_urlbase64touint8array",
+      "label": "urlBase64ToUint8Array()",
       "_callable": true,
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "applyfontscaletodom()",
-      "source_file": "Frontend/src/shared/hooks/useFontScale.ts",
-      "source_location": "L6"
+      "norm_label": "urlbase64touint8array()",
+      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
+      "source_location": "L7"
     },
     {
-      "id": "frontend_src_shared_hooks_usefontscale_usefontscale",
-      "label": "useFontScale()",
+      "id": "frontend_src_hooks_usepushnotifications_usepushnotifications",
+      "label": "usePushNotifications()",
       "_callable": true,
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "usefontscale()",
-      "source_file": "Frontend/src/shared/hooks/useFontScale.ts",
-      "source_location": "L13"
+      "norm_label": "usepushnotifications()",
+      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "frontend_src_hooks_usepushnotifications_usepushnotifications_registerandsubscribe",
+      "label": "registerAndSubscribe()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "registerandsubscribe()",
+      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
+      "source_location": "L40"
+    },
+    {
+      "id": "frontend_src_pages_profilepage_profilepage",
+      "label": "ProfilePage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "profilepage()",
+      "source_file": "Frontend/src/pages/ProfilePage.tsx",
+      "source_location": "L11"
     },
     {
       "id": "frontend_src_shared_hooks_userouter_getcurrentroute",
       "label": "getCurrentRoute()",
       "_callable": true,
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
       "norm_label": "getcurrentroute()",
@@ -2402,12 +2151,144 @@
       "label": "useRouter()",
       "_callable": true,
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
       "norm_label": "userouter()",
       "source_file": "Frontend/src/shared/hooks/useRouter.ts",
       "source_location": "L9"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintdetailpage_complaintdetailpage",
+      "label": "ComplaintDetailPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "complaintdetailpage()",
+      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
+      "source_location": "L79"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintdetailpage_gettimelinestage",
+      "label": "getTimelineStage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "gettimelinestage()",
+      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
+      "source_location": "L58"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintdetailpage_readlocalcomplaint",
+      "label": "readLocalComplaint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "readlocalcomplaint()",
+      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
+      "source_location": "L67"
+    },
+    {
+      "id": "frontend_src_features_dashboard_dashboardpage_dashboardpage",
+      "label": "DashboardPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "dashboardpage()",
+      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
+      "source_location": "L89"
+    },
+    {
+      "id": "frontend_src_shared_components_statusbadge_statusbadge",
+      "label": "StatusBadge()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "statusbadge()",
+      "source_file": "Frontend/src/shared/components/StatusBadge.tsx",
+      "source_location": "L8"
+    },
+    {
+      "id": "frontend_src_features_settings_settingspage_settingspage",
+      "label": "SettingsPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "settingspage()",
+      "source_file": "Frontend/src/features/settings/SettingsPage.tsx",
+      "source_location": "L3"
+    },
+    {
+      "id": "frontend_src_layout_topbar_formattimeago",
+      "label": "formatTimeAgo()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "formattimeago()",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L18"
+    },
+    {
+      "id": "frontend_src_layout_topbar_getnotificationstripecolor",
+      "label": "getNotificationStripeColor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "getnotificationstripecolor()",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L34"
+    },
+    {
+      "id": "frontend_src_layout_topbar_topbar",
+      "label": "Topbar()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "topbar()",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L57"
+    },
+    {
+      "id": "frontend_src_shared_hooks_usefontscale_applyfontscaletodom",
+      "label": "applyFontScaleToDOM()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "applyfontscaletodom()",
+      "source_file": "Frontend/src/shared/hooks/useFontScale.ts",
+      "source_location": "L6"
+    },
+    {
+      "id": "frontend_src_shared_hooks_usefontscale_usefontscale",
+      "label": "useFontScale()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "usefontscale()",
+      "source_file": "Frontend/src/shared/hooks/useFontScale.ts",
+      "source_location": "L13"
     },
     {
       "id": "frontend_src_layout_mobilenavdrawer_isrouteallowedforrole",
@@ -2456,6 +2337,18 @@
       "norm_label": "sidebar()",
       "source_file": "Frontend/src/layout/Sidebar.tsx",
       "source_location": "L52"
+    },
+    {
+      "id": "frontend_src_shared_constants_navigation_formatpagetitle",
+      "label": "formatPageTitle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 34,
+      "community_name": "MobileNavDrawer.tsx",
+      "file_type": "code",
+      "norm_label": "formatpagetitle()",
+      "source_file": "Frontend/src/shared/constants/navigation.ts",
+      "source_location": "L24"
     },
     {
       "id": "frontend_src_pages_casespage_casespage",
@@ -2511,7 +2404,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "authenticatetoken()",
       "source_file": "server/middleware/auth.ts",
@@ -2523,7 +2416,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "requirerole()",
       "source_file": "server/middleware/auth.ts",
@@ -2535,7 +2428,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "generatetoken()",
       "source_file": "server/services/authService.ts",
@@ -2547,7 +2440,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "getjwtexpiresin()",
       "source_file": "server/services/authService.ts",
@@ -2559,7 +2452,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "getjwtsecret()",
       "source_file": "server/services/authService.ts",
@@ -2571,7 +2464,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "hashpassword()",
       "source_file": "server/services/authService.ts",
@@ -2583,7 +2476,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "verifypassword()",
       "source_file": "server/services/authService.ts",
@@ -2595,35 +2488,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "verifytoken()",
       "source_file": "server/services/authService.ts",
       "source_location": "L38"
     },
     {
-      "id": "server_services_workflowservice_normalizecasestatus",
-      "label": "normalizeCaseStatus()",
+      "id": "frontend_src_features_officers_officerspage_officerspage",
+      "label": "OfficersPage()",
       "_callable": true,
       "_origin": "ast",
-      "community": 40,
-      "community_name": "workflowService.ts",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
       "file_type": "code",
-      "norm_label": "normalizecasestatus()",
-      "source_file": "server/services/workflowService.ts",
-      "source_location": "L53"
-    },
-    {
-      "id": "server_services_workflowservice_validatecasetransition",
-      "label": "validateCaseTransition()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "workflowService.ts",
-      "file_type": "code",
-      "norm_label": "validatecasetransition()",
-      "source_file": "server/services/workflowService.ts",
-      "source_location": "L97"
+      "norm_label": "officerspage()",
+      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
+      "source_location": "L41"
     },
     {
       "id": "frontend_src_features_users_userspage_getrolelabel",
@@ -2662,28 +2543,52 @@
       "source_location": "L38"
     },
     {
-      "id": "frontend_src_features_complaints_confirmationscreen_confirmationscreen",
-      "label": "ConfirmationScreen()",
+      "id": "frontend_src_shared_hooks_usecountup_usecountup",
+      "label": "useCountUp()",
       "_callable": true,
       "_origin": "ast",
-      "community": 47,
-      "community_name": "ConfirmationScreen.tsx",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
       "file_type": "code",
-      "norm_label": "confirmationscreen()",
-      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
-      "source_location": "L31"
+      "norm_label": "usecountup()",
+      "source_file": "Frontend/src/shared/hooks/useCountUp.ts",
+      "source_location": "L3"
     },
     {
-      "id": "frontend_src_features_complaints_confirmationscreen_readsavedcomplaint",
-      "label": "readSavedComplaint()",
+      "id": "frontend_src_features_complaints_complaintspage_complaintspage",
+      "label": "ComplaintsPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 47,
-      "community_name": "ConfirmationScreen.tsx",
+      "community_name": "ComplaintsPage.tsx",
       "file_type": "code",
-      "norm_label": "readsavedcomplaint()",
-      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
-      "source_location": "L19"
+      "norm_label": "complaintspage()",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L45"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintspage_isresolved",
+      "label": "isResolved()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
+      "file_type": "code",
+      "norm_label": "isresolved()",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L40"
+    },
+    {
+      "id": "frontend_src_shared_utils_complaintnavigation_getcomplaintaction",
+      "label": "getComplaintAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
+      "file_type": "code",
+      "norm_label": "getcomplaintaction()",
+      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
+      "source_location": "L20"
     },
     {
       "id": "server_routes_complaintroutes_deletetemporaryfiles",
@@ -2746,16 +2651,88 @@
       "source_location": "L79"
     },
     {
-      "id": "server_services_claudeservice_extractcomplaintfromocr",
-      "label": "extractComplaintFromOCR()",
+      "id": "server_services_accesscontrol_isblockassigned",
+      "label": "isBlockAssigned()",
       "_callable": true,
       "_origin": "ast",
       "community": 5,
       "community_name": "complaintRoutes.ts",
       "file_type": "code",
-      "norm_label": "extractcomplaintfromocr()",
-      "source_file": "server/services/claudeService.ts",
-      "source_location": "L90"
+      "norm_label": "isblockassigned()",
+      "source_file": "server/services/accessControl.ts",
+      "source_location": "L24"
+    },
+    {
+      "id": "server_services_accesscontrol_normalizeblock",
+      "label": "normalizeBlock()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "file_type": "code",
+      "norm_label": "normalizeblock()",
+      "source_file": "server/services/accessControl.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "server_services_complaintstorage_generatecomplaintid",
+      "label": "generateComplaintId()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "file_type": "code",
+      "norm_label": "generatecomplaintid()",
+      "source_file": "server/services/complaintStorage.ts",
+      "source_location": "L111"
+    },
+    {
+      "id": "server_services_complaintstorage_getcomplaints",
+      "label": "getComplaints()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "file_type": "code",
+      "norm_label": "getcomplaints()",
+      "source_file": "server/services/complaintStorage.ts",
+      "source_location": "L31"
+    },
+    {
+      "id": "server_services_complaintstorage_getlocalcomplaints",
+      "label": "getLocalComplaints()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "file_type": "code",
+      "norm_label": "getlocalcomplaints()",
+      "source_file": "server/services/complaintStorage.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "server_services_complaintstorage_savecomplaint",
+      "label": "saveComplaint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "file_type": "code",
+      "norm_label": "savecomplaint()",
+      "source_file": "server/services/complaintStorage.ts",
+      "source_location": "L135"
+    },
+    {
+      "id": "server_services_complaintstorage_savelocalcomplaint",
+      "label": "saveLocalComplaint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "file_type": "code",
+      "norm_label": "savelocalcomplaint()",
+      "source_file": "server/services/complaintStorage.ts",
+      "source_location": "L18"
     },
     {
       "id": "server_services_locationmapping_zoneforblock",
@@ -2804,6 +2781,66 @@
       "norm_label": "applytransition()",
       "source_file": "server/services/workflowService.ts",
       "source_location": "L259"
+    },
+    {
+      "id": "server_services_workflowservice_normalizecasestatus",
+      "label": "normalizeCaseStatus()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "CaseDetailPage.tsx",
+      "file_type": "code",
+      "norm_label": "normalizecasestatus()",
+      "source_file": "server/services/workflowService.ts",
+      "source_location": "L53"
+    },
+    {
+      "id": "server_services_workflowservice_validatecasetransition",
+      "label": "validateCaseTransition()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "CaseDetailPage.tsx",
+      "file_type": "code",
+      "norm_label": "validatecasetransition()",
+      "source_file": "server/services/workflowService.ts",
+      "source_location": "L97"
+    },
+    {
+      "id": "server_services_pushservice_notifyofficer",
+      "label": "notifyOfficer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "code",
+      "norm_label": "notifyofficer()",
+      "source_file": "server/services/pushService.ts",
+      "source_location": "L32"
+    },
+    {
+      "id": "server_services_pushservice_notifyofficers",
+      "label": "notifyOfficers()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "code",
+      "norm_label": "notifyofficers()",
+      "source_file": "server/services/pushService.ts",
+      "source_location": "L91"
+    },
+    {
+      "id": "server_services_claudeservice_extractcomplaintfromocr",
+      "label": "extractComplaintFromOCR()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 62,
+      "community_name": "claudeService.ts",
+      "file_type": "code",
+      "norm_label": "extractcomplaintfromocr()",
+      "source_file": "server/services/claudeService.ts",
+      "source_location": "L90"
     },
     {
       "id": "server_services_driveservice_calldriveservice",
@@ -2998,6 +3035,17 @@
       "source_location": "L13"
     },
     {
+      "id": "frontend_src_features_complaints_confirmationscreen",
+      "label": "ConfirmationScreen.tsx",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Icon",
+      "file_type": "code",
+      "norm_label": "confirmationscreen.tsx",
+      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "frontend_src_features_complaints_externaluploadsuccessscreen",
       "label": "ExternalUploadSuccessScreen.tsx",
       "_origin": "ast",
@@ -3028,17 +3076,6 @@
       "file_type": "code",
       "norm_label": "uploadscreen.tsx",
       "source_file": "Frontend/src/features/complaints/UploadScreen.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_layout_mobilebottomnav",
-      "label": "MobileBottomNav.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "Icon",
-      "file_type": "code",
-      "norm_label": "mobilebottomnav.tsx",
-      "source_file": "Frontend/src/layout/MobileBottomNav.tsx",
       "source_location": "L1"
     },
     {
@@ -3614,25 +3651,14 @@
       "source_location": "L1"
     },
     {
-      "id": "frontend_src_hooks_usepushnotifications",
-      "label": "usePushNotifications.ts",
+      "id": "frontend_src_layout_mobilebottomnav",
+      "label": "MobileBottomNav.tsx",
       "_origin": "ast",
       "community": 10,
       "community_name": "App.tsx",
       "file_type": "code",
-      "norm_label": "usepushnotifications.ts",
-      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_pages_profilepage",
-      "label": "ProfilePage.tsx",
-      "_origin": "ast",
-      "community": 10,
-      "community_name": "App.tsx",
-      "file_type": "code",
-      "norm_label": "profilepage.tsx",
-      "source_file": "Frontend/src/pages/ProfilePage.tsx",
+      "norm_label": "mobilebottomnav.tsx",
+      "source_file": "Frontend/src/layout/MobileBottomNav.tsx",
       "source_location": "L1"
     },
     {
@@ -3733,6 +3759,28 @@
       "norm_label": "version",
       "source_file": "server/package.json",
       "source_location": "L3"
+    },
+    {
+      "id": "ref_cors",
+      "label": "cors",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "server/package.json",
+      "file_type": "concept",
+      "norm_label": "cors",
+      "source_file": "server/package.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "ref_multer",
+      "label": "multer",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "server/package.json",
+      "file_type": "concept",
+      "norm_label": "multer",
+      "source_file": "server/package.json",
+      "source_location": "L26"
     },
     {
       "id": "ref_tsx",
@@ -4348,7 +4396,7 @@
       "file_type": "code",
       "norm_label": "app",
       "source_file": "server/app.ts",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "server_db_database",
@@ -4406,6 +4454,17 @@
       "source_location": "L6"
     },
     {
+      "id": "server_routes_authroutes_router",
+      "label": "router",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "app.ts",
+      "file_type": "code",
+      "norm_label": "router",
+      "source_file": "server/routes/authRoutes.ts",
+      "source_location": "L6"
+    },
+    {
       "id": "server_routes_complaintroutes_router",
       "label": "router",
       "_origin": "ast",
@@ -4417,48 +4476,26 @@
       "source_location": "L34"
     },
     {
-      "id": "server_routes_pushroutes",
-      "label": "pushRoutes.ts",
+      "id": "server_routes_notificationroutes",
+      "label": "notificationRoutes.ts",
       "_origin": "ast",
       "community": 17,
       "community_name": "app.ts",
       "file_type": "code",
-      "norm_label": "pushroutes.ts",
-      "source_file": "server/routes/pushRoutes.ts",
+      "norm_label": "notificationroutes.ts",
+      "source_file": "server/routes/notificationRoutes.ts",
       "source_location": "L1"
     },
     {
-      "id": "server_routes_pushroutes_router",
+      "id": "server_routes_notificationroutes_router",
       "label": "router",
       "_origin": "ast",
       "community": 17,
       "community_name": "app.ts",
       "file_type": "code",
       "norm_label": "router",
-      "source_file": "server/routes/pushRoutes.ts",
+      "source_file": "server/routes/notificationRoutes.ts",
       "source_location": "L5"
-    },
-    {
-      "id": "server_services_pushservice",
-      "label": "pushService.ts",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "code",
-      "norm_label": "pushservice.ts",
-      "source_file": "server/services/pushService.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "ref_cors",
-      "label": "cors",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "concept",
-      "norm_label": "cors",
-      "source_file": "server/package.json",
-      "source_location": "L22"
     },
     {
       "id": "ref_express",
@@ -4470,29 +4507,6 @@
       "norm_label": "express",
       "source_file": "server/package.json",
       "source_location": "L24"
-    },
-    {
-      "id": "ref_web_push",
-      "label": "web-push",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "concept",
-      "norm_label": "web-push",
-      "source_file": "server/package.json",
-      "source_location": "L30"
-    },
-    {
-      "id": "docs_context_handoff_2_4_pwa_web_push_notifications_server_services_pushservice_ts_frontend_public_sw_js",
-      "label": "2.4 PWA Web Push Notifications (`server/services/pushService.ts` & `Frontend/public/sw.js`)",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app.ts",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2.4 pwa web push notifications (`server/services/pushservice.ts` & `frontend/public/sw.js`)",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L67"
     },
     {
       "id": "server_package_devdependencies",
@@ -4913,26 +4927,220 @@
       "source_location": "L1"
     },
     {
-      "id": "server_services_complaintstorage",
-      "label": "complaintStorage.ts",
+      "id": "docs_context_handoff",
+      "label": "context-handoff.md",
       "_origin": "ast",
       "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "complaintstorage.ts",
-      "source_file": "server/services/complaintStorage.ts",
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "context-handoff.md",
+      "source_file": "docs/context-handoff.md",
       "source_location": "L1"
     },
     {
-      "id": "server_services_complaintstorage_local_storage_file",
-      "label": "LOCAL_STORAGE_FILE",
+      "id": "docs_context_handoff_1_executive_summary",
+      "label": "1. Executive Summary",
       "_origin": "ast",
       "community": 20,
-      "community_name": "complaintStorage.ts",
-      "file_type": "code",
-      "norm_label": "local_storage_file",
-      "source_file": "server/services/complaintStorage.ts",
-      "source_location": "L7"
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "1. executive summary",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L10"
+    },
+    {
+      "id": "docs_context_handoff_2_10_internal_officer_profile_portal_frontend_src_pages_profilepage_tsx",
+      "label": "2.10 Internal Officer Profile Portal (`Frontend/src/pages/ProfilePage.tsx`)",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.10 internal officer profile portal (`frontend/src/pages/profilepage.tsx`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L127"
+    },
+    {
+      "id": "docs_context_handoff_2_11_mobile_responsive_redesign_upstream_sync",
+      "label": "2.11 Mobile Responsive Redesign & Upstream Sync",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.11 mobile responsive redesign & upstream sync",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L139"
+    },
+    {
+      "id": "docs_context_handoff_2_2_role_based_data_access_control_server_services_accesscontrol_ts",
+      "label": "2.2 Role-Based Data Access Control (`server/services/accessControl.ts`)",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.2 role-based data access control (`server/services/accesscontrol.ts`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L48"
+    },
+    {
+      "id": "docs_context_handoff_2_5_ocr_ingestion_pipeline_with_local_tesseract_fallback_server_services_ocrservice_ts",
+      "label": "2.5 OCR Ingestion Pipeline with Local Tesseract Fallback (`server/services/ocrService.ts`)",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.5 ocr ingestion pipeline with local tesseract fallback (`server/services/ocrservice.ts`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L79"
+    },
+    {
+      "id": "docs_context_handoff_2_6_statutory_demolition_enforcement_actions_server_routes_enforcementroutes_ts",
+      "label": "2.6 Statutory Demolition & Enforcement Actions (`server/routes/enforcementRoutes.ts`)",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.6 statutory demolition & enforcement actions (`server/routes/enforcementroutes.ts`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L86"
+    },
+    {
+      "id": "docs_context_handoff_2_7_live_operations_analytics_with_atp_supervisory_rollup_server_routes_analyticsroutes_ts",
+      "label": "2.7 Live Operations Analytics with ATP Supervisory Rollup (`server/routes/analyticsRoutes.ts`)",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.7 live operations analytics with atp supervisory rollup (`server/routes/analyticsroutes.ts`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L94"
+    },
+    {
+      "id": "docs_context_handoff_2_8_frontend_architecture_user_experience_frontend_src",
+      "label": "2.8 Frontend Architecture & User Experience (`Frontend/src/`)",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.8 frontend architecture & user experience (`frontend/src/`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L101"
+    },
+    {
+      "id": "docs_context_handoff_2_9_persistent_authentication_credentials_management",
+      "label": "2.9 Persistent Authentication & Credentials Management",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.9 persistent authentication & credentials management",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L118"
+    },
+    {
+      "id": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
+      "label": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2. comprehensive progress breakdown: implemented features",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L30"
+    },
+    {
+      "id": "docs_context_handoff_3_technology_stack_configuration",
+      "label": "3. Technology Stack & Configuration",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "3. technology stack & configuration",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L146"
+    },
+    {
+      "id": "docs_context_handoff_4_verification_build_commands",
+      "label": "4. Verification & Build Commands",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "4. verification & build commands",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L162"
+    },
+    {
+      "id": "docs_context_handoff_5_summary_matrix_of_core_system_components",
+      "label": "5. Summary Matrix of Core System Components",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5. summary matrix of core system components",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L185"
+    },
+    {
+      "id": "docs_context_handoff_6_1_honest_priority_stack",
+      "label": "6.1 Honest Priority Stack",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "6.1 honest priority stack",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L214"
+    },
+    {
+      "id": "docs_context_handoff_6_2_next_session_execution_sequence",
+      "label": "6.2 Next Session Execution Sequence",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "6.2 next session execution sequence",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L243"
+    },
+    {
+      "id": "docs_context_handoff_6_prioritized_roadmap_next_session_execution_order",
+      "label": "6. Prioritized Roadmap & Next Session Execution Order",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "6. prioritized roadmap & next session execution order",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L212"
+    },
+    {
+      "id": "docs_context_handoff_mcl_building_branch_mcl_bb_context_handoff_progress_report",
+      "label": "MCL Building Branch (MCL-BB) \u2014 Context Handoff & Progress Report",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "2. Comprehensive Progress Breakdown: Implemented Features",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "mcl building branch (mcl-bb) \u2014 context handoff & progress report",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L1"
     },
     {
       "id": "package",
@@ -5473,7 +5681,7 @@
       "node_kind": "heading",
       "norm_label": "administration",
       "source_file": "README.md",
-      "source_location": "L237"
+      "source_location": "L240"
     },
     {
       "id": "readme_analytics_officer_operations",
@@ -5485,7 +5693,7 @@
       "node_kind": "heading",
       "norm_label": "analytics & officer operations",
       "source_file": "README.md",
-      "source_location": "L230"
+      "source_location": "L233"
     },
     {
       "id": "readme_authentication_authorization",
@@ -5497,7 +5705,7 @@
       "node_kind": "heading",
       "norm_label": "authentication & authorization",
       "source_file": "README.md",
-      "source_location": "L195"
+      "source_location": "L196"
     },
     {
       "id": "readme_authoritative_statutory_enforcement_workflow_workflow_pdf",
@@ -5521,7 +5729,7 @@
       "node_kind": "heading",
       "norm_label": "backend api",
       "source_file": "README.md",
-      "source_location": "L193"
+      "source_location": "L194"
     },
     {
       "id": "readme_complaint_registration_workflows",
@@ -5545,7 +5753,7 @@
       "node_kind": "heading",
       "norm_label": "complaints & intake",
       "source_file": "README.md",
-      "source_location": "L200"
+      "source_location": "L202"
     },
     {
       "id": "readme_external_document_registration",
@@ -5569,7 +5777,7 @@
       "node_kind": "heading",
       "norm_label": "field inspections & notices",
       "source_file": "README.md",
-      "source_location": "L211"
+      "source_location": "L213"
     },
     {
       "id": "readme_key_workflow_highlights",
@@ -5593,7 +5801,7 @@
       "node_kind": "heading",
       "norm_label": "layout",
       "source_file": "README.md",
-      "source_location": "L243"
+      "source_location": "L246"
     },
     {
       "id": "readme_main_routes",
@@ -5665,7 +5873,7 @@
       "node_kind": "heading",
       "norm_label": "statutory enforcement, case lifecycle & closures",
       "source_file": "README.md",
-      "source_location": "L215"
+      "source_location": "L217"
     },
     {
       "id": "readme_validation",
@@ -5677,7 +5885,7 @@
       "node_kind": "heading",
       "norm_label": "validation",
       "source_file": "README.md",
-      "source_location": "L247"
+      "source_location": "L250"
     },
     {
       "id": "readme_web_push_notifications_pwa",
@@ -5689,7 +5897,7 @@
       "node_kind": "heading",
       "norm_label": "web push notifications (pwa)",
       "source_file": "README.md",
-      "source_location": "L225"
+      "source_location": "L227"
     },
     {
       "id": "docs_master_1_post_api_inspections",
@@ -5852,7 +6060,7 @@
       "label": "AuthContext.tsx",
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "authcontext.tsx",
       "source_file": "Frontend/src/context/AuthContext.tsx",
@@ -5863,7 +6071,7 @@
       "label": "AuthContext",
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "authcontext",
       "source_file": "Frontend/src/context/AuthContext.tsx",
@@ -5874,10 +6082,21 @@
       "label": "LoginScreen.tsx",
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "loginscreen.tsx",
       "source_file": "Frontend/src/features/auth/LoginScreen.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_hooks_usepushnotifications",
+      "label": "usePushNotifications.ts",
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "usepushnotifications.ts",
+      "source_file": "Frontend/src/hooks/usePushNotifications.ts",
       "source_location": "L1"
     },
     {
@@ -5885,7 +6104,7 @@
       "label": "main.tsx",
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "main.tsx",
       "source_file": "Frontend/src/main.tsx",
@@ -5896,260 +6115,28 @@
       "label": "savedFontScale",
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "savedfontscale",
       "source_file": "Frontend/src/main.tsx",
       "source_location": "L9"
     },
     {
-      "id": "ref_react_dom",
-      "label": "react-dom",
+      "id": "frontend_src_pages_profilepage",
+      "label": "ProfilePage.tsx",
       "_origin": "ast",
       "community": 29,
-      "community_name": "AuthContext.tsx",
-      "file_type": "concept",
-      "norm_label": "react-dom",
-      "source_file": "Frontend/package.json",
-      "source_location": "L15"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintdetailpage",
-      "label": "ComplaintDetailPage.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintdetailpage.tsx",
-      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintdetailpage_timeline_stages",
-      "label": "TIMELINE_STAGES",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "timeline_stages",
-      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
-      "source_location": "L50"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage",
-      "label": "ComplaintsPage.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintspage.tsx",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_features_complaints_complaintspage_all_statuses",
-      "label": "ALL_STATUSES",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "all_statuses",
-      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "frontend_src_features_dashboard_dashboardpage",
-      "label": "DashboardPage.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "dashboardpage.tsx",
-      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_features_dashboard_dashboardpage_currentmonth",
-      "label": "currentMonth",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "currentmonth",
-      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
-      "source_location": "L83"
-    },
-    {
-      "id": "frontend_src_features_dashboard_dashboardpage_initial_data",
-      "label": "INITIAL_DATA",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "initial_data",
-      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
-      "source_location": "L58"
-    },
-    {
-      "id": "frontend_src_features_officers_officerspage",
-      "label": "OfficersPage.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "officerspage.tsx",
-      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_components_statusbadge",
-      "label": "StatusBadge.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "statusbadge.tsx",
-      "source_file": "Frontend/src/shared/components/StatusBadge.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_constants_navigation",
-      "label": "navigation.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "navigation.ts",
-      "source_file": "Frontend/src/shared/constants/navigation.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_constants_navigation_statusconfig",
-      "label": "statusConfig",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "statusconfig",
-      "source_file": "Frontend/src/shared/constants/navigation.ts",
-      "source_location": "L13"
-    },
-    {
-      "id": "frontend_src_shared_hooks_usecountup",
-      "label": "useCountUp.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "usecountup.ts",
-      "source_file": "Frontend/src/shared/hooks/useCountUp.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_types_index",
-      "label": "index.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "index.ts",
-      "source_file": "Frontend/src/shared/types/index.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_utils_apiconfig",
-      "label": "apiConfig.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "apiconfig.ts",
-      "source_file": "Frontend/src/shared/utils/apiConfig.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_utils_apiconfig_api_base_url",
-      "label": "API_BASE_URL",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "api_base_url",
-      "source_file": "Frontend/src/shared/utils/apiConfig.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_utils_complaintnavigation",
-      "label": "complaintNavigation.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "code",
-      "norm_label": "complaintnavigation.ts",
-      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "ref_recharts",
-      "label": "recharts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "concept",
-      "norm_label": "recharts",
-      "source_file": "Frontend/package.json",
-      "source_location": "L16"
-    },
-    {
-      "id": "docs_context_handoff_3_technology_stack_configuration",
-      "label": "3. Technology Stack & Configuration",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "ComplaintsPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "3. technology stack & configuration",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L118"
-    },
-    {
-      "id": "frontend_src_features_settings_settingspage",
-      "label": "SettingsPage.tsx",
-      "_origin": "ast",
-      "community": 30,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "settingspage.tsx",
-      "source_file": "Frontend/src/features/settings/SettingsPage.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_layout_topbar",
-      "label": "Topbar.tsx",
-      "_origin": "ast",
-      "community": 30,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "topbar.tsx",
-      "source_file": "Frontend/src/layout/Topbar.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_src_shared_hooks_usefontscale",
-      "label": "useFontScale.ts",
-      "_origin": "ast",
-      "community": 30,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "usefontscale.ts",
-      "source_file": "Frontend/src/shared/hooks/useFontScale.ts",
+      "norm_label": "profilepage.tsx",
+      "source_file": "Frontend/src/pages/ProfilePage.tsx",
       "source_location": "L1"
     },
     {
       "id": "frontend_src_shared_hooks_userouter",
       "label": "useRouter.ts",
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "code",
       "norm_label": "userouter.ts",
@@ -6160,12 +6147,155 @@
       "id": "ref_react",
       "label": "react",
       "_origin": "ast",
-      "community": 30,
+      "community": 29,
       "community_name": "react",
       "file_type": "concept",
       "norm_label": "react",
       "source_file": "Frontend/package.json",
       "source_location": "L14"
+    },
+    {
+      "id": "ref_react_dom",
+      "label": "react-dom",
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "react",
+      "file_type": "concept",
+      "norm_label": "react-dom",
+      "source_file": "Frontend/package.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintdetailpage",
+      "label": "ComplaintDetailPage.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "complaintdetailpage.tsx",
+      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintdetailpage_timeline_stages",
+      "label": "TIMELINE_STAGES",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "timeline_stages",
+      "source_file": "Frontend/src/features/complaints/ComplaintDetailPage.tsx",
+      "source_location": "L50"
+    },
+    {
+      "id": "frontend_src_features_dashboard_dashboardpage",
+      "label": "DashboardPage.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "dashboardpage.tsx",
+      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_features_dashboard_dashboardpage_currentmonth",
+      "label": "currentMonth",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "currentmonth",
+      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
+      "source_location": "L83"
+    },
+    {
+      "id": "frontend_src_features_dashboard_dashboardpage_initial_data",
+      "label": "INITIAL_DATA",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "initial_data",
+      "source_file": "Frontend/src/features/dashboard/DashboardPage.tsx",
+      "source_location": "L58"
+    },
+    {
+      "id": "frontend_src_shared_components_statusbadge",
+      "label": "StatusBadge.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "statusbadge.tsx",
+      "source_file": "Frontend/src/shared/components/StatusBadge.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_shared_constants_navigation_statusconfig",
+      "label": "statusConfig",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "statusconfig",
+      "source_file": "Frontend/src/shared/constants/navigation.ts",
+      "source_location": "L13"
+    },
+    {
+      "id": "frontend_src_shared_types_index",
+      "label": "index.ts",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "code",
+      "norm_label": "index.ts",
+      "source_file": "Frontend/src/shared/types/index.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "ref_recharts",
+      "label": "recharts",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "DashboardPage.tsx",
+      "file_type": "concept",
+      "norm_label": "recharts",
+      "source_file": "Frontend/package.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "frontend_src_features_settings_settingspage",
+      "label": "SettingsPage.tsx",
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "settingspage.tsx",
+      "source_file": "Frontend/src/features/settings/SettingsPage.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_layout_topbar",
+      "label": "Topbar.tsx",
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "topbar.tsx",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_shared_hooks_usefontscale",
+      "label": "useFontScale.ts",
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "Topbar.tsx",
+      "file_type": "code",
+      "norm_label": "usefontscale.ts",
+      "source_file": "Frontend/src/shared/hooks/useFontScale.ts",
+      "source_location": "L1"
     },
     {
       "id": "docs_master_25_data_architecture_direction",
@@ -6526,6 +6656,17 @@
       "source_location": "L1"
     },
     {
+      "id": "frontend_src_shared_constants_navigation",
+      "label": "navigation.ts",
+      "_origin": "ast",
+      "community": 34,
+      "community_name": "MobileNavDrawer.tsx",
+      "file_type": "code",
+      "norm_label": "navigation.ts",
+      "source_file": "Frontend/src/shared/constants/navigation.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "frontend_src_shared_constants_navigation_nav_items",
       "label": "NAV_ITEMS",
       "_origin": "ast",
@@ -6774,7 +6915,7 @@
       "node_kind": "heading",
       "norm_label": "local development",
       "source_file": "Frontend/README.md",
-      "source_location": "L79"
+      "source_location": "L80"
     },
     {
       "id": "frontend_readme_mcl_bb_frontend_application",
@@ -6798,7 +6939,7 @@
       "node_kind": "heading",
       "norm_label": "pwa & web push architecture",
       "source_file": "Frontend/README.md",
-      "source_location": "L48"
+      "source_location": "L49"
     },
     {
       "id": "frontend_readme_statutory_enforcement_workflow_alignment_workflow_pdf",
@@ -6810,7 +6951,7 @@
       "node_kind": "heading",
       "norm_label": "statutory enforcement workflow alignment (`workflow.pdf`)",
       "source_file": "Frontend/README.md",
-      "source_location": "L56"
+      "source_location": "L57"
     },
     {
       "id": "frontend_readme_technology_stack",
@@ -6924,7 +7065,7 @@
       "label": "auth.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "auth.ts",
       "source_file": "server/middleware/auth.ts",
@@ -6935,7 +7076,7 @@
       "label": "Express",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "express",
       "source_file": "server/middleware/auth.ts",
@@ -6946,29 +7087,18 @@
       "label": "authRoutes.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "authroutes.ts",
       "source_file": "server/routes/authRoutes.ts",
       "source_location": "L1"
     },
     {
-      "id": "server_routes_authroutes_router",
-      "label": "router",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "authRoutes.ts",
-      "file_type": "code",
-      "norm_label": "router",
-      "source_file": "server/routes/authRoutes.ts",
-      "source_location": "L6"
-    },
-    {
       "id": "server_routes_userroutes",
       "label": "userRoutes.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "userroutes.ts",
       "source_file": "server/routes/userRoutes.ts",
@@ -6979,7 +7109,7 @@
       "label": "ALLOWED_ROLES",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "allowed_roles",
       "source_file": "server/routes/userRoutes.ts",
@@ -6990,7 +7120,7 @@
       "label": "router",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "router",
       "source_file": "server/routes/userRoutes.ts",
@@ -7001,7 +7131,7 @@
       "label": "authService.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "code",
       "norm_label": "authservice.ts",
       "source_file": "server/services/authService.ts",
@@ -7012,7 +7142,7 @@
       "label": "jsonwebtoken",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "concept",
       "norm_label": "jsonwebtoken",
       "source_file": "server/package.json",
@@ -7023,56 +7153,156 @@
       "label": "2.1 Authentication & Security (JWT & RBAC)",
       "_origin": "ast",
       "community": 4,
-      "community_name": "authRoutes.ts",
+      "community_name": "auth.ts",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "2.1 authentication & security (jwt & rbac)",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L30"
+      "source_location": "L32"
     },
     {
-      "id": "server_services_workflowservice",
-      "label": "workflowService.ts",
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center",
+      "label": "2026-10-09-pwa-notification-center.md",
       "_origin": "ast",
       "community": 40,
-      "community_name": "workflowService.ts",
-      "file_type": "code",
-      "norm_label": "workflowservice.ts",
-      "source_file": "server/services/workflowService.ts",
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "2026-10-09-pwa-notification-center.md",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
       "source_location": "L1"
     },
     {
-      "id": "server_services_workflowservice_case_transitions",
-      "label": "CASE_TRANSITIONS",
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_automated_checks",
+      "label": "Automated Checks",
       "_origin": "ast",
       "community": 40,
-      "community_name": "workflowService.ts",
-      "file_type": "code",
-      "norm_label": "case_transitions",
-      "source_file": "server/services/workflowService.ts",
-      "source_location": "L30"
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "automated checks",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L133"
     },
     {
-      "id": "server_services_workflowservice_status_display_names",
-      "label": "STATUS_DISPLAY_NAMES",
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_global_constraints",
+      "label": "Global Constraints",
       "_origin": "ast",
       "community": 40,
-      "community_name": "workflowService.ts",
-      "file_type": "code",
-      "norm_label": "status_display_names",
-      "source_file": "server/services/workflowService.ts",
-      "source_location": "L15"
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "global constraints",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L17"
     },
     {
-      "id": "ref_pg",
-      "label": "pg",
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_manual_checks",
+      "label": "Manual Checks",
       "_origin": "ast",
       "community": 40,
-      "community_name": "workflowService.ts",
-      "file_type": "concept",
-      "norm_label": "pg",
-      "source_file": "server/package.json",
-      "source_location": "L28"
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "manual checks",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L140"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_1_pwa_installability_commit_1",
+      "label": "Phase 1: PWA Installability (Commit 1)",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "phase 1: pwa installability (commit 1)",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L27"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_2_in_app_notification_center_commit_2",
+      "label": "Phase 2: In-App Notification Center (Commit 2)",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "phase 2: in-app notification center (commit 2)",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L59"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_proposed_changes",
+      "label": "Proposed Changes",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "proposed changes",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L25"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_pwa_in_app_notification_center_implementation_plan",
+      "label": "PWA & In-App Notification Center Implementation Plan",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "pwa & in-app notification center implementation plan",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_1_generate_pwa_icons_web_app_manifest",
+      "label": "Task 1: Generate PWA Icons & Web App Manifest",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "task 1: generate pwa icons & web app manifest",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L29"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_3_notification_api_endpoints",
+      "label": "Task 3: Notification API Endpoints",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "task 3: notification api endpoints",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L83"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_4_notification_bell_dropdown_in_topbar_tsx",
+      "label": "Task 4: Notification Bell Dropdown in Topbar.tsx",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "task 4: notification bell dropdown in topbar.tsx",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L102"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_verification_plan",
+      "label": "Verification Plan",
+      "_origin": "ast",
+      "community": 40,
+      "community_name": "Phase 2: In-App Notification Center (Commit 2)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "verification plan",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L131"
     },
     {
       "id": "docs_master_39_implementation_priorities",
@@ -7219,6 +7449,17 @@
       "source_location": "L108"
     },
     {
+      "id": "frontend_src_features_officers_officerspage",
+      "label": "OfficersPage.tsx",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
+      "file_type": "code",
+      "norm_label": "officerspage.tsx",
+      "source_file": "Frontend/src/features/officers/OfficersPage.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "frontend_src_features_users_userspage",
       "label": "UsersPage.tsx",
       "_origin": "ast",
@@ -7239,6 +7480,39 @@
       "norm_label": "roles",
       "source_file": "Frontend/src/features/users/UsersPage.tsx",
       "source_location": "L19"
+    },
+    {
+      "id": "frontend_src_shared_hooks_usecountup",
+      "label": "useCountUp.ts",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
+      "file_type": "code",
+      "norm_label": "usecountup.ts",
+      "source_file": "Frontend/src/shared/hooks/useCountUp.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_shared_utils_apiconfig",
+      "label": "apiConfig.ts",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
+      "file_type": "code",
+      "norm_label": "apiconfig.ts",
+      "source_file": "Frontend/src/shared/utils/apiConfig.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_shared_utils_apiconfig_api_base_url",
+      "label": "API_BASE_URL",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "UsersPage.tsx",
+      "file_type": "code",
+      "norm_label": "api_base_url",
+      "source_file": "Frontend/src/shared/utils/apiConfig.ts",
+      "source_location": "L1"
     },
     {
       "id": "docs_master_16_1_pathway_1_compoundable",
@@ -7421,14 +7695,36 @@
       "source_location": "L264"
     },
     {
-      "id": "frontend_src_features_complaints_confirmationscreen",
-      "label": "ConfirmationScreen.tsx",
+      "id": "frontend_src_features_complaints_complaintspage",
+      "label": "ComplaintsPage.tsx",
       "_origin": "ast",
       "community": 47,
-      "community_name": "ConfirmationScreen.tsx",
+      "community_name": "ComplaintsPage.tsx",
       "file_type": "code",
-      "norm_label": "confirmationscreen.tsx",
-      "source_file": "Frontend/src/features/complaints/ConfirmationScreen.tsx",
+      "norm_label": "complaintspage.tsx",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_src_features_complaints_complaintspage_all_statuses",
+      "label": "ALL_STATUSES",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
+      "file_type": "code",
+      "norm_label": "all_statuses",
+      "source_file": "Frontend/src/features/complaints/ComplaintsPage.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "frontend_src_shared_utils_complaintnavigation",
+      "label": "complaintNavigation.ts",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "ComplaintsPage.tsx",
+      "file_type": "code",
+      "norm_label": "complaintnavigation.ts",
+      "source_file": "Frontend/src/shared/utils/complaintNavigation.ts",
       "source_location": "L1"
     },
     {
@@ -7583,37 +7879,26 @@
       "source_location": "L51"
     },
     {
-      "id": "server_services_claudeservice",
-      "label": "claudeService.ts",
+      "id": "server_services_complaintstorage",
+      "label": "complaintStorage.ts",
       "_origin": "ast",
       "community": 5,
       "community_name": "complaintRoutes.ts",
       "file_type": "code",
-      "norm_label": "claudeservice.ts",
-      "source_file": "server/services/claudeService.ts",
+      "norm_label": "complaintstorage.ts",
+      "source_file": "server/services/complaintStorage.ts",
       "source_location": "L1"
     },
     {
-      "id": "server_services_claudeservice_anthropic",
-      "label": "anthropic",
+      "id": "server_services_complaintstorage_local_storage_file",
+      "label": "LOCAL_STORAGE_FILE",
       "_origin": "ast",
       "community": 5,
       "community_name": "complaintRoutes.ts",
       "file_type": "code",
-      "norm_label": "anthropic",
-      "source_file": "server/services/claudeService.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "server_services_claudeservice_complaintschema",
-      "label": "complaintSchema",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "complaintRoutes.ts",
-      "file_type": "code",
-      "norm_label": "complaintschema",
-      "source_file": "server/services/claudeService.ts",
-      "source_location": "L24"
+      "norm_label": "local_storage_file",
+      "source_file": "server/services/complaintStorage.ts",
+      "source_location": "L7"
     },
     {
       "id": "server_services_locationmapping",
@@ -7636,17 +7921,6 @@
       "norm_label": "block_zone_map",
       "source_file": "server/services/locationMapping.ts",
       "source_location": "L5"
-    },
-    {
-      "id": "ref_anthropic_ai_sdk",
-      "label": "@anthropic-ai/sdk",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "complaintRoutes.ts",
-      "file_type": "concept",
-      "norm_label": "@anthropic-ai/sdk",
-      "source_file": "server/package.json",
-      "source_location": "L18"
     },
     {
       "id": "server_routes_complaintroutes_rationale_1686",
@@ -8031,6 +8305,116 @@
       "source_location": "L147"
     },
     {
+      "id": "frontend_public_manifest",
+      "label": "manifest.json",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "manifest.json",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_public_manifest_background_color",
+      "label": "background_color",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "background_color",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "frontend_public_manifest_description",
+      "label": "description",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "description",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "frontend_public_manifest_display",
+      "label": "display",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "display",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "frontend_public_manifest_icons",
+      "label": "icons",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "icons",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "frontend_public_manifest_name",
+      "label": "name",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "name",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "frontend_public_manifest_orientation",
+      "label": "orientation",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "orientation",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L9"
+    },
+    {
+      "id": "frontend_public_manifest_short_name",
+      "label": "short_name",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "short_name",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "frontend_public_manifest_start_url",
+      "label": "start_url",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "start_url",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "frontend_public_manifest_theme_color",
+      "label": "theme_color",
+      "_origin": "ast",
+      "community": 59,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "theme_color",
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L8"
+    },
+    {
       "id": "frontend_src_pages_casedetailpage",
       "label": "CaseDetailPage.tsx",
       "_origin": "ast",
@@ -8042,40 +8426,48 @@
       "source_location": "L1"
     },
     {
-      "id": "docs_context_handoff",
-      "label": "context-handoff.md",
+      "id": "server_services_workflowservice",
+      "label": "workflowService.ts",
       "_origin": "ast",
       "community": 6,
       "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "page",
-      "norm_label": "context-handoff.md",
-      "source_file": "docs/context-handoff.md",
+      "file_type": "code",
+      "norm_label": "workflowservice.ts",
+      "source_file": "server/services/workflowService.ts",
       "source_location": "L1"
     },
     {
-      "id": "docs_context_handoff_1_executive_summary",
-      "label": "1. Executive Summary",
+      "id": "server_services_workflowservice_case_transitions",
+      "label": "CASE_TRANSITIONS",
       "_origin": "ast",
       "community": 6,
       "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "1. executive summary",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L10"
+      "file_type": "code",
+      "norm_label": "case_transitions",
+      "source_file": "server/services/workflowService.ts",
+      "source_location": "L30"
     },
     {
-      "id": "docs_context_handoff_2_2_role_based_data_access_control_server_services_accesscontrol_ts",
-      "label": "2.2 Role-Based Data Access Control (`server/services/accessControl.ts`)",
+      "id": "server_services_workflowservice_status_display_names",
+      "label": "STATUS_DISPLAY_NAMES",
       "_origin": "ast",
       "community": 6,
       "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2.2 role-based data access control (`server/services/accesscontrol.ts`)",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L46"
+      "file_type": "code",
+      "norm_label": "status_display_names",
+      "source_file": "server/services/workflowService.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "ref_pg",
+      "label": "pg",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "CaseDetailPage.tsx",
+      "file_type": "concept",
+      "norm_label": "pg",
+      "source_file": "server/package.json",
+      "source_location": "L28"
     },
     {
       "id": "docs_context_handoff_2_3_statutory_case_state_machine_server_services_workflowservice_ts",
@@ -8087,139 +8479,7 @@
       "node_kind": "heading",
       "norm_label": "2.3 statutory case state machine (`server/services/workflowservice.ts`)",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L60"
-    },
-    {
-      "id": "docs_context_handoff_2_5_ocr_ingestion_pipeline_with_local_tesseract_fallback_server_services_ocrservice_ts",
-      "label": "2.5 OCR Ingestion Pipeline with Local Tesseract Fallback (`server/services/ocrService.ts`)",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2.5 ocr ingestion pipeline with local tesseract fallback (`server/services/ocrservice.ts`)",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L77"
-    },
-    {
-      "id": "docs_context_handoff_2_6_statutory_demolition_enforcement_actions_server_routes_enforcementroutes_ts",
-      "label": "2.6 Statutory Demolition & Enforcement Actions (`server/routes/enforcementRoutes.ts`)",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2.6 statutory demolition & enforcement actions (`server/routes/enforcementroutes.ts`)",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L84"
-    },
-    {
-      "id": "docs_context_handoff_2_7_live_operations_analytics_with_atp_supervisory_rollup_server_routes_analyticsroutes_ts",
-      "label": "2.7 Live Operations Analytics with ATP Supervisory Rollup (`server/routes/analyticsRoutes.ts`)",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2.7 live operations analytics with atp supervisory rollup (`server/routes/analyticsroutes.ts`)",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L92"
-    },
-    {
-      "id": "docs_context_handoff_2_8_frontend_architecture_user_experience_frontend_src",
-      "label": "2.8 Frontend Architecture & User Experience (`Frontend/src/`)",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2.8 frontend architecture & user experience (`frontend/src/`)",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L99"
-    },
-    {
-      "id": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
-      "label": "2. Comprehensive Progress Breakdown: Implemented Features",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "2. comprehensive progress breakdown: implemented features",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L28"
-    },
-    {
-      "id": "docs_context_handoff_4_verification_build_commands",
-      "label": "4. Verification & Build Commands",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "4. verification & build commands",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L134"
-    },
-    {
-      "id": "docs_context_handoff_5_summary_matrix_of_core_system_components",
-      "label": "5. Summary Matrix of Core System Components",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5. summary matrix of core system components",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L157"
-    },
-    {
-      "id": "docs_context_handoff_6_1_honest_priority_stack",
-      "label": "6.1 Honest Priority Stack",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "6.1 honest priority stack",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L185"
-    },
-    {
-      "id": "docs_context_handoff_6_2_next_session_execution_sequence",
-      "label": "6.2 Next Session Execution Sequence",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "6.2 next session execution sequence",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L211"
-    },
-    {
-      "id": "docs_context_handoff_6_prioritized_roadmap_next_session_execution_order",
-      "label": "6. Prioritized Roadmap & Next Session Execution Order",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "6. prioritized roadmap & next session execution order",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L183"
-    },
-    {
-      "id": "docs_context_handoff_mcl_building_branch_mcl_bb_context_handoff_progress_report",
-      "label": "MCL Building Branch (MCL-BB) \u2014 Context Handoff & Progress Report",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "CaseDetailPage.tsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "mcl building branch (mcl-bb) \u2014 context handoff & progress report",
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L1"
+      "source_location": "L62"
     },
     {
       "id": "docs_superpowers_plans_2026_10_06_statutory_case_lifecycle",
@@ -8328,6 +8588,415 @@
       "norm_label": "verification & quality gates",
       "source_file": "docs/superpowers/plans/2026-10-06-statutory-case-lifecycle.md",
       "source_location": "L61"
+    },
+    {
+      "id": "server_routes_pushroutes",
+      "label": "pushRoutes.ts",
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "code",
+      "norm_label": "pushroutes.ts",
+      "source_file": "server/routes/pushRoutes.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_routes_pushroutes_router",
+      "label": "router",
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "code",
+      "norm_label": "router",
+      "source_file": "server/routes/pushRoutes.ts",
+      "source_location": "L5"
+    },
+    {
+      "id": "server_services_pushservice",
+      "label": "pushService.ts",
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "code",
+      "norm_label": "pushservice.ts",
+      "source_file": "server/services/pushService.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "ref_web_push",
+      "label": "web-push",
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "concept",
+      "norm_label": "web-push",
+      "source_file": "server/package.json",
+      "source_location": "L30"
+    },
+    {
+      "id": "docs_context_handoff_2_4_pwa_web_push_notifications_server_services_pushservice_ts_frontend_public_sw_js",
+      "label": "2.4 PWA Web Push Notifications (`server/services/pushService.ts` & `Frontend/public/sw.js`)",
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2.4 pwa web push notifications (`server/services/pushservice.ts` & `frontend/public/sw.js`)",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L69"
+    },
+    {
+      "id": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_2_database_migration_pushservice_ts_dual_write",
+      "label": "Task 2: Database Migration & pushService.ts Dual-Write",
+      "_origin": "ast",
+      "community": 60,
+      "community_name": "pushRoutes.ts",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "task 2: database migration & pushservice.ts dual-write",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L61"
+    },
+    {
+      "id": "server_migrations_001_create_users_table",
+      "label": "001_create_users_table.sql",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "001_create_users_table.sql",
+      "source_file": "server/migrations/001_create_users_table.sql",
+      "source_location": null
+    },
+    {
+      "id": "server_migrations_001_create_users_table_officers",
+      "label": "officers",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "officers",
+      "source_file": "server/migrations/001_create_users_table.sql",
+      "source_location": "L19"
+    },
+    {
+      "id": "server_migrations_001_create_users_table_users",
+      "label": "users",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "users",
+      "source_file": "server/migrations/001_create_users_table.sql",
+      "source_location": "L4"
+    },
+    {
+      "id": "server_migrations_006_push_subscriptions",
+      "label": "006_push_subscriptions.sql",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "006_push_subscriptions.sql",
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": null
+    },
+    {
+      "id": "server_migrations_006_push_subscriptions_idx_push_subscriptions_endpoint",
+      "label": "idx_push_subscriptions_endpoint",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "idx_push_subscriptions_endpoint",
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L19"
+    },
+    {
+      "id": "server_migrations_006_push_subscriptions_idx_push_subscriptions_officer_id",
+      "label": "idx_push_subscriptions_officer_id",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "idx_push_subscriptions_officer_id",
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L16"
+    },
+    {
+      "id": "server_migrations_006_push_subscriptions_push_subscriptions",
+      "label": "push_subscriptions",
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "push_subscriptions",
+      "file_type": "code",
+      "norm_label": "push_subscriptions",
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L4"
+    },
+    {
+      "id": "server_services_claudeservice",
+      "label": "claudeService.ts",
+      "_origin": "ast",
+      "community": 62,
+      "community_name": "claudeService.ts",
+      "file_type": "code",
+      "norm_label": "claudeservice.ts",
+      "source_file": "server/services/claudeService.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_services_claudeservice_anthropic",
+      "label": "anthropic",
+      "_origin": "ast",
+      "community": 62,
+      "community_name": "claudeService.ts",
+      "file_type": "code",
+      "norm_label": "anthropic",
+      "source_file": "server/services/claudeService.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "server_services_claudeservice_complaintschema",
+      "label": "complaintSchema",
+      "_origin": "ast",
+      "community": 62,
+      "community_name": "claudeService.ts",
+      "file_type": "code",
+      "norm_label": "complaintschema",
+      "source_file": "server/services/claudeService.ts",
+      "source_location": "L24"
+    },
+    {
+      "id": "ref_anthropic_ai_sdk",
+      "label": "@anthropic-ai/sdk",
+      "_origin": "ast",
+      "community": 62,
+      "community_name": "claudeService.ts",
+      "file_type": "concept",
+      "norm_label": "@anthropic-ai/sdk",
+      "source_file": "server/package.json",
+      "source_location": "L18"
+    },
+    {
+      "id": "server_migrations_004_create_demolition_tables",
+      "label": "004_create_demolition_tables.sql",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "004_create_demolition_tables.sql",
+      "file_type": "code",
+      "norm_label": "004_create_demolition_tables.sql",
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": null
+    },
+    {
+      "id": "server_migrations_004_create_demolition_tables_demolition_evidence",
+      "label": "demolition_evidence",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "004_create_demolition_tables.sql",
+      "file_type": "code",
+      "norm_label": "demolition_evidence",
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L43"
+    },
+    {
+      "id": "server_migrations_004_create_demolition_tables_demolition_records",
+      "label": "demolition_records",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "004_create_demolition_tables.sql",
+      "file_type": "code",
+      "norm_label": "demolition_records",
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L4"
+    },
+    {
+      "id": "server_migrations_004_create_demolition_tables_idx_demolition_evidence_demolition_id",
+      "label": "idx_demolition_evidence_demolition_id",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "004_create_demolition_tables.sql",
+      "file_type": "code",
+      "norm_label": "idx_demolition_evidence_demolition_id",
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L60"
+    },
+    {
+      "id": "server_migrations_004_create_demolition_tables_idx_demolition_records_case_id",
+      "label": "idx_demolition_records_case_id",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "004_create_demolition_tables.sql",
+      "file_type": "code",
+      "norm_label": "idx_demolition_records_case_id",
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L57"
+    },
+    {
+      "id": "server_migrations_004_create_demolition_tables_sql_cases",
+      "label": "cases",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "004_create_demolition_tables.sql",
+      "file_type": "code",
+      "norm_label": "cases",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "server_migrations_005_case_closures",
+      "label": "005_case_closures.sql",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "005_case_closures.sql",
+      "file_type": "code",
+      "norm_label": "005_case_closures.sql",
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": null
+    },
+    {
+      "id": "server_migrations_005_case_closures_case_closures",
+      "label": "case_closures",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "005_case_closures.sql",
+      "file_type": "code",
+      "norm_label": "case_closures",
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L4"
+    },
+    {
+      "id": "server_migrations_005_case_closures_idx_case_closures_case_id",
+      "label": "idx_case_closures_case_id",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "005_case_closures.sql",
+      "file_type": "code",
+      "norm_label": "idx_case_closures_case_id",
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L18"
+    },
+    {
+      "id": "server_migrations_005_case_closures_idx_violator_replies_review_status",
+      "label": "idx_violator_replies_review_status",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "005_case_closures.sql",
+      "file_type": "code",
+      "norm_label": "idx_violator_replies_review_status",
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L33"
+    },
+    {
+      "id": "server_migrations_005_case_closures_sql_cases",
+      "label": "cases",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "005_case_closures.sql",
+      "file_type": "code",
+      "norm_label": "cases",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "violator_replies",
+      "label": "violator_replies",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "005_case_closures.sql",
+      "file_type": "code",
+      "norm_label": "violator_replies",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "server_migrations_007_create_notifications_table",
+      "label": "007_create_notifications_table.sql",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "007_create_notifications_table.sql",
+      "file_type": "code",
+      "norm_label": "007_create_notifications_table.sql",
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": null
+    },
+    {
+      "id": "server_migrations_007_create_notifications_table_idx_notifications_read_at",
+      "label": "idx_notifications_read_at",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "007_create_notifications_table.sql",
+      "file_type": "code",
+      "norm_label": "idx_notifications_read_at",
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L21"
+    },
+    {
+      "id": "server_migrations_007_create_notifications_table_idx_notifications_recipient",
+      "label": "idx_notifications_recipient",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "007_create_notifications_table.sql",
+      "file_type": "code",
+      "norm_label": "idx_notifications_recipient",
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L20"
+    },
+    {
+      "id": "server_migrations_007_create_notifications_table_notifications",
+      "label": "notifications",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "007_create_notifications_table.sql",
+      "file_type": "code",
+      "norm_label": "notifications",
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L4"
+    },
+    {
+      "id": "complaints",
+      "label": "complaints",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "idx_complaints_submitted_by",
+      "file_type": "code",
+      "norm_label": "complaints",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "server_migrations_003_add_submitted_by",
+      "label": "003_add_submitted_by.sql",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "idx_complaints_submitted_by",
+      "file_type": "code",
+      "norm_label": "003_add_submitted_by.sql",
+      "source_file": "server/migrations/003_add_submitted_by.sql",
+      "source_location": null
+    },
+    {
+      "id": "server_migrations_003_add_submitted_by_idx_complaints_submitted_by",
+      "label": "idx_complaints_submitted_by",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "idx_complaints_submitted_by",
+      "file_type": "code",
+      "norm_label": "idx_complaints_submitted_by",
+      "source_file": "server/migrations/003_add_submitted_by.sql",
+      "source_location": "L7"
+    },
+    {
+      "id": "server_migrations_002_seed_users",
+      "label": "002_seed_users.sql",
+      "_origin": "ast",
+      "community": 67,
+      "community_name": "002_seed_users.sql",
+      "file_type": "code",
+      "norm_label": "002_seed_users.sql",
+      "source_file": "server/migrations/002_seed_users.sql",
+      "source_location": null
     },
     {
       "id": "frontend_tsconfig_app",
@@ -8704,17 +9373,6 @@
       "source_location": "L21"
     },
     {
-      "id": "ref_multer",
-      "label": "multer",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "enforcementRoutes.ts",
-      "file_type": "concept",
-      "norm_label": "multer",
-      "source_file": "server/package.json",
-      "source_location": "L26"
-    },
-    {
       "id": "ref_path",
       "label": "ref_path",
       "community": 1,
@@ -8737,21 +9395,10 @@
       "type": "external"
     },
     {
-      "id": "ref_node_crypto",
-      "label": "ref_node_crypto",
-      "community": 20,
-      "community_name": "complaintStorage.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_crypto",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "frontend_src_index",
       "label": "frontend_src_index",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "external": true,
       "file_type": "concept",
       "norm_label": "frontend_src_index",
@@ -8762,7 +9409,7 @@
       "id": "frontend_src_responsive",
       "label": "frontend_src_responsive",
       "community": 29,
-      "community_name": "AuthContext.tsx",
+      "community_name": "react",
       "external": true,
       "file_type": "concept",
       "norm_label": "frontend_src_responsive",
@@ -8777,6 +9424,17 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_buffer",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_crypto",
+      "label": "ref_node_crypto",
+      "community": 5,
+      "community_name": "complaintRoutes.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_crypto",
       "source_file": "",
       "type": "external"
     },
@@ -9622,6 +10280,42 @@
     },
     {
       "source": "frontend_src_layout_topbar_topbar",
+      "target": "frontend_src_shared_components_icon_icon",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L310",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar_topbar",
+      "target": "frontend_src_layout_topbar_getnotificationstripecolor",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L374",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar_topbar",
+      "target": "frontend_src_layout_topbar_formattimeago",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L403",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar_topbar",
       "target": "frontend_src_shared_hooks_usefontscale_usefontscale",
       "relation": "calls",
       "_origin": "ast",
@@ -9629,7 +10323,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "Frontend/src/layout/Topbar.tsx",
-      "source_location": "L17",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -10529,7 +11223,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/services/pushService.ts",
-      "source_location": "L71",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -11747,6 +12441,30 @@
       "weight": 1.0
     },
     {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_shared_components_icon_icon",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_shared_utils_apiconfig_api_base_url",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
       "source": "frontend_src_main",
       "target": "frontend_src_app_app",
       "relation": "imports",
@@ -12252,7 +12970,7 @@
     },
     {
       "source": "server_app",
-      "target": "server_db_database_testdatabaseconnection",
+      "target": "server_routes_notificationroutes_router",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -12260,6 +12978,18 @@
       "context": "import",
       "source_file": "server/app.ts",
       "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "server_app",
+      "target": "server_db_database_testdatabaseconnection",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/app.ts",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -13160,6 +13890,18 @@
       "context": "import",
       "source_file": "server/routes/enforcementRoutes.ts",
       "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "server_routes_notificationroutes",
+      "target": "server_db_database_pool",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/routes/notificationRoutes.ts",
+      "source_location": "L2",
       "weight": 1.0
     },
     {
@@ -14441,6 +15183,30 @@
       "weight": 1.0
     },
     {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_shared_components_icon",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_shared_utils_apiconfig",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
       "source": "frontend_src_main",
       "target": "ref_react",
       "relation": "imports_from",
@@ -15072,7 +15838,7 @@
     },
     {
       "source": "server_app",
-      "target": "server_db_database",
+      "target": "server_routes_notificationroutes",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -15080,6 +15846,18 @@
       "context": "import",
       "source_file": "server/app.ts",
       "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "server_app",
+      "target": "server_db_database",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/app.ts",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -15744,6 +16522,42 @@
       "weight": 1.0
     },
     {
+      "source": "server_routes_notificationroutes",
+      "target": "ref_express",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/routes/notificationRoutes.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "server_routes_notificationroutes",
+      "target": "server_db_database",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/routes/notificationRoutes.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "server_routes_notificationroutes",
+      "target": "server_middleware_auth",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/routes/notificationRoutes.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
       "source": "server_routes_pushroutes",
       "target": "ref_express",
       "relation": "imports_from",
@@ -16178,13 +16992,57 @@
     },
     {
       "source": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
+      "target": "docs_context_handoff_2_8_frontend_architecture_user_experience_frontend_src",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L101",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
+      "target": "docs_context_handoff_2_9_persistent_authentication_credentials_management",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
+      "target": "docs_context_handoff_2_10_internal_officer_profile_portal_frontend_src_pages_profilepage_tsx",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L127",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
+      "target": "docs_context_handoff_2_11_mobile_responsive_redesign_upstream_sync",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
       "target": "docs_context_handoff_2_1_authentication_security_jwt_rbac",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L30",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -16195,7 +17053,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L46",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -16206,7 +17064,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L60",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -16217,7 +17075,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L67",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -16228,7 +17086,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L77",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -16239,7 +17097,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L84",
+      "source_location": "L86",
       "weight": 1.0
     },
     {
@@ -16250,18 +17108,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L92",
-      "weight": 1.0
-    },
-    {
-      "source": "docs_context_handoff_2_comprehensive_progress_breakdown_implemented_features",
-      "target": "docs_context_handoff_2_8_frontend_architecture_user_experience_frontend_src",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/context-handoff.md",
-      "source_location": "L99",
+      "source_location": "L94",
       "weight": 1.0
     },
     {
@@ -16272,7 +17119,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L185",
+      "source_location": "L214",
       "weight": 1.0
     },
     {
@@ -16283,7 +17130,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L211",
+      "source_location": "L243",
       "weight": 1.0
     },
     {
@@ -16305,7 +17152,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L118",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -16316,7 +17163,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L134",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -16327,7 +17174,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L157",
+      "source_location": "L185",
       "weight": 1.0
     },
     {
@@ -16338,7 +17185,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L183",
+      "source_location": "L212",
       "weight": 1.0
     },
     {
@@ -16349,7 +17196,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/context-handoff.md",
-      "source_location": "L28",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -18080,6 +18927,138 @@
       "weight": 1.0
     },
     {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_pwa_in_app_notification_center_implementation_plan",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_1_pwa_installability_commit_1",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_1_generate_pwa_icons_web_app_manifest",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_2_in_app_notification_center_commit_2",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_4_notification_bell_dropdown_in_topbar_tsx",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_2_in_app_notification_center_commit_2",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_2_database_migration_pushservice_ts_dual_write",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_2_in_app_notification_center_commit_2",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_3_notification_api_endpoints",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_proposed_changes",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_1_pwa_installability_commit_1",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_proposed_changes",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_phase_2_in_app_notification_center_commit_2",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_pwa_in_app_notification_center_implementation_plan",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_verification_plan",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_pwa_in_app_notification_center_implementation_plan",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_global_constraints",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_pwa_in_app_notification_center_implementation_plan",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_proposed_changes",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_verification_plan",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_automated_checks",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_verification_plan",
+      "target": "docs_superpowers_plans_2026_10_09_pwa_notification_center_manual_checks",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
       "source": "frontend_package",
       "target": "frontend_package_dependencies",
       "relation": "contains",
@@ -18388,6 +19367,105 @@
       "weight": 1.0
     },
     {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_icons",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_name",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_short_name",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_description",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_start_url",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_display",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_background_color",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_theme_color",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_manifest",
+      "target": "frontend_public_manifest_orientation",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/public/manifest.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "frontend_readme",
       "target": "frontend_readme_mcl_bb_frontend_application",
       "relation": "contains",
@@ -18428,7 +19506,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Frontend/README.md",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -18450,7 +19528,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Frontend/README.md",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0
     },
     {
@@ -18461,7 +19539,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Frontend/README.md",
-      "source_location": "L79",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -19225,13 +20303,24 @@
     },
     {
       "source": "frontend_src_layout_topbar",
-      "target": "frontend_src_layout_topbar_topbar",
+      "target": "frontend_src_layout_topbar_formattimeago",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Frontend/src/layout/Topbar.tsx",
-      "source_location": "L11",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_layout_topbar_getnotificationstripecolor",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -19242,7 +20331,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "Frontend/src/layout/Topbar.tsx",
-      "source_location": "L4",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_layout_topbar_topbar",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_layout_topbar",
+      "target": "frontend_src_layout_topbar_inappnotification",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend/src/layout/Topbar.tsx",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -21068,7 +22179,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L195",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -21079,7 +22190,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L200",
+      "source_location": "L202",
       "weight": 1.0
     },
     {
@@ -21090,7 +22201,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L211",
+      "source_location": "L213",
       "weight": 1.0
     },
     {
@@ -21101,7 +22212,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L215",
+      "source_location": "L217",
       "weight": 1.0
     },
     {
@@ -21112,7 +22223,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L225",
+      "source_location": "L227",
       "weight": 1.0
     },
     {
@@ -21123,7 +22234,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L230",
+      "source_location": "L233",
       "weight": 1.0
     },
     {
@@ -21134,7 +22245,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L237",
+      "source_location": "L240",
       "weight": 1.0
     },
     {
@@ -21200,7 +22311,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L193",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -21211,7 +22322,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L243",
+      "source_location": "L246",
       "weight": 1.0
     },
     {
@@ -21222,7 +22333,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L247",
+      "source_location": "L250",
       "weight": 1.0
     },
     {
@@ -21255,7 +22366,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/app.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -21333,6 +22444,182 @@
       "confidence_score": 1.0,
       "source_file": "server/middleware/auth.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_001_create_users_table",
+      "target": "server_migrations_001_create_users_table_officers",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/001_create_users_table.sql",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_001_create_users_table",
+      "target": "server_migrations_001_create_users_table_users",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/001_create_users_table.sql",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_003_add_submitted_by",
+      "target": "server_migrations_003_add_submitted_by_idx_complaints_submitted_by",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/003_add_submitted_by.sql",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables",
+      "target": "server_migrations_004_create_demolition_tables_demolition_records",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables",
+      "target": "server_migrations_004_create_demolition_tables_demolition_evidence",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables",
+      "target": "server_migrations_004_create_demolition_tables_idx_demolition_records_case_id",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables",
+      "target": "server_migrations_004_create_demolition_tables_idx_demolition_evidence_demolition_id",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_005_case_closures",
+      "target": "server_migrations_005_case_closures_idx_case_closures_case_id",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_005_case_closures",
+      "target": "server_migrations_005_case_closures_idx_violator_replies_review_status",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_005_case_closures",
+      "target": "server_migrations_005_case_closures_case_closures",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_006_push_subscriptions",
+      "target": "server_migrations_006_push_subscriptions_idx_push_subscriptions_officer_id",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_006_push_subscriptions",
+      "target": "server_migrations_006_push_subscriptions_idx_push_subscriptions_endpoint",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_006_push_subscriptions",
+      "target": "server_migrations_006_push_subscriptions_push_subscriptions",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_007_create_notifications_table",
+      "target": "server_migrations_007_create_notifications_table_idx_notifications_recipient",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_007_create_notifications_table",
+      "target": "server_migrations_007_create_notifications_table_idx_notifications_read_at",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_007_create_notifications_table",
+      "target": "server_migrations_007_create_notifications_table_notifications",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -21927,6 +23214,17 @@
       "confidence_score": 1.0,
       "source_file": "server/routes/enforcementRoutes.ts",
       "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "server_routes_notificationroutes",
+      "target": "server_routes_notificationroutes_router",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/routes/notificationRoutes.ts",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -22575,7 +23873,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/services/pushService.ts",
-      "source_location": "L28",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -22586,7 +23884,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/services/pushService.ts",
-      "source_location": "L66",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -22821,6 +24119,105 @@
       "weight": 1.0
     },
     {
+      "source": "server_migrations_003_add_submitted_by_idx_complaints_submitted_by",
+      "target": "complaints",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/003_add_submitted_by.sql",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables_idx_demolition_evidence_demolition_id",
+      "target": "server_migrations_004_create_demolition_tables_demolition_evidence",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables_idx_demolition_records_case_id",
+      "target": "server_migrations_004_create_demolition_tables_demolition_records",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_005_case_closures_idx_case_closures_case_id",
+      "target": "server_migrations_005_case_closures_case_closures",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_005_case_closures_idx_violator_replies_review_status",
+      "target": "violator_replies",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_006_push_subscriptions_idx_push_subscriptions_endpoint",
+      "target": "server_migrations_006_push_subscriptions_push_subscriptions",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_006_push_subscriptions_idx_push_subscriptions_officer_id",
+      "target": "server_migrations_006_push_subscriptions_push_subscriptions",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_007_create_notifications_table_idx_notifications_read_at",
+      "target": "server_migrations_007_create_notifications_table_notifications",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_007_create_notifications_table_idx_notifications_recipient",
+      "target": "server_migrations_007_create_notifications_table_notifications",
+      "relation": "indexes",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/007_create_notifications_table.sql",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
       "source": "server_routes_complaintroutes_rationale_1686",
       "target": "server_routes_complaintroutes",
       "relation": "rationale_for",
@@ -22862,6 +24259,50 @@
       "confidence_score": 1.0,
       "source_file": "server/services/driveService.ts",
       "source_location": "L164",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables_demolition_evidence",
+      "target": "server_migrations_004_create_demolition_tables_demolition_records",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_004_create_demolition_tables_demolition_records",
+      "target": "server_migrations_004_create_demolition_tables_sql_cases",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/004_create_demolition_tables.sql",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_005_case_closures_case_closures",
+      "target": "server_migrations_005_case_closures_sql_cases",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/005_case_closures.sql",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "server_migrations_006_push_subscriptions_push_subscriptions",
+      "target": "server_migrations_001_create_users_table_users",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server/migrations/006_push_subscriptions.sql",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -22973,6 +24414,18 @@
       "weight": 1.0
     },
     {
+      "source": "server_routes_notificationroutes",
+      "target": "server_middleware_auth_authenticatetoken",
+      "relation": "indirect_call",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "context": "argument",
+      "source_file": "server/routes/notificationRoutes.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
       "source": "server_routes_pushroutes",
       "target": "server_middleware_auth_authenticatetoken",
       "relation": "indirect_call",
@@ -23041,7 +24494,19 @@
       "confidence_score": 0.95,
       "context": "JWTPayload",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L34",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_2_database_migration_pushservice_ts_dual_write",
+      "target": "server_services_pushservice_pushpayload",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "context": "PushPayload",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L72",
       "weight": 1.0
     },
     {
@@ -23065,7 +24530,7 @@
       "confidence_score": 0.95,
       "context": "applyTransition",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L65",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -23101,7 +24566,7 @@
       "confidence_score": 0.95,
       "context": "authenticateToken",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L35",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -23113,7 +24578,7 @@
       "confidence_score": 0.95,
       "context": "getComplaints()",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L38",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -23125,7 +24590,7 @@
       "confidence_score": 0.95,
       "context": "getUserAssignedBlocks",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L48",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -23149,7 +24614,7 @@
       "confidence_score": 0.95,
       "context": "notifyOfficer",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L71",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -23165,6 +24630,18 @@
       "weight": 1.0
     },
     {
+      "source": "docs_superpowers_plans_2026_10_09_pwa_notification_center_task_2_database_migration_pushservice_ts_dual_write",
+      "target": "server_services_pushservice_notifyofficer",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "context": "notifyOfficer",
+      "source_file": "docs/superpowers/plans/2026-10-09-pwa-notification-center.md",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
       "source": "docs_context_handoff_2_4_pwa_web_push_notifications_server_services_pushservice_ts_frontend_public_sw_js",
       "target": "server_services_pushservice_notifyofficers",
       "relation": "references",
@@ -23173,7 +24650,7 @@
       "confidence_score": 0.95,
       "context": "notifyOfficers",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L71",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -23189,6 +24666,18 @@
       "weight": 1.0
     },
     {
+      "source": "docs_context_handoff_2_11_mobile_responsive_redesign_upstream_sync",
+      "target": "frontend_src_shared_hooks_usebreakpoint_usebreakpoint",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "context": "useBreakpoint",
+      "source_file": "docs/context-handoff.md",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
       "source": "docs_context_handoff_3_technology_stack_configuration",
       "target": "frontend_src_shared_hooks_usecountup_usecountup",
       "relation": "references",
@@ -23197,7 +24686,7 @@
       "confidence_score": 0.95,
       "context": "useCountUp",
       "source_file": "docs/context-handoff.md",
-      "source_location": "L122",
+      "source_location": "L150",
       "weight": 1.0
     },
     {
@@ -23214,5 +24703,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f0676a1c4dd74de6c3b0389d32f602344bcca3f2"
+  "built_at_commit": "9f8c560342f76d15d0f1c5f16ecdf6eff6ff0aba"
 }

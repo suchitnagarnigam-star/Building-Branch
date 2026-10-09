@@ -156,10 +156,10 @@
     "semantic_hash": "57d56d827fc47f584dad97959887afae"
   },
   "Frontend/src/layout/Topbar.tsx": {
-    "mtime": 1791523869.1101768,
-    "seen": 1791524327.282679,
-    "ast_hash": "289f1842a189df82df889ff71bc59afa",
-    "semantic_hash": "289f1842a189df82df889ff71bc59afa"
+    "mtime": 1791526889.9636688,
+    "seen": 1791527041.3287268,
+    "ast_hash": "e0485af5751676e69d86c10b1cfd9710",
+    "semantic_hash": ""
   },
   "Frontend/src/main.tsx": {
     "mtime": 1791521079.44553,
@@ -323,29 +323,17 @@
     "ast_hash": "06618430ca44c409eb58612244a39881",
     "semantic_hash": "06618430ca44c409eb58612244a39881"
   },
-  "gitleaks.json": {
-    "mtime": 1791283023.9207876,
-    "seen": 1791523556.7812784,
-    "ast_hash": "ed1741d08d90dda0491f0c32d365a5d6",
-    "semantic_hash": "ed1741d08d90dda0491f0c32d365a5d6"
-  },
   "package.json": {
     "mtime": 1789583811.5612118,
     "seen": 1791523556.7812822,
     "ast_hash": "dbb9f4ce451da734dc973f92f2d5d816",
     "semantic_hash": "dbb9f4ce451da734dc973f92f2d5d816"
   },
-  "semgrep.json": {
-    "mtime": 1791282981.0150425,
-    "seen": 1791523556.7812855,
-    "ast_hash": "7d0c1aba8c25e8253ca2315b249c272d",
-    "semantic_hash": "7d0c1aba8c25e8253ca2315b249c272d"
-  },
   "server/app.ts": {
-    "mtime": 1791277760.136471,
-    "seen": 1791523556.7812889,
-    "ast_hash": "d9167a2950c141d7f908b644ab07ac93",
-    "semantic_hash": "d9167a2950c141d7f908b644ab07ac93"
+    "mtime": 1791526735.2332292,
+    "seen": 1791527041.3287992,
+    "ast_hash": "4b91c032eab0a9171d72887d67002182",
+    "semantic_hash": ""
   },
   "server/data/complaints.json": {
     "mtime": 1791261403.7531254,
@@ -480,10 +468,10 @@
     "semantic_hash": "53c50b911c5b02d76a4bdcb6f8808034"
   },
   "server/services/pushService.ts": {
-    "mtime": 1791280487.4176073,
-    "seen": 1791523556.7813637,
-    "ast_hash": "7c6e60240f1e45011f9b05980310d6a3",
-    "semantic_hash": "7c6e60240f1e45011f9b05980310d6a3"
+    "mtime": 1791526692.2013,
+    "seen": 1791527041.3288748,
+    "ast_hash": "cccc8d2c58a06fe12ccde669cdd21c8e",
+    "semantic_hash": ""
   },
   "server/services/workflowService.ts": {
     "mtime": 1791275099.9767084,
@@ -503,28 +491,22 @@
     "ast_hash": "7c0a6f7c9e4c29acab80939b0c52b23e",
     "semantic_hash": "7c0a6f7c9e4c29acab80939b0c52b23e"
   },
-  "trivy.json": {
-    "mtime": 1791283062.1218362,
-    "seen": 1791523556.7813776,
-    "ast_hash": "d51e67cd5d1831da9fdb46f3b9663813",
-    "semantic_hash": "d51e67cd5d1831da9fdb46f3b9663813"
-  },
   "Frontend/README.md": {
-    "mtime": 1791282674.5109482,
-    "seen": 1791524327.3165627,
-    "ast_hash": "8884a8093b9eaf32fbdadb9497bd5240",
+    "mtime": 1791524724.9437933,
+    "seen": 1791527041.3288884,
+    "ast_hash": "c1dd76a39d3c977f7330d270f727f2bf",
     "semantic_hash": ""
   },
   "Frontend/index.html": {
-    "mtime": 1791521079.4283886,
-    "seen": 1791524327.3165698,
-    "ast_hash": "c8df543d2548348027cb3498218ff74e",
+    "mtime": 1791526607.359371,
+    "seen": 1791527041.3288927,
+    "ast_hash": "3548a25bd206e5782c97f59f3b01c5c5",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1791282674.5042791,
-    "seen": 1791524327.3165722,
-    "ast_hash": "d5f77ee4486ae166e74b87155d5e511b",
+    "mtime": 1791524724.9414477,
+    "seen": 1791527041.328896,
+    "ast_hash": "8357f644986e93add70f58d5e45bd94b",
     "semantic_hash": ""
   },
   "docs/MASTER.md": {
@@ -534,9 +516,9 @@
     "semantic_hash": ""
   },
   "docs/context-handoff.md": {
-    "mtime": 1791282156.1872554,
-    "seen": 1791524327.3165772,
-    "ast_hash": "0c7d569567f77a4ec5639e4f5f0ad9e8",
+    "mtime": 1791524724.94918,
+    "seen": 1791527041.3289015,
+    "ast_hash": "3bbe1b8c601d11e38da5a8406fa41735",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-10-06-pwa-push-notifications.md": {
@@ -549,12 +531,6 @@
     "mtime": 1791278194.3093271,
     "seen": 1791524327.316582,
     "ast_hash": "e35461267659df0353845190d5eb27d1",
-    "semantic_hash": ""
-  },
-  "Punjab-Municipal-Corporation-Act-1976.pdf": {
-    "mtime": 1790359326.8686743,
-    "seen": 1791524327.316597,
-    "ast_hash": "0f2767b485ad4e250151cab02b4a1507",
     "semantic_hash": ""
   },
   "docs/MCL-BB_Plan_v3.pdf": {
@@ -621,6 +597,90 @@
     "mtime": 1788935385.41319,
     "seen": 1791524327.3166294,
     "ast_hash": "9960a24288958394ac50e57ff638b036",
+    "semantic_hash": ""
+  },
+  "Frontend/public/manifest.json": {
+    "mtime": 1791526907.6680214,
+    "seen": 1791527041.328656,
+    "ast_hash": "fc473bccd8baa122d1ff31d8ddbfd26a",
+    "semantic_hash": ""
+  },
+  "server/migrations/001_create_users_table.sql": {
+    "mtime": 1790189410.1618087,
+    "seen": 1791527041.328812,
+    "ast_hash": "946cb66b6ac31af2f6fb70f9964ac4a2",
+    "semantic_hash": ""
+  },
+  "server/migrations/002_seed_users.sql": {
+    "mtime": 1790188880.7436683,
+    "seen": 1791527041.3288145,
+    "ast_hash": "dfa5ac4aa14f3d838079029c64e31c0a",
+    "semantic_hash": ""
+  },
+  "server/migrations/003_add_submitted_by.sql": {
+    "mtime": 1790361342.6858523,
+    "seen": 1791527041.3288178,
+    "ast_hash": "2bdbdf3dd04e62ea684c4ddd8b783784",
+    "semantic_hash": ""
+  },
+  "server/migrations/004_create_demolition_tables.sql": {
+    "mtime": 1790744348.2258878,
+    "seen": 1791527041.3288207,
+    "ast_hash": "5fde82abb52f135baa4f40cccc1f67f3",
+    "semantic_hash": ""
+  },
+  "server/migrations/005_case_closures.sql": {
+    "mtime": 1791278194.3110805,
+    "seen": 1791527041.3288236,
+    "ast_hash": "c17a20fbb1edd2423fa6cf908a19242d",
+    "semantic_hash": ""
+  },
+  "server/migrations/006_push_subscriptions.sql": {
+    "mtime": 1791280487.207805,
+    "seen": 1791527041.328826,
+    "ast_hash": "9f73190c51d1895f7ae3f482eb886780",
+    "semantic_hash": ""
+  },
+  "server/migrations/007_create_notifications_table.sql": {
+    "mtime": 1791526907.986663,
+    "seen": 1791527041.3288293,
+    "ast_hash": "2b01488cfb3e9be5f391bedcc91314b5",
+    "semantic_hash": ""
+  },
+  "server/routes/notificationRoutes.ts": {
+    "mtime": 1791526908.184137,
+    "seen": 1791527041.3288448,
+    "ast_hash": "8dc018f7985ceccdea957d3aa6c2d32a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-10-09-pwa-notification-center.md": {
+    "mtime": 1791526956.9947205,
+    "seen": 1791527041.3289104,
+    "ast_hash": "f5e85efc629fb2e0cbea8e5be4ab30c7",
+    "semantic_hash": ""
+  },
+  "Frontend/public/icon-192.png": {
+    "mtime": 1791526582.5105455,
+    "seen": 1791527041.3289216,
+    "ast_hash": "ee6eda6ea31d04d94b4608cc3d13033a",
+    "semantic_hash": ""
+  },
+  "Frontend/public/icon-512.png": {
+    "mtime": 1791526582.491946,
+    "seen": 1791527041.328925,
+    "ast_hash": "b8c30051bf0591ba497987010d19fd2a",
+    "semantic_hash": ""
+  },
+  "Frontend/public/icon-maskable-192.png": {
+    "mtime": 1791526582.5885375,
+    "seen": 1791527041.3289282,
+    "ast_hash": "cd5431e507c300227e9c8bc08f2e2c2e",
+    "semantic_hash": ""
+  },
+  "Frontend/public/icon-maskable-512.png": {
+    "mtime": 1791526582.5745735,
+    "seen": 1791527041.3289318,
+    "ast_hash": "ff31d61618fae97cdcb730aa24ae66fb",
     "semantic_hash": ""
   }
 }
