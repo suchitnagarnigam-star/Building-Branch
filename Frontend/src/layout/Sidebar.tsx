@@ -94,6 +94,14 @@ function Sidebar({ route, userRole, navigate, onLogout }: SidebarProps) {
             <span>User Management</span>
           </button>
         )}
+        <button
+          className={`nav-item ${route === "/profile" ? "nav-item--active" : ""}`}
+          type="button"
+          onClick={() => navigate("/profile")}
+        >
+          <span className="nav-item__icon"><Icon name="user" /></span>
+          <span>My Profile</span>
+        </button>
         {canSeeSettings && (
           <button
             className={`nav-item ${route === "/settings" ? "nav-item--active" : ""}`}

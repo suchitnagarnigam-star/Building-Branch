@@ -5,11 +5,13 @@ type TopbarProps = {
   userName?: string;
   userRole?: string;
   onLogout?: () => void;
+  navigate?: (route: string) => void;
 };
 
 function Topbar({
   userName = "Yuvraj Singh",
   userRole = "Building Branch (Staff)",
+  navigate,
 }: TopbarProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const { fontScale, setFontScale } = useFontScale();
@@ -169,7 +171,20 @@ function Topbar({
             )}
           </div>
 
-          <div className="topbar__profile-card">
+          <div
+            className="topbar__profile-card"
+            onClick={() => navigate?.("/profile")}
+            style={{ cursor: "pointer" }}
+            title="View Officer Profile"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate?.("/profile");
+              }
+            }}
+          >
             <div className="topbar__avatar-wrap">
               <div className="topbar__avatar">{initials}</div>
               <span className="topbar__status-dot" title="Active Online"></span>

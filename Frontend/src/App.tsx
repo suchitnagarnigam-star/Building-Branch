@@ -44,6 +44,7 @@ import CaseDetailPage from "./pages/CaseDetailPage";
 import FieldInspectionPage from "./pages/FieldInspectionPage";
 import ConstructionStatusForm from "./pages/ConstructionStatusForm";
 import EnforcementActionForm from "./pages/EnforcementActionForm";
+import ProfilePage from "./pages/ProfilePage";
 
 // Shared
 import ComingSoonPage from "./shared/components/ComingSoonPage";
@@ -326,6 +327,11 @@ function App() {
       return <OfficersPage />;
     }
 
+    // Officer Profile
+    if (route === "/profile") {
+      return <ProfilePage navigate={navigate} onLogout={logout} />;
+    }
+
     // Settings
     if (route === "/settings") {
       return <SettingsPage />;
@@ -371,6 +377,7 @@ function App() {
           userName={user.name}
           userRole={user.role}
           onLogout={logout}
+          navigate={navigate}
         />
       )}
 

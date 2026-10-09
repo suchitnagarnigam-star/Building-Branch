@@ -110,7 +110,13 @@ export default function MobileNavDrawer({
           </button>
         </div>
 
-        <div className="mobile-drawer__user">
+        <div
+          className="mobile-drawer__user"
+          onClick={() => handleNav("/profile")}
+          style={{ cursor: "pointer" }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="mobile-drawer__avatar">
             {userName
               .split(" ")
@@ -142,6 +148,17 @@ export default function MobileNavDrawer({
               </button>
             );
           })}
+
+          <button
+            type="button"
+            className={`mobile-drawer__item ${route === "/profile" ? "mobile-drawer__item--active" : ""}`}
+            onClick={() => handleNav("/profile")}
+          >
+            <span className="mobile-drawer__icon">
+              <Icon name="user" />
+            </span>
+            <span>My Profile</span>
+          </button>
 
           <div className="mobile-drawer__divider" />
 

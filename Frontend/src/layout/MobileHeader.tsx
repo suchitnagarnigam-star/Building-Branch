@@ -50,7 +50,7 @@ export default function MobileHeader({
         <button
           type="button"
           className="mobile-header__avatar"
-          onClick={onOpenDrawer}
+          onClick={() => (onNavigate ? onNavigate("/profile") : onOpenDrawer())}
           aria-label="User Profile"
         >
           {initials}

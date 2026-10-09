@@ -101,6 +101,21 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <circle cx="12" cy="12" r="3" />
     </svg>
   ),
+  "eye-off": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20" />
+    </svg>
+  ),
+  key: (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5-2 2 1.5 1.5L11 12l-1.5-1.5-2 2 1.5 1.5-1.8 1.8a5 5 0 1 1-7.07-7.07l1.8-1.8" />
+    </svg>
+  ),
+  phone: (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  ),
   upload: (className) => (
     <svg {...commonProps} className={className}>
       <path d="M12 16V4" />

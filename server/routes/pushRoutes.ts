@@ -86,4 +86,32 @@ router.delete("/subscribe", authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/push/test
+ * Sends a test push notification to the calling officer's subscribed devices.
+ */
+router.post("/test", authenticateToken, async (req, res) => {
+  const actor = req.user;
+  if (!actor || !actor.officerId) {
+    res.status(400).json({
+      success: false,
+      message: "Push notifications test requires an assigned officer ID.",
+    });
+    return;
+  }
+
+  try {
+    const { notifyOfficer } = await import("../services/pushService");
+    await notifyOfficer(actor.officerId, {
+      title: "MCL Building Branch Alert",
+      body: `Test notification sent successfully to ${actor.name || "Officer"} at ${new Date().toLocaleTimeString("en-IN")}.`,
+      url: "/profile",
+    });
+    res.json({ success: true, message: "Test notification dispatched." });
+  } catch (error) {
+    console.error("[PushRoutes] Error sending test notification:", error);
+    res.status(500).json({ success: false, message: "Failed to send test push notification." });
+  }
+});
+
 export default router;

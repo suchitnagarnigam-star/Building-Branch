@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { pool } from "../db/database";
-import { verifyPassword, generateToken, JWTPayload } from "../services/authService";
+import { verifyPassword, hashPassword, generateToken, JWTPayload } from "../services/authService";
 import { authenticateToken } from "../middleware/auth";
 
 const router = Router();
@@ -174,6 +174,8 @@ router.post("/login", async (req: Request, res: Response) => {
       token,
       user: {
         userId: user.user_id,
+        username: user.username,
+        phoneNumber: user.phone_number,
         officerId,
         role: user.role,
         name: user.name,
@@ -183,6 +185,7 @@ router.post("/login", async (req: Request, res: Response) => {
         designation,
       },
     });
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
@@ -270,6 +273,8 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
       user: {
         userId: user.user_id,
         officerId,
+        username: user.username,
+        phoneNumber: user.phone_number,
         role: user.role,
         name: user.name,
         zone,
@@ -281,6 +286,66 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error in GET /api/auth/me:", error);
     res.status(500).json({ success: false, message: "Internal server error." });
+  }
+});
+
+// ── POST /api/auth/change-pin ──────────────────────────────────────────────────
+router.post("/change-pin", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const { currentPin, newPin } = req.body as {
+      currentPin?: string;
+      newPin?: string;
+    };
+
+    if (!currentPin || !newPin) {
+      res.status(400).json({ success: false, message: "Current PIN and new PIN are required" });
+      return;
+    }
+
+    const trimmedNewPin = newPin.trim();
+    if (trimmedNewPin.length < 4) {
+      res.status(400).json({ success: false, message: "New PIN must be at least 4 digits" });
+      return;
+    }
+
+    const userRes = await pool.query<{ password_hash: string }>(
+      "SELECT password_hash FROM users WHERE user_id = $1 AND is_active = true",
+      [userId]
+    );
+
+    if (userRes.rowCount === 0) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    const isMatch = await verifyPassword(currentPin.trim(), userRes.rows[0].password_hash);
+    if (!isMatch) {
+      res.status(400).json({ success: false, message: "Current PIN is incorrect" });
+      return;
+    }
+
+    const newHash = await hashPassword(trimmedNewPin);
+    await pool.query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE user_id = $2", [
+      newHash,
+      userId,
+    ]);
+
+    const newToken = generateToken(req.user!);
+
+    res.status(200).json({
+      success: true,
+      message: "PIN updated successfully.",
+      token: newToken,
+    });
+  } catch (error) {
+    console.error("Error in POST /api/auth/change-pin:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 

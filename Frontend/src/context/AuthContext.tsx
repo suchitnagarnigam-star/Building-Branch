@@ -3,6 +3,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 export interface AuthUser {
   userId: number;
   officerId: string | null;
+  username?: string | null;
+  phoneNumber?: string | null;
   role: "superadmin" | "jc" | "mtp" | "atp" | "bi" | "operator";
   name: string;
   zone: string | null;
@@ -17,6 +19,8 @@ export interface AuthContextValue {
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  updateToken: (newToken: string) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -144,6 +148,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     throw new Error(errorData.message || "Login failed. Please try again.");
   };
 
+  const updateToken = (newToken: string) => {
+    localStorage.setItem(TOKEN_KEY, newToken);
+    setToken(newToken);
+  };
+
+  const refreshUser = async () => {
+    const curToken = token || localStorage.getItem(TOKEN_KEY);
+    if (!curToken) return;
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+    try {
+      const res = await fetch(`${apiBase.replace(/\/$/, "")}/auth/me`, {
+        headers: { Authorization: `Bearer ${curToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data.user) {
+          setUser(data.user as AuthUser);
+          localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const logout = () => {
     const currentToken = token || localStorage.getItem(TOKEN_KEY);
 
@@ -167,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, updateToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
