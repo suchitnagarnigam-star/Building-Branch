@@ -596,12 +596,15 @@ router.get("/cases", async (req, res) => {
       ${whereClause}
       ORDER BY c.created_at DESC
     `, params);
-    if (result.rows.length > 0) {
-      res.json({ success: true, cases: result.rows });
+    res.json({ success: true, cases: result.rows });
+    return;
+  } catch (error) {
+    if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+      console.error("[Cases] PostgreSQL query failed:", error);
+      res.status(500).json({ success: false, message: "Database query failed." });
       return;
     }
-  } catch (error) {
-    console.warn("[Cases] PostgreSQL query failed, using fallback case list:", error);
+    console.warn("[Cases] PostgreSQL query failed, using fallback case list (DEV ONLY):", error);
   }
 
   // High-availability fallback case list
@@ -770,8 +773,18 @@ router.get("/cases/:caseId", async (req, res) => {
       });
       return;
     }
+
+    if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+      res.status(404).json({ success: false, message: `Case ${caseId} not found.` });
+      return;
+    }
   } catch (error) {
-    console.warn(`[Cases] PostgreSQL lookup failed for ${caseId}:`, error);
+    if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+      console.error(`[Cases] PostgreSQL lookup failed for ${caseId}:`, error);
+      res.status(500).json({ success: false, message: "Database query failed." });
+      return;
+    }
+    console.warn(`[Cases] PostgreSQL lookup failed for ${caseId}, using fallback case record (DEV ONLY):`, error);
   }
 
   // Fallback case lookup for demo & offline reliability
