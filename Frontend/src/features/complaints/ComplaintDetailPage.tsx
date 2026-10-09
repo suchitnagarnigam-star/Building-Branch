@@ -3,6 +3,8 @@ import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { AppComplaint } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
+import { getDriveFileProxyUrl } from "../../shared/utils/driveUrl";
+import ImageViewerModal from "../../shared/components/ImageViewerModal";
 
 type DriveFile = {
   fileId: string;
@@ -85,6 +87,7 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const [driveFilesLoading, setDriveFilesLoading] = useState(false);
   const [loading, setLoading] = useState(!storedComplaint);
   const [error, setError] = useState("");
+  const [viewerImage, setViewerImage] = useState<{ url: string; title?: string } | null>(null);
 
   const apiUrl = API_BASE_URL;
 
@@ -554,15 +557,19 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
                 const relativePath = pathParts.slice(
                   uploadsIndex >= 0 ? uploadsIndex + 1 : -1,
                 );  
+                const localUrl = `${API_BASE_URL.replace(/\/api$/, "")}/uploads/${relativePath
+                  .map(encodeURIComponent)
+                  .join("/")}`;
 
                 return (
                   <img
                     key={attachment.filePath}
                     className="attachment-preview"
-                    src={`${API_BASE_URL.replace(/\/api$/, "")}/uploads/${relativePath
-                      .map(encodeURIComponent)
-                      .join("/")}`}
+                    src={localUrl}
                     alt={attachment.fileName}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setViewerImage({ url: localUrl, title: attachment.fileName })}
+                    title={`Click to preview ${attachment.fileName}`}
                   />
                 );
               }
@@ -570,28 +577,21 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
               //NEW GOOGLE DRIVE FILE
                const prefix = `${complaintId}_${attachment.category}_${attachment.index}`;
 
-               console.log("[Drive Match]",{
-                  complaintId,
-                  attachment,
-                  expectedPrefix: prefix,
-                  driveFiles,
-               });
-
                const driveFile = driveFiles.find((file) =>
                 file.fileName.startsWith(prefix)
                );
               
               if (driveFile) {
+                const proxyUrl = getDriveFileProxyUrl(driveFile.fileId);
                 return (
                   <img
                     key={driveFile.fileId}
                     className="attachment-preview"
-                    src={`${API_BASE_URL}/complaints/${encodeURIComponent(
-                      complaintId
-                    )}/files/${encodeURIComponent(
-                      driveFile.fileId
-                    )}`}
+                    src={proxyUrl}
                     alt={attachment.fileName}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setViewerImage({ url: proxyUrl, title: attachment.fileName })}
+                    title={`Click to preview ${attachment.fileName}`}
                   />
                 );
               }
@@ -672,6 +672,15 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
         </div>
       </aside>
       </div>
+
+      {viewerImage && (
+        <ImageViewerModal
+          isOpen={!!viewerImage}
+          imageUrl={viewerImage.url}
+          title={viewerImage.title}
+          onClose={() => setViewerImage(null)}
+        />
+      )}
     </div>
   );
 }

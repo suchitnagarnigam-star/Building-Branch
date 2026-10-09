@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from "react";
 import Icon from "../shared/components/Icon";
+import { getDriveFileProxyUrl } from "../shared/utils/driveUrl";
+import ImageViewerModal from "../shared/components/ImageViewerModal";
 
 // ===== UPDATED: Minimum compliance period is a business rule, not mock data =====
 const MIN_COMPLIANCE_DAYS = 3;
@@ -171,6 +173,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
   const [existingEvidenceFiles, setExistingEvidenceFiles] = useState<
     Array<{ evidence_id?: number | string; file_name: string; drive_file_id?: string; drive_file_url?: string }>
   >([]);
+  const [viewerImage, setViewerImage] = useState<{ url: string; title?: string; originalUrl?: string } | null>(null);
 
   // Form Validation & Submit State
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -1047,43 +1050,54 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
                       Previously Uploaded Evidence Image:
                     </div>
                     <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                      {existingEvidenceFiles.map((file, idx) => (
-                        <a
-                          key={idx}
-                          href={file.drive_file_url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "8px 12px",
-                            background: "#ffffff",
-                            border: "1px solid #cbd5e1",
-                            borderRadius: "6px",
-                            textDecoration: "none",
-                            fontSize: "12px",
-                            color: "var(--ink)",
-                          }}
-                        >
-                          {file.drive_file_id ? (
-                            <img
-                              src={`https://lh3.googleusercontent.com/d/${file.drive_file_id}`}
-                              alt={file.file_name}
-                              style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "4px" }}
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <Icon name="file" size={16} color="#64748b" />
-                          )}
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{file.file_name}</div>
-                            <div style={{ fontSize: "10px", color: "var(--muted)" }}>Click to view full image</div>
-                          </div>
-                        </a>
-                      ))}
+                      {existingEvidenceFiles.map((file, idx) => {
+                        const proxyUrl = getDriveFileProxyUrl(file.drive_file_id, file.drive_file_url);
+                        return (
+                          <button
+                            type="button"
+                            key={idx}
+                            onClick={() =>
+                              setViewerImage({
+                                url: proxyUrl,
+                                title: file.file_name,
+                                originalUrl: file.drive_file_url,
+                              })
+                            }
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "#ffffff",
+                              border: "1px solid #cbd5e1",
+                              borderRadius: "6px",
+                              textDecoration: "none",
+                              fontSize: "12px",
+                              color: "var(--ink)",
+                              cursor: "pointer",
+                              textAlign: "left",
+                            }}
+                            title={`Preview ${file.file_name}`}
+                          >
+                            {proxyUrl && proxyUrl !== "#" ? (
+                              <img
+                                src={proxyUrl}
+                                alt={file.file_name}
+                                style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "4px" }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <Icon name="file" size={16} color="#64748b" />
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{file.file_name}</div>
+                              <div style={{ fontSize: "10px", color: "var(--muted)" }}>Click to view full image</div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                     <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "8px" }}>
                       You can select a new file below if you wish to replace or update this evidence photo.
@@ -1147,6 +1161,16 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
           </section>
         )}
       </form>
+
+      {viewerImage && (
+        <ImageViewerModal
+          isOpen={!!viewerImage}
+          imageUrl={viewerImage.url}
+          title={viewerImage.title}
+          originalUrl={viewerImage.originalUrl}
+          onClose={() => setViewerImage(null)}
+        />
+      )}
     </div>
   );
 }
