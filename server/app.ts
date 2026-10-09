@@ -10,6 +10,7 @@ import analyticsRoutes from "./routes/analyticsRoutes";
 import enforcementRoutes from "./routes/enforcementRoutes";
 import pushRoutes from "./routes/pushRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import driveRoutes from "./routes/driveRoutes";
 import { testDatabaseConnection } from "./db/database";
 
 const app = express();
@@ -26,6 +27,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/push", pushRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/drive", driveRoutes);
 app.use("/api", complaintRoutes);
 app.use("/api", enforcementRoutes);
 

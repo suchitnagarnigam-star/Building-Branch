@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Icon from "../shared/components/Icon";
 import { useAuth } from "../context/AuthContext";
+import { getDriveFileProxyUrl } from "../shared/utils/driveUrl";
+import ImageViewerModal from "../shared/components/ImageViewerModal";
 
 type CaseDetailPageProps = {
   caseId: string;
@@ -62,6 +64,7 @@ type NoticeRecord = {
   issued_by_name?: string | null;
   issued_at?: string | null;
   document_name?: string | null;
+  drive_file_id?: string | null;
   drive_file_url?: string | null;
   created_at: string;
 };
@@ -72,6 +75,7 @@ type ViolatorReply = {
   reply_text?: string | null;
   reply_date: string;
   file_name?: string | null;
+  drive_file_id?: string | null;
   drive_file_url?: string | null;
   created_at?: string;
   review_status?: string | null;
@@ -188,6 +192,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "notices" | "construction">("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [viewerImage, setViewerImage] = useState<{ url: string; title?: string; originalUrl?: string } | null>(null);
 
   const loadCaseData = useCallback(async () => {
     try {
@@ -522,25 +527,49 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                   )}
                   {v.evidence_files && v.evidence_files.length > 0 && (
                     <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingTop: "4px" }}>
-                      {v.evidence_files.map((ev, evIdx) => (
-                        <a
-                          key={ev.evidence_id || evIdx}
-                          href={ev.drive_file_url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ width: "50px", height: "50px", borderRadius: "6px", overflow: "hidden", border: "1px solid #e2e8f0", display: "grid", placeItems: "center", background: "#f1f5f9", flexShrink: 0 }}
-                        >
-                          {ev.drive_file_id ? (
-                            <img
-                              src={`https://lh3.googleusercontent.com/d/${ev.drive_file_id}`}
-                              alt={ev.file_name}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          ) : (
-                            <span style={{ fontSize: "14px" }}>📷</span>
-                          )}
-                        </a>
-                      ))}
+                      {v.evidence_files.map((ev, evIdx) => {
+                        const proxyUrl = getDriveFileProxyUrl(ev.drive_file_id, ev.drive_file_url);
+                        return (
+                          <button
+                            type="button"
+                            key={ev.evidence_id || evIdx}
+                            onClick={() =>
+                              setViewerImage({
+                                url: proxyUrl,
+                                title: ev.file_name,
+                                originalUrl: ev.drive_file_url,
+                              })
+                            }
+                            style={{
+                              width: "50px",
+                              height: "50px",
+                              borderRadius: "6px",
+                              overflow: "hidden",
+                              border: "1px solid #e2e8f0",
+                              display: "grid",
+                              placeItems: "center",
+                              background: "#f1f5f9",
+                              flexShrink: 0,
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                            title={`Preview ${ev.file_name}`}
+                          >
+                            {proxyUrl && proxyUrl !== "#" ? (
+                              <img
+                                src={proxyUrl}
+                                alt={ev.file_name}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "14px" }}>📷</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -576,7 +605,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                   </div>
                   {n.drive_file_url && (
                     <a
-                      href={n.drive_file_url}
+                      href={getDriveFileProxyUrl(n.drive_file_id, n.drive_file_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="primary-button"
@@ -1291,54 +1320,65 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 </div>
                 {latestVisit.evidence_files && latestVisit.evidence_files.length > 0 ? (
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    {latestVisit.evidence_files.map((ev) => (
-                      <a
-                        key={ev.evidence_id}
-                        href={ev.drive_file_url || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: "inline-block",
-                          border: "1px solid var(--border, #e2e8f0)",
-                          borderRadius: "6px",
-                          padding: "6px 8px",
-                          background: "#ffffff",
-                          textDecoration: "none",
-                          fontSize: "12px",
-                          color: "var(--ink)",
-                        }}
-                      >
-                        <div
+                    {latestVisit.evidence_files.map((ev) => {
+                      const proxyUrl = getDriveFileProxyUrl(ev.drive_file_id, ev.drive_file_url);
+                      return (
+                        <button
+                          type="button"
+                          key={ev.evidence_id}
+                          onClick={() =>
+                            setViewerImage({
+                              url: proxyUrl,
+                              title: ev.file_name,
+                              originalUrl: ev.drive_file_url,
+                            })
+                          }
                           style={{
-                            width: "90px",
-                            height: "64px",
-                            background: "#f8fafc",
-                            borderRadius: "4px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "4px",
-                            overflow: "hidden",
+                            display: "inline-block",
+                            border: "1px solid var(--border, #e2e8f0)",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            background: "#ffffff",
+                            textDecoration: "none",
+                            fontSize: "12px",
+                            color: "var(--ink)",
+                            cursor: "pointer",
+                            textAlign: "center",
                           }}
+                          title={`Preview ${ev.file_name}`}
                         >
-                          {ev.drive_file_id ? (
-                            <img
-                              src={`https://lh3.googleusercontent.com/d/${ev.drive_file_id}`}
-                              alt={ev.file_name}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <span style={{ fontSize: "18px" }}>📷</span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: "11px", color: "var(--muted)", display: "block", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {ev.file_name}
-                        </span>
-                      </a>
-                    ))}
+                          <div
+                            style={{
+                              width: "90px",
+                              height: "64px",
+                              background: "#f8fafc",
+                              borderRadius: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginBottom: "4px",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {proxyUrl && proxyUrl !== "#" ? (
+                              <img
+                                src={proxyUrl}
+                                alt={ev.file_name}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "18px" }}>📷</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: "11px", color: "var(--muted)", display: "block", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ev.file_name}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
                   <span style={{ color: "var(--muted)", fontSize: "12px" }}>No evidence photos attached</span>
@@ -1412,7 +1452,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 {notice269.drive_file_url && (
                   <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
                     <a
-                      href={notice269.drive_file_url}
+                      href={getDriveFileProxyUrl(notice269.drive_file_id, notice269.drive_file_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -1473,7 +1513,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 {notice270.drive_file_url && (
                   <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
                     <a
-                      href={notice270.drive_file_url}
+                      href={getDriveFileProxyUrl(notice270.drive_file_id, notice270.drive_file_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -1581,7 +1621,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                     <div style={{ color: "var(--ink)", fontWeight: 500 }}>{r.reply_text || "Document reply submitted"}</div>
                     {r.drive_file_url && (
                       <a
-                        href={r.drive_file_url}
+                        href={getDriveFileProxyUrl(r.drive_file_id, r.drive_file_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -1882,54 +1922,65 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
                 </div>
                 {demolitionRecord.evidence_files && demolitionRecord.evidence_files.length > 0 ? (
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    {demolitionRecord.evidence_files.map((ev) => (
-                      <a
-                        key={ev.evidence_id}
-                        href={ev.drive_file_url || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: "inline-block",
-                          border: "1px solid var(--border, #e2e8f0)",
-                          borderRadius: "6px",
-                          padding: "6px 8px",
-                          background: "#ffffff",
-                          textDecoration: "none",
-                          fontSize: "12px",
-                          color: "var(--ink)",
-                        }}
-                      >
-                        <div
+                    {demolitionRecord.evidence_files.map((ev) => {
+                      const proxyUrl = getDriveFileProxyUrl(ev.drive_file_id, ev.drive_file_url);
+                      return (
+                        <button
+                          type="button"
+                          key={ev.evidence_id}
+                          onClick={() =>
+                            setViewerImage({
+                              url: proxyUrl,
+                              title: ev.file_name,
+                              originalUrl: ev.drive_file_url,
+                            })
+                          }
                           style={{
-                            width: "90px",
-                            height: "64px",
-                            background: "#f8fafc",
-                            borderRadius: "4px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "4px",
-                            overflow: "hidden",
+                            display: "inline-block",
+                            border: "1px solid var(--border, #e2e8f0)",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            background: "#ffffff",
+                            textDecoration: "none",
+                            fontSize: "12px",
+                            color: "var(--ink)",
+                            cursor: "pointer",
+                            textAlign: "center",
                           }}
+                          title={`Preview ${ev.file_name}`}
                         >
-                          {ev.drive_file_id ? (
-                            <img
-                              src={`https://lh3.googleusercontent.com/d/${ev.drive_file_id}`}
-                              alt={ev.file_name}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <span style={{ fontSize: "18px" }}>📷</span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: "11px", color: "var(--muted)", display: "block", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {ev.file_name}
-                        </span>
-                      </a>
-                    ))}
+                          <div
+                            style={{
+                              width: "90px",
+                              height: "64px",
+                              background: "#f8fafc",
+                              borderRadius: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginBottom: "4px",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {proxyUrl && proxyUrl !== "#" ? (
+                              <img
+                                src={proxyUrl}
+                                alt={ev.file_name}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "18px" }}>📷</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: "11px", color: "var(--muted)", display: "block", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ev.file_name}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
                   <span style={{ color: "var(--muted)", fontSize: "12px" }}>No evidence photo attached</span>
@@ -2038,6 +2089,16 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
             setReviewingReply(null);
             void loadCaseData();
           }}
+        />
+      )}
+
+      {viewerImage && (
+        <ImageViewerModal
+          isOpen={!!viewerImage}
+          imageUrl={viewerImage.url}
+          title={viewerImage.title}
+          originalUrl={viewerImage.originalUrl}
+          onClose={() => setViewerImage(null)}
         />
       )}
     </div>
