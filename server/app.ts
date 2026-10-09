@@ -29,7 +29,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api", complaintRoutes);
 app.use("/api", enforcementRoutes);
 
-const PORT = 5000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 
 app.listen(PORT, async () => {
   console.log(`🚀 [Server] Running on http://localhost:${PORT}`);

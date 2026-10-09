@@ -7,8 +7,9 @@
     "build": "node ./node_modules/typescript/bin/tsc",
     "start": "node dist/app.js",
     "db:test": "node node_modules/tsx/dist/cli.mjs db/testConnection.ts",
-    "seed:users": "tsx migrations/seedUsers.ts",
-    "migrate": "psql $DATABASE_URL -f migrations/001_create_users_table.sql"
+    "seed:users": "node node_modules/tsx/dist/cli.mjs migrations/seedUsers.ts",
+    "migrate": "node node_modules/tsx/dist/cli.mjs migrations/runMigrations.ts",
+    "test": "node node_modules/tsx/dist/cli.mjs testAuthorization.ts"
   },
   "keywords": [],
   "author": "",

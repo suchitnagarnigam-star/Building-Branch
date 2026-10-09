@@ -30,7 +30,7 @@ app.use("/api/push", pushRoutes_1.default);
 app.use("/api/notifications", notificationRoutes_1.default);
 app.use("/api", complaintRoutes_1.default);
 app.use("/api", enforcementRoutes_1.default);
-const PORT = 5000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(PORT, async () => {
     console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
     await (0, database_1.testDatabaseConnection)();

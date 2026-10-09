@@ -73,10 +73,6 @@ const getComplaints = async (filterByUserId, assignedBlocks) => {
           WHEN u_sub.user_id IS NOT NULL THEN json_build_object('name', u_sub.name, 'role', u_sub.role)
           ELSE NULL 
         END AS "createdBy",
-        CASE 
-          WHEN u_sub.user_id IS NOT NULL THEN json_build_object('name', u_sub.name, 'role', u_sub.role)
-          ELSE NULL 
-        END AS "created_by",
         (
           SELECT case_id FROM cases WHERE primary_complaint_id = complaints.complaint_id
           UNION
@@ -91,7 +87,11 @@ const getComplaints = async (filterByUserId, assignedBlocks) => {
         return result.rows;
     }
     catch (error) {
-        console.warn("PostgreSQL query failed, serving complaints from local JSON storage:", error.message);
+        if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+            console.error("[ComplaintStorage] PostgreSQL query failed in live mode:", error.message);
+            throw error;
+        }
+        console.warn("PostgreSQL query failed, serving complaints from local JSON storage (DEV ONLY):", error.message);
         let local = await getLocalComplaints();
         if (filterByUserId) {
             local = local.filter((c) => c.submittedByUserId === filterByUserId);
@@ -113,7 +113,11 @@ const generateComplaintId = async () => {
             }
         }
     }
-    catch {
+    catch (error) {
+        if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+            console.error("[ComplaintStorage] Database error in generateComplaintId:", error);
+            throw error;
+        }
         const local = await getLocalComplaints();
         let complaintId = String((0, node_crypto_1.randomInt)(10000000000000, 100000000000000));
         while (local.some((c) => c.complaintId === complaintId)) {
@@ -124,8 +128,10 @@ const generateComplaintId = async () => {
 };
 exports.generateComplaintId = generateComplaintId;
 const saveComplaint = async (complaint) => {
-    // Always update local JSON storage as secondary persistence
-    await saveLocalComplaint(complaint);
+    // Update local JSON storage only if dev fallback is explicitly permitted
+    if (process.env.NODE_ENV !== "production" && process.env.ALLOW_LOCAL_FALLBACK) {
+        await saveLocalComplaint(complaint);
+    }
     try {
         await database_1.pool.query(`
         INSERT INTO complaints (
@@ -184,7 +190,11 @@ const saveComplaint = async (complaint) => {
         ]);
     }
     catch (error) {
-        console.warn("PostgreSQL query failed, complaint saved to local JSON storage:", error.message);
+        if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+            console.error("[ComplaintStorage] PostgreSQL query failed in live mode:", error.message);
+            throw error;
+        }
+        console.warn("PostgreSQL query failed, complaint saved to local JSON storage (DEV ONLY):", error.message);
     }
 };
 exports.saveComplaint = saveComplaint;
