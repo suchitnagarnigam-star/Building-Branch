@@ -6,7 +6,7 @@ MCL-BB is an internal complaint-management application for the Municipal Corpora
 
 - Frontend: React 19, TypeScript, Vite, custom CSS
 - Backend: Node.js, Express 5, TypeScript
-- Authentication & RBAC: JWT (JSON Web Tokens), bcrypt PIN/password hashing, AuthContext with global fetch interceptor, and block-level access control (`server/services/accessControl.ts`)
+- Authentication & RBAC: JWT (JSON Web Tokens) with 365-day persistent login sessions, bcrypt PIN/password hashing, AuthContext with global fetch interceptor, and block-level access control (`server/services/accessControl.ts`)
 - Database: PostgreSQL through `pg` (with Neon cloud pooling)
 - Development runtime: `tsx`
 - File storage: Google Drive API (per-complaint folders, case demolition evidence, & file uploads; temporary staging in `server/uploads/`)
@@ -189,6 +189,7 @@ Processing endpoints:
 - `/officers`
 - `/users`
 - `/settings`
+- `/profile` (Internal Officer Profile, posting details, PIN change, push alert test, and sign out)
 
 ## Backend API
 
@@ -196,6 +197,7 @@ Processing endpoints:
 - `POST /api/auth/login` (JWT authentication & PIN verification)
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `POST /api/auth/change-pin` (verifies current PIN, updates bcrypt hash, and issues fresh 365-day token)
 
 ### Complaints & Intake
 - `GET /api/complaints` (requires Bearer token; block-scoped for BI/ATP; submitter-scoped for Desk Operators; includes subqueried `caseId`)
@@ -209,7 +211,7 @@ Processing endpoints:
 - `POST /api/complaints/:complaintId/assign` (promotes complaint to enforcement case `CASE-XXXXXXXXXXXX`)
 
 ### Field Inspections & Notices
-- `POST /api/inspections` (geotagged inspection evidence; Section 270 notice recording; block-scoped)
+- `POST /api/inspections` (geotagged inspection evidence; Section 270 notice recording; block-scoped; triggers push notification)
 - `GET /api/cases/:caseId/notices` (retrieves Section 270 and Section 269 notice records for a case)
 
 ### Statutory Enforcement, Case Lifecycle & Closures
@@ -226,6 +228,7 @@ Processing endpoints:
 - `GET /api/push/vapid-public-key` (returns server VAPID public key for browser push subscription)
 - `POST /api/push/subscribe` (upserts officer device push subscription with unique constraints)
 - `DELETE /api/push/subscribe` (removes device endpoint from subscription table)
+- `POST /api/push/test` (dispatches test push notification to officer's registered device)
 
 ### Analytics & Officer Operations
 - `GET /api/analytics/overview` (live operational KPI counts, complaint statuses, zone breakdowns, and statutory Needs Attention flags)

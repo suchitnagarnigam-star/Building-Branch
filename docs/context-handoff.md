@@ -1,9 +1,9 @@
 # MCL Building Branch (MCL-BB) — Context Handoff & Progress Report
 
-**Date:** October 6, 2026  
+**Date:** October 9, 2026  
 **Repository:** MCL-BB (`MCL/building branch`)  
 **Active Branch:** `uv-dev` (fully synced and merged with `origin/ad-dev` & `main`)  
-**Target Milestone:** Full Statutory Enforcement Lifecycle Automation, Dynamic Role-Based Data Access Control (RBAC), Demolition Enforcement Tracking, AI-Powered Intake with Local OCR Fallback, Statutory Case State Machine, PWA Web Push Notifications, and Live Operations Analytics
+**Target Milestone:** Full Statutory Enforcement Lifecycle Automation, Dynamic Role-Based Data Access Control (RBAC), Demolition Enforcement Tracking, AI-Powered Intake with Local OCR Fallback, Statutory Case State Machine, PWA Web Push Notifications, 365-Day Persistent Session, Officer Profile Portal, and Live Operations Analytics
 
 ---
 
@@ -22,6 +22,8 @@ The platform covers the entire statutory enforcement pipeline:
 8. **PWA Web Push Notifications (`web-push`)**: Real-time push notifications dispatched to field inspectors and supervisors on key statutory triggers (complaint assigned, notice issued, reply evaluated, case closed) with native service worker support, tag deduplication, and automatic stale endpoint cleanup.
 9. **Role-Based Data Access Control (RBAC & Block Filtering)**: Dynamic backend-enforced block restrictions ensuring BIs and ATPs only view complaints, cases, inspections, and analytics for their assigned blocks, while Superadmin, Admin, JC, MTP, and Desk Operators maintain unrestricted all-zone/all-block visibility.
 10. **Live Operations Analytics & Roster Leaderboards**: Real-time PostgreSQL analytics overview with Needs Attention alerts, 4-card KPI summaries, Top Performers Podium (ranked by assigned cases, visits, and notices), workload progress bars, and ATP supervisory metric rollups.
+11. **Persistent Authentication & Credentials Management**: JWT tokens configured with a 365-day lifetime (`JWT_EXPIRES_IN=365d`) eliminating daily forced sign-ins for field and administrative staff; added `POST /api/auth/change-pin` with bcrypt hashing and immediate token renewal.
+12. **Internal Officer Profile Portal (`/profile`)**: Comprehensive Punjab Government civic interface featuring officer hero branding, administrative posting and jurisdiction details (Zone and Block tags), security PIN change, live push notification device checks, and device sign-out.
 
 ---
 
@@ -113,17 +115,43 @@ The platform covers the entire statutory enforcement pipeline:
 - **Officers Performance (`OfficersPage.tsx`)**:
   - 4 KPI cards, 3-card Top Performers Podium, workload bars, detail drawer, ATP supervisory rollup.
 
+### 2.9 Persistent Authentication & Credentials Management
+- **365-Day Session Lifetime**: Configured `JWT_EXPIRES_IN=365d` in `server/services/authService.ts` and `server/.env.example`. Eliminates daily logout prompts, keeping officers logged into the portal/PWA across device restarts and browser sessions.
+- **Enriched Auth Payloads**: Updated `GET /api/auth/me` and `POST /api/auth/login` to return `username` and `phoneNumber`.
+- **Change PIN API (`POST /api/auth/change-pin`)**:
+  - Secure bcrypt verification of existing officer credentials.
+  - Enforces minimum 4-digit PIN requirement.
+  - Updates `users.password_hash` and timestamps, automatically generating and returning a refreshed 365-day token.
+- **Frontend Token Refresh**: `AuthContext.tsx` implements `updateToken(newToken)` and `refreshUser()`, immediately synchronizing local storage and authentication context.
+
+### 2.10 Internal Officer Profile Portal (`Frontend/src/pages/ProfilePage.tsx`)
+- **Civic Design**: Adheres strictly to the Punjab Municipal Corporation aesthetic (`ProfilePage.css`) — high-contrast navy/slate theme, sharp geometry, and zero generic AI slop.
+- **Officer Hero Card**: Displays initials avatar, officer full name, formal designation, official role badge, officer code (`OFF-xxx`), system ID (`#USR-xxx`), and active duty indicator.
+- **Jurisdiction & Posting**: Surfaces assigned Zone and discrete Block tags (`Block 1`, `Block 2`), system username, and registered phone.
+- **Security & PIN Card**: Dedicated form to change PIN with show/hide eye toggles, input validation, success/error feedback alerts, and a clear persistent session indicator.
+- **Push Notification Status**: Inspects browser permission status (`Notification.permission`), explains field alert benefits, and provides a "Send Test Push Notification" trigger calling `POST /api/push/test`.
+- **Sign Out Action**: Danger-card sign out trigger with an accidental-click prevention modal.
+- **Cross-Platform Navigation**:
+  - Desktop Topbar: Clicking `.topbar__profile-card` navigates directly to `/profile`.
+  - Desktop Sidebar: Added "My Profile" button in sidebar footer.
+  - Mobile Drawer & Header: Clicking user header card or drawer nav item navigates to `/profile`; mobile header avatar button also navigates directly to `/profile`.
+
+### 2.11 Mobile Responsive Redesign & Upstream Sync
+- **12 Mobile Screen Alignments**: Merged updates from `origin/ad-dev`, adapting all 12 operational screens for field smartphones.
+- **Dynamic Dropdowns & Hooks**: Upgraded `ConstructionStatusDropdown.tsx` for touch devices and fixed React hook ordering in `CaseDetailPage.tsx`.
+- **Responsive Navigation**: Bottom navigation bar and slide-over drawer enabled via `useBreakpoint`.
+
 ---
 
 ## 3. Technology Stack & Configuration
 
 | Layer | Technology | Key Details |
 | :--- | :--- | :--- |
-| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS | Custom CSS variables, responsive auto-fit grids, `useCountUp` hook, `Icon.tsx` |
+| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS | Custom CSS variables, responsive auto-fit grids, `useCountUp` hook, `Icon.tsx`, `/profile` portal |
 | **Backend** | Node.js, Express 5, TypeScript (`tsx`) | Modular routers (`auth`, `user`, `analytics`, `complaint`, `enforcement`, `push`) |
-| **Auth & Security** | JWT, bcrypt, AuthContext, RBAC | 24h JWT tokens, Bearer fetch interceptor, role & block access control |
+| **Auth & Security** | JWT, bcrypt, AuthContext, RBAC | 365-day persistent JWT tokens, PIN change, Bearer fetch interceptor, role & block access control |
 | **Database** | PostgreSQL (`pg`) | Neon cloud PostgreSQL pool with SSL; 19 statutory tables |
-| **Notifications** | Web Push API, `web-push` | VAPID keypair, native Service Worker (`/sw.js`), 24-hr TTL |
+| **Notifications** | Web Push API, `web-push` | VAPID keypair, native Service Worker (`/sw.js`), 24-hr TTL, push test endpoint |
 | **File Storage** | Google Drive API, Multer | Staged in `server/uploads/`, uploaded to per-complaint/per-case Drive folders |
 | **Integrations** | Google Sheets API | Real-time complaint registration sync |
 | **OCR Engine** | Mistral OCR API + Tesseract.js | Mistral primary OCR with local Tesseract fallback (`eng`, `hin` trained data) |
@@ -161,20 +189,21 @@ npm run dev
 | **Access Control Service** | `server/services/accessControl.ts` | Complete | Block normalization, block assignment verification, and user assigned blocks resolution |
 | **Workflow State Machine** | `server/services/workflowService.ts` | Complete | Statutory case state transition validation, pre-flight prerequisite gates, and atomic audit logging |
 | **Push Notification Service** | `server/services/pushService.ts` | Complete | Web Push delivery via VAPID, multi-device per officer, 24-hr TTL, and auto-pruning expired endpoints |
-| **Push API Routes** | `server/routes/pushRoutes.ts` | Complete | VAPID public key retrieval, subscription upsert, and endpoint unsubscription |
-| **Auth Service & Routes** | `server/routes/authRoutes.ts` | Complete | PIN verification, JWT token generation with `blocks` payload, login/logout |
+| **Push API Routes** | `server/routes/pushRoutes.ts` | Complete | VAPID public key retrieval, subscription upsert, endpoint unsubscription, and test alert trigger (`POST /api/push/test`) |
+| **Auth Service & Routes** | `server/routes/authRoutes.ts` | Complete | 365-day token generation, PIN verification, `POST /api/auth/change-pin`, login/logout, profile context |
 | **User Management** | `server/routes/userRoutes.ts` | Complete | `superadmin`-only user CRUD administration |
 | **Complaint Storage** | `server/services/complaintStorage.ts` | Complete | Dual-layer persistence with SQL & JSON assigned block filtering |
-| **Complaint & Case Routes**| `server/routes/complaintRoutes.ts` | Complete | Intake, OCR processing, inspection, construction status, case promotion, close case, review reply, block access guards |
+| **Complaint & Case Routes**| `server/routes/complaintRoutes.ts` | Complete | Intake, OCR processing, inspection, construction status, case promotion, close case, review reply, block access guards, Section 270 push trigger |
 | **Enforcement Routes** | `server/routes/enforcementRoutes.ts` | Complete | Demolition records, multi-outcome handling, Drive evidence uploads, block access guards |
 | **Analytics Routes** | `server/routes/analyticsRoutes.ts` | Complete | Role-scoped overview analytics & officer performance leaderboard with ATP supervisory rollup |
-| **Auth Context & Interceptor** | `Frontend/src/context/AuthContext.tsx` | Complete | Global state management & automatic `Authorization: Bearer <token>` fetch header interceptor |
-| **App Routing & Guards** | `Frontend/src/App.tsx` | Complete | Role-gated route navigation (`superadmin`, `bi`, `atp`, `operator`, `jc`, `mtp`), push hook registration |
+| **Auth Context & Interceptor** | `Frontend/src/context/AuthContext.tsx` | Complete | Global auth state, 365-day token persistence, automatic `Authorization: Bearer <token>` fetch interceptor, `updateToken`, and `refreshUser` |
+| **Officer Profile Portal** | `Frontend/src/pages/ProfilePage.tsx` | Complete | Officer credentials, jurisdiction tags, PIN change form with validation, push alert testing, and sign out confirmation modal |
+| **App Routing & Guards** | `Frontend/src/App.tsx` | Complete | Role-gated route navigation (`superadmin`, `bi`, `atp`, `operator`, `jc`, `mtp`), push hook registration, Topbar & Drawer navigation |
 | **Service Worker** | `Frontend/public/sw.js` | Complete | Native background push notifications, tag deduplication, tab focus on click |
 | **Field Inspection Page** | `Frontend/src/pages/FieldInspectionPage.tsx` | Complete | Browser GPS capture, outcome branching, photo upload, locked BI identity |
 | **Construction Status Form**| `Frontend/src/pages/ConstructionStatusForm.tsx` | Complete | Dual lookup (`CASE-XXXX` / `CMP-XXXX`), dual-section tabs, receipt uploads, violator reply logging |
 | **Enforcement Action Form** | `Frontend/src/pages/EnforcementActionForm.tsx` | Complete | 1400px wide layout, 5 outcome branches, statutory compliance period validation, edit pre-population |
-| **Case Detail View** | `Frontend/src/pages/CaseDetailPage.tsx` | Complete | Statutory timeline, notices, replies, demolition records, close case & review reply modals |
+| **Case Detail View** | `Frontend/src/pages/CaseDetailPage.tsx` | Complete | Statutory timeline, notices, replies, demolition records, close case & review reply modals, hook ordering fixes |
 | **Operational Dashboard** | `Frontend/src/features/dashboard/DashboardPage.tsx` | Complete | Live role-scoped KPIs, status bars, Needs Attention alerts, recent complaints |
 | **Officers Performance** | `Frontend/src/features/officers/OfficersPage.tsx` | Complete | 4 KPI cards, 3-card Top Performers Podium, workload bars, detail drawer, ATP supervisory rollup |
 
@@ -184,10 +213,13 @@ npm run dev
 
 ### 6.1 Honest Priority Stack
 
-1. **Do Immediately (Closes Open Loose Ends)**:
-   - **Section 270 Notification Trigger**: Wire push dispatch in `POST /api/inspections` when `violation_found` / Section 270 notice is recorded to notify the supervising ATP (`case-${caseId}-notice-270`).
-   - **Browser Push Delivery Test**: Test live push receipt on mobile device via Chrome/Safari.
-   - **Frontend `.env.example`**: Create `Frontend/.env.example` documenting `VITE_API_BASE_URL` and environment defaults.
+1. **Recently Completed (Closed Loose Ends)**:
+   - **Section 270 Notification Trigger**: Wired push notification dispatch in `POST /api/inspections` when `violation_found` / Section 270 notice is recorded to notify the supervising ATP (`case-${caseId}-notice-270`).
+   - **Frontend `.env.example`**: Created `Frontend/.env.example` documenting `VITE_API_BASE_URL` and environment defaults.
+   - **Persistent 365-Day Session**: Configured `JWT_EXPIRES_IN=365d` so officers do not have to log in every day.
+   - **Security PIN Update**: Added `POST /api/auth/change-pin` with bcrypt hashing and immediate session renewal.
+   - **Officer Profile Portal**: Implemented `/profile` with civic administrative styling, jurisdiction tags, PIN change, test push button, and device logout.
+   - **Upstream Sync**: Merged responsive mobile redesign, 12 mobile screens, and dropdown enhancements from `ad-dev`.
 
 2. **Next Meaningful Feature: PWA Manifest + Installability**:
    - Enables native **"Add to Home Screen"** on mobile for field inspectors (opens fullscreen without browser chrome, shows app icon on home screen, loads faster, reliable push delivery).
@@ -197,7 +229,7 @@ npm run dev
    - **Target Commit**: `"PWA installability : added web manifest, mobile viewport tags, and home screen app icons"`
 
 3. **Following Feature: In-App Notification Bell & Center (PWA Phase 2)**:
-   - Verify PostgreSQL `notifications` table schema; add migration `007_` if any columns (`officer_id`, `title`, `body`, `read`, `created_at`, `case_id`) are missing.
+   - Verified PostgreSQL `notifications` table schema (`notification_id`, `recipient_officer_id`, `type`, `entity_type`, `entity_id`, `title`, `body`, `read_at`, `created_at`).
    - **Dual-Delivery Pattern**: When `pushService.ts` fires a push notification, simultaneously insert a record into the `notifications` table so officers who miss or dismiss browser pushes can still review them in-app.
    - API endpoints: `GET /api/notifications` (last 20, unread first) and `PATCH /api/notifications/:id/read`.
    - Frontend UI: Notification bell icon with unread count badge and slide-out dropdown/drawer in `Frontend/src/layout/Topbar.tsx`.
@@ -210,15 +242,11 @@ npm run dev
 
 ### 6.2 Next Session Execution Sequence
 ```
-1. Wire Section 270 notification trigger in complaintRoutes.ts (10 min)
-2. Verify browser push delivery test on device (20 min)
-3. Create Frontend/.env.example (5 min)
-4. Add manifest.webmanifest + PWA icons + index.html tags (30 min)
+1. Add manifest.webmanifest + PWA icons + index.html tags (30 min)
    ─── COMMIT: "PWA installability" ───
-5. Inspect notifications table schema in PostgreSQL (5 min)
-6. Add dual-write insertion into notifications table in pushService.ts (15 min)
-7. Build GET /api/notifications + PATCH /api/notifications/:id/read endpoints (20 min)
-8. Build notification bell dropdown in Topbar.tsx (30 min)
+2. Add dual-write insertion into notifications table in pushService.ts (15 min)
+3. Build GET /api/notifications + PATCH /api/notifications/:id/read endpoints (20 min)
+4. Build notification bell dropdown in Topbar.tsx (30 min)
    ─── COMMIT: "In-app notification center" ───
 ```
 

@@ -55,3 +55,13 @@ desktop.ini
 
 # Security scans / pentest artifacts
 strix_runs/
+gitleaks.json
+semgrep.json
+trivy.json
+*.zip
+*.pdf
+
+# Graphify local caches
+graphify-out/cache/
+graphify-out/2026-*/
+graphify-out/.*
