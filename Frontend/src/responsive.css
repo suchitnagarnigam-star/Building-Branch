@@ -1188,7 +1188,6 @@ div.desktop-only {
 .mobile-podium-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 12px;
 }
 
@@ -1207,35 +1206,12 @@ div.desktop-only {
 }
 
 .mobile-podium-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #0b1957;
   margin: 0;
   line-height: 1.2;
   letter-spacing: -0.2px;
-}
-
-.mobile-podium-subtitle {
-  font-size: 10.5px;
-  color: #64748b;
-  margin: 2px 0 0;
-  line-height: 1.2;
-}
-
-.mobile-podium-view-all {
-  background: transparent;
-  border: none;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 0 4px 8px;
-  white-space: nowrap;
-  transition: color 0.15s ease;
-}
-
-.mobile-podium-view-all:active {
-  color: #1d4ed8;
 }
 
 .mobile-podium-container {
@@ -1256,13 +1232,14 @@ div.desktop-only {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   text-align: center;
   position: relative;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.15s ease;
   user-select: none;
-  padding: 10px 5px 9px;
+  padding: 10px 0 0 0;
+  overflow: hidden;
 }
 
 .mobile-podium-card:active {
@@ -1271,8 +1248,8 @@ div.desktop-only {
 
 /* Rank 1: Gold / Winner / Center (Taller & Prominently Highlighted) */
 .mobile-podium-card--rank-1 {
-  min-height: 262px;
-  height: 265px;
+  min-height: 270px;
+  height: 274px;
   border: 2px solid #f59e0b;
   background: linear-gradient(180deg, #fffdf2 0%, #ffffff 45%);
   box-shadow: 0 4px 16px rgba(245, 158, 11, 0.16), 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -1281,8 +1258,8 @@ div.desktop-only {
 
 /* Rank 2: Silver / 2nd (Left) */
 .mobile-podium-card--rank-2 {
-  min-height: 242px;
-  height: 245px;
+  min-height: 250px;
+  height: 254px;
   border: 1.5px solid #dbeafe;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(11, 25, 87, 0.05);
@@ -1290,15 +1267,16 @@ div.desktop-only {
 
 /* Rank 3: Bronze / 3rd (Right) */
 .mobile-podium-card--rank-3 {
-  min-height: 242px;
-  height: 245px;
+  min-height: 250px;
+  height: 254px;
   border: 1.5px solid #fed7aa;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(11, 25, 87, 0.05);
 }
 
 .mobile-podium-card__rank-wrap {
-  margin-bottom: 2px;
+  margin-bottom: 8px;
+  padding: 0 6px;
 }
 
 .mobile-podium-card__rank-pill {
@@ -1351,7 +1329,7 @@ div.desktop-only {
   place-items: center;
   line-height: 1;
   flex-shrink: 0;
-  margin-bottom: 2px;
+  margin-bottom: 8px;
 }
 
 .mobile-podium-card__avatar--1 {
@@ -1390,13 +1368,15 @@ div.desktop-only {
   flex-direction: column;
   align-items: center;
   min-width: 0;
+  padding: 0 6px;
+  box-sizing: border-box;
 }
 
 .mobile-podium-card__name {
   font-size: 12px;
   font-weight: 700;
   color: #0b1957;
-  margin: 0;
+  margin: 0 0 4px;
   line-height: 1.25;
   min-height: 30px;
   display: -webkit-box;
@@ -1404,7 +1384,8 @@ div.desktop-only {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
   text-align: center;
   width: 100%;
 }
@@ -1418,10 +1399,10 @@ div.desktop-only {
 .mobile-podium-card__meta {
   font-size: 9.5px;
   color: #64748b;
-  margin: 2px 0 0;
+  margin: 0 0 10px;
   line-height: 1.2;
   text-align: center;
-  min-height: 22px;
+  min-height: 20px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1444,34 +1425,49 @@ div.desktop-only {
   font-weight: 500;
 }
 
+/* Subtle combined metrics box (Cases Assigned + Divider + Bottom Stats) */
+.mobile-podium-card__metrics-box {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: auto;
+  background: #f0f7ff;
+  border-top: 1px solid #dbeafe;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__metrics-box {
+  background: #fef9c3;
+  border-top: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.mobile-podium-card--rank-2 .mobile-podium-card__metrics-box {
+  background: #f0f7ff;
+  border-top: 1px solid #dbeafe;
+}
+
+.mobile-podium-card--rank-3 .mobile-podium-card__metrics-box {
+  background: #fff7ed;
+  border-top: 1px solid #fed7aa;
+}
+
 .mobile-podium-card__hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
-  border-radius: 8px;
-  padding: 5px 3px;
+  padding: 6px 4px 6px;
   box-sizing: border-box;
-  background: #eff6ff;
-  border: 1px solid rgba(191, 219, 254, 0.4);
-  margin: 3px 0 4px;
-}
-
-.mobile-podium-card--rank-1 .mobile-podium-card__hero {
-  background: #fef9c3;
-  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .mobile-podium-card__hero-val {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   color: #0b1957;
   line-height: 1;
 }
 
 .mobile-podium-card--rank-1 .mobile-podium-card__hero-val {
-  font-size: 19px;
+  font-size: 20px;
   color: #0b1957;
 }
 
@@ -1490,43 +1486,89 @@ div.desktop-only {
   color: #78350f;
 }
 
+.mobile-podium-card__divider {
+  width: 100%;
+  height: 1px;
+  background: #dbeafe;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__divider {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.mobile-podium-card--rank-3 .mobile-podium-card__divider {
+  background: #fed7aa;
+}
+
 .mobile-podium-card__stats {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 8px 10px 9px;
   box-sizing: border-box;
-  border: none;
+  text-align: center;
 }
 
-.mobile-podium-card__stat-item {
+.mobile-podium-card__stat-item,
+.mobile-podium-card__stat-col {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   min-width: 0;
+  padding: 0 4px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Subtle vertical divider between the 2 columns */
+.mobile-podium-card__stat-col:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12%;
+  height: 76%;
+  width: 1px;
+  background: rgba(147, 197, 253, 0.6);
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__stat-col:not(:first-child)::before {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.mobile-podium-card--rank-3 .mobile-podium-card__stat-col:not(:first-child)::before {
+  background: rgba(253, 186, 116, 0.6);
 }
 
 .mobile-podium-card__stat-val {
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 700;
   color: #0b1957;
   line-height: 1.1;
 }
 
 .mobile-podium-card--rank-1 .mobile-podium-card__stat-val {
-  font-size: 12px;
+  font-size: 14.5px;
   font-weight: 800;
+  color: #0b1957;
 }
 
 .mobile-podium-card__stat-lbl {
-  font-size: 8.5px;
+  font-size: 10px;
   color: #64748b;
   font-weight: 500;
-  line-height: 1;
-  margin-top: 2px;
+  line-height: 1.1;
+  margin-top: 3px;
+  letter-spacing: -0.1px;
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+
+.mobile-podium-card--rank-1 .mobile-podium-card__stat-lbl {
+  color: #78350f;
+  font-weight: 500;
 }
 
 /* ─── Mobile Officers Filter Section & Cards (Sections 8 & 9) ─── */
@@ -1745,16 +1787,22 @@ div.desktop-only {
     gap: 5px !important;
   }
   .mobile-podium-card {
-    padding: 8px 3px 7px !important;
+    padding: 8px 0 0 0 !important;
   }
   .mobile-podium-card--rank-1 {
-    min-height: 252px !important;
-    height: 255px !important;
+    min-height: 260px !important;
+    height: 264px !important;
   }
   .mobile-podium-card--rank-2,
   .mobile-podium-card--rank-3 {
-    min-height: 234px !important;
-    height: 238px !important;
+    min-height: 242px !important;
+    height: 246px !important;
+  }
+  .mobile-podium-card__rank-wrap {
+    margin-bottom: 5px !important;
+  }
+  .mobile-podium-card__avatar {
+    margin-bottom: 5px !important;
   }
   .mobile-podium-card__avatar--1 {
     width: 38px !important;
@@ -1770,18 +1818,26 @@ div.desktop-only {
   .mobile-podium-card__name {
     font-size: 11px !important;
     min-height: 28px !important;
+    margin-bottom: 2px !important;
   }
   .mobile-podium-card--rank-1 .mobile-podium-card__name {
     font-size: 11.5px !important;
   }
+  .mobile-podium-card__meta {
+    margin-bottom: 6px !important;
+  }
   .mobile-podium-card__hero-lbl {
     font-size: 8.5px !important;
   }
+  .mobile-podium-card__stats {
+    padding: 6px 8px 7px !important;
+  }
   .mobile-podium-card__stat-val {
-    font-size: 10.5px !important;
+    font-size: 13px !important;
   }
   .mobile-podium-card__stat-lbl {
-    font-size: 8px !important;
+    font-size: 9px !important;
+    letter-spacing: -0.2px !important;
   }
 }
 

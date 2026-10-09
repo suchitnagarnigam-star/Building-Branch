@@ -277,21 +277,8 @@ function OfficersPage() {
           <div className="mobile-podium-header">
             <div className="mobile-podium-header-left">
               <span className="mobile-podium-trophy-icon">🏆</span>
-              <div>
-                <h2 className="mobile-podium-title">Top Enforcement Officers</h2>
-                <p className="mobile-podium-subtitle">Ranked by active cases &amp; field inspections</p>
-              </div>
+              <h2 className="mobile-podium-title">Top Enforcement Officers</h2>
             </div>
-            <button
-              type="button"
-              className="mobile-podium-view-all"
-              onClick={() => {
-                const listEl = document.querySelector(".officer-mobile-filter-section, .officer-card-mobile");
-                listEl?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              View All
-            </button>
           </div>
 
           <div className="mobile-podium-container">
@@ -354,23 +341,21 @@ function OfficersPage() {
                     </div>
                   </div>
 
-                  <div className="mobile-podium-card__hero">
-                    <span className="mobile-podium-card__hero-val">{officer.casesAssigned}</span>
-                    <span className="mobile-podium-card__hero-lbl">Cases Assigned</span>
-                  </div>
-
-                  <div className="mobile-podium-card__stats">
-                    <div className="mobile-podium-card__stat-item">
-                      <span className="mobile-podium-card__stat-val">{officer.fieldVisits}</span>
-                      <span className="mobile-podium-card__stat-lbl">Visits</span>
+                  <div className="mobile-podium-card__metrics-box">
+                    <div className="mobile-podium-card__hero">
+                      <span className="mobile-podium-card__hero-val">{officer.casesAssigned}</span>
+                      <span className="mobile-podium-card__hero-lbl">Cases Assigned</span>
                     </div>
-                    <div className="mobile-podium-card__stat-item">
-                      <span className="mobile-podium-card__stat-val">{officer.noticesIssued}</span>
-                      <span className="mobile-podium-card__stat-lbl">Notices</span>
-                    </div>
-                    <div className="mobile-podium-card__stat-item">
-                      <span className="mobile-podium-card__stat-val">{officer.casesAssigned}</span>
-                      <span className="mobile-podium-card__stat-lbl">Cases</span>
+                    <div className="mobile-podium-card__divider" />
+                    <div className="mobile-podium-card__stats">
+                      <div className="mobile-podium-card__stat-col">
+                        <span className="mobile-podium-card__stat-val">{officer.fieldVisits}</span>
+                        <span className="mobile-podium-card__stat-lbl">Visits</span>
+                      </div>
+                      <div className="mobile-podium-card__stat-col">
+                        <span className="mobile-podium-card__stat-val">{officer.noticesIssued}</span>
+                        <span className="mobile-podium-card__stat-lbl">Notices</span>
+                      </div>
                     </div>
                   </div>
                 </div>

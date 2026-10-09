@@ -185,6 +185,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const [caseClosure, setCaseClosure] = useState<CaseClosure | null>(null);
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [reviewingReply, setReviewingReply] = useState<ViolatorReply | null>(null);
+  const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "notices" | "construction">("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -296,7 +297,6 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
   const isBi = normUserRole === "bi";
   const isCaseClosed = Boolean(caseRecord.current_status && caseRecord.current_status.toLowerCase().includes("closed"));
   const canReviewReply = ["atp", "mtp", "jc", "superadmin", "admin"].includes(normUserRole);
-  const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "notices" | "construction">("overview");
 
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "16px 24px 60px", fontFamily: "'Inter', sans-serif", color: "var(--ink)" }}>
