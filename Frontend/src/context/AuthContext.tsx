@@ -45,8 +45,22 @@ if (typeof window !== "undefined" && !(window as unknown as { __mcl_fetch_patche
           ? input.href
           : (input as Request).url;
 
-      // Match relative /api paths and absolute URLs containing /api (e.g. http://localhost:5000/api/...)
-      if (url.startsWith("/api") || url.includes("/api")) {
+      // Match relative and absolute backend requests (regardless of /api prefix)
+      const isBackendRequest =
+        url.startsWith("/") ||
+        url.includes("/api") ||
+        url.includes("/analytics") ||
+        url.includes("/cases") ||
+        url.includes("/complaints") ||
+        url.includes("/users") ||
+        url.includes("/push") ||
+        url.includes("/notifications") ||
+        url.includes("/auth") ||
+        url.includes("/officers") ||
+        url.includes("/drive") ||
+        (Boolean(API_BASE_URL) && url.startsWith(API_BASE_URL.replace(/\/api$/, "")));
+
+      if (isBackendRequest) {
         const headers = new Headers(init?.headers);
         if (!headers.has("Authorization")) {
           headers.set("Authorization", `Bearer ${token}`);

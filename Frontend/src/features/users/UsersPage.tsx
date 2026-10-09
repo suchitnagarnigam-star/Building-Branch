@@ -69,7 +69,10 @@ export default function UsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/users`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+      const response = await fetch(`${apiUrl}/users`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.message || "Failed to load users");

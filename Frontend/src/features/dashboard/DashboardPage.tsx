@@ -93,7 +93,10 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
 
   useEffect(() => {
     let active = true;
-    fetch(`${API_BASE_URL}/analytics/overview`)
+    const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+    fetch(`${API_BASE_URL}/analytics/overview`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(async (response) => {
         const result = (await response.json()) as { success?: boolean } & DashboardData;
         if (!response.ok || !result.success) {
