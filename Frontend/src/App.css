@@ -4395,3 +4395,151 @@ svg:focus {
   }
 }
 
+/* ============================================================
+   IN-APP IMAGE LIGHTBOX MODAL (Zero External Dependencies)
+   ============================================================ */
+.mcl-image-viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.mcl-image-viewer-container {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  width: min(1000px, 96vw);
+  height: min(85vh, 800px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.mcl-image-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.mcl-image-viewer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  max-width: 50%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mcl-image-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mcl-viewer-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  border-radius: 6px;
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 8px;
+  transition: background 0.15s ease;
+}
+
+.mcl-viewer-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.mcl-viewer-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mcl-viewer-btn.zoom-indicator {
+  min-width: 48px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.mcl-viewer-btn.close-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  margin-left: 6px;
+}
+
+.mcl-viewer-btn.close-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.mcl-image-viewer-viewport {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  position: relative;
+  background: #020617;
+  padding: 16px;
+}
+
+.mcl-image-viewer-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.mcl-image-viewer-img {
+  max-width: 100%;
+  max-height: calc(85vh - 100px);
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.mcl-image-viewer-loading,
+.mcl-image-viewer-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #94a3b8;
+  font-size: 14px;
+  text-align: center;
+}
+
+.mcl-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
