@@ -63,19 +63,19 @@
 - Create: `server/migrations/007_create_notifications_table.sql`
 - Modify: `server/services/pushService.ts`
 
-- [ ] **Step 1: Write migration `007_create_notifications_table.sql`**
+- [x] **Step 1: Write migration `007_create_notifications_table.sql`**
   Create `notifications` table if not exists, and add `url TEXT DEFAULT '/'` column idempotently with indices on `recipient_officer_id` and `read_at`.
 
-- [ ] **Step 2: Execute migration against PostgreSQL**
+- [x] **Step 2: Execute migration against PostgreSQL**
   Run migration script to ensure `url` column is live in Neon database.
 
-- [ ] **Step 3: Update `PushPayload` interface and dual-write in `notifyOfficer`**
+- [x] **Step 3: Update `PushPayload` interface and dual-write in `notifyOfficer`**
   In `server/services/pushService.ts`:
   Add optional `type`, `entityType`, `entityId` to `PushPayload`.
   In `notifyOfficer(officerId, payload)`:
   Execute `INSERT INTO notifications (recipient_officer_id, type, entity_type, entity_id, title, body, url, read_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, NOW())` alongside web-push dispatch.
 
-- [ ] **Step 4: Verify dual-write with a test invocation**
+- [x] **Step 4: Verify dual-write with a test invocation**
   Run node script to verify row is inserted into `notifications` table.
 
 ---
@@ -85,15 +85,15 @@
 - Create: `server/routes/notificationRoutes.ts`
 - Modify: `server/app.ts`
 
-- [ ] **Step 1: Implement `server/routes/notificationRoutes.ts`**
+- [x] **Step 1: Implement `server/routes/notificationRoutes.ts`**
   - `GET /api/notifications`: Returns last 50 notifications for current officer (`req.user.officerId`) or all if `superadmin`, plus `unreadCount`.
   - `PATCH /api/notifications/:id/read`: Marks a single notification as read (`read_at = NOW()`).
   - `PATCH /api/notifications/read-all`: Marks all unread notifications for current officer as read.
 
-- [ ] **Step 2: Mount routes in `server/app.ts`**
+- [x] **Step 2: Mount routes in `server/app.ts`**
   Import `notificationRoutes` and register `app.use("/api/notifications", notificationRoutes)`.
 
-- [ ] **Step 3: Verify server compilation and endpoint tests**
+- [x] **Step 3: Verify server compilation and endpoint tests**
   Run: `npm --prefix server run build`
   Verify `GET /api/notifications` returns 200 JSON with mock or seeded notification.
 
@@ -103,12 +103,12 @@
 **Files:**
 - Modify: `Frontend/src/layout/Topbar.tsx`
 
-- [ ] **Step 1: Add Notification Bell state & API methods in `Topbar.tsx`**
+- [x] **Step 1: Add Notification Bell state & API methods in `Topbar.tsx`**
   - Fetch notifications on mount and set up 30-second polling interval.
   - Implement `markAsRead(id, url)` and `markAllAsRead()`.
   - Add click-outside ref handler to dismiss menu.
 
-- [ ] **Step 2: Render Notification Bell & Dropdown in `topbar__header-controls`**
+- [x] **Step 2: Render Notification Bell & Dropdown in `topbar__header-controls`**
   - Use `.notification-wrap`, `.notification-dot`, `.notification-menu`, `.notification-item`, `.notification-item__stripe` classes from `App.css`.
   - Show unread badge dot / count when `unreadCount > 0`.
   - Display list of notifications with relative timestamp (e.g., "5m ago"), title, body, and type stripe.
@@ -116,11 +116,11 @@
   - Header displays "Notifications" and "Mark all read" button.
   - Empty state displays "No notifications yet".
 
-- [ ] **Step 3: Verify Frontend compilation and interactions**
+- [x] **Step 3: Verify Frontend compilation and interactions**
   Run: `npm --prefix Frontend run build`
   Expected: Clean build with zero TypeScript errors.
 
-- [ ] **Step 4: Commit Phase 2**
+- [x] **Step 4: Commit Phase 2**
   ```bash
   git add server/migrations/007_create_notifications_table.sql server/services/pushService.ts server/routes/notificationRoutes.ts server/app.ts Frontend/src/layout/Topbar.tsx
   git commit -m "In-app notification center : implemented notifications API, pushService dual-write, and Topbar notification bell dropdown"
