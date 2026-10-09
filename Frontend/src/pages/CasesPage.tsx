@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Icon from "../shared/components/Icon";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 type CasesPageProps = {
   navigate?: (route: string) => void;
@@ -67,7 +68,7 @@ export default function CasesPage({ navigate }: CasesPageProps) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/cases");
+      const res = await fetch(`${API_BASE_URL}/cases`);
       const data = await res.json();
       if (data.success && Array.isArray(data.cases)) {
         setCases(data.cases);
