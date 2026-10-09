@@ -1051,7 +1051,7 @@ if (needsNonCompoundable) {
         </div>
       </div>
 
-      <div className="field-inspection-page__intro" style={{ marginBottom: "18px" }}>
+      <div className="field-inspection-page__intro desktop-only" style={{ marginBottom: "18px" }}>
         <div>
           <p className="eyebrow" style={{ textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.08em", color: "var(--accent)" }}>
             Statutory Field Operations
@@ -1131,7 +1131,7 @@ if (needsNonCompoundable) {
                       if (val) fetchCaseDetails(val);
                       else setCaseRecord(null);
                     }}
-                    style={{ flex: "1 1 340px", minWidth: "260px" }}
+                    style={{ flex: "1 1 320px", minWidth: 0, width: "100%", maxWidth: "100%" }}
                   >
                     <option value="">-- Choose an Existing Case or enter Complaint ID --</option>
                     {availableCases.map((c) => (
@@ -1142,10 +1142,10 @@ if (needsNonCompoundable) {
                   </select>
                 )}
 
-                <div style={{ display: "flex", gap: "8px", flex: "1 1 240px", minWidth: "220px" }}>
+                <div style={{ display: "flex", gap: "8px", flex: "1 1 260px", minWidth: 0, width: "100%" }}>
                   <input
                     type="text"
-                    placeholder="Or enter Complaint / Case ID..."
+                    placeholder="Enter Complaint or Case ID..."
                     value={typedId}
                     onChange={(e) => setTypedId(e.target.value)}
                     onKeyDown={(e) => {
@@ -1154,7 +1154,7 @@ if (needsNonCompoundable) {
                         if (typedId.trim()) fetchCaseDetails(typedId);
                       }
                     }}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, minWidth: 0 }}
                   />
                   <button
                     type="button"
@@ -1164,6 +1164,7 @@ if (needsNonCompoundable) {
                       if (idToFetch) fetchCaseDetails(idToFetch);
                     }}
                     disabled={isLoadingCase || (!typedId.trim() && !targetCaseId.trim())}
+                    style={{ flexShrink: 0, whiteSpace: "nowrap" }}
                   >
                     {isLoadingCase ? "Loading..." : "Load Case"}
                   </button>

@@ -457,6 +457,59 @@ div.desktop-only {
   gap: 8px;
 }
 
+/* ─── Mobile Subpage Header Bar (Construction Status, Case Details, Inspection, Complaints) ─── */
+.mobile-subpage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.mobile-subpage-header .mobile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0b1957;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 6px 12px;
+  min-height: 34px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.mobile-subpage-header .mobile-back-btn:active {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.mobile-subpage-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0b1957;
+  letter-spacing: -0.2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.mobile-subpage-header .status-pill {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .mobile-page-title {
   font-size: 20px;
   font-weight: 700;

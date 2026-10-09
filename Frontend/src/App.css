@@ -4113,6 +4113,11 @@ svg:focus {
   font-size: 13px;
 }
 
+.status-dropdown-label--placeholder {
+  color: var(--muted, #64748b) !important;
+  font-weight: 400 !important;
+}
+
 .status-dropdown-chevron {
   display: inline-flex;
   align-items: center;
