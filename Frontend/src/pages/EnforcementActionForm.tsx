@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from "r
 import Icon from "../shared/components/Icon";
 import { getDriveFileProxyUrl } from "../shared/utils/driveUrl";
 import ImageViewerModal from "../shared/components/ImageViewerModal";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 // ===== UPDATED: Minimum compliance period is a business rule, not mock data =====
 const MIN_COMPLIANCE_DAYS = 3;
@@ -204,7 +205,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
       setCaseFetchError("");
 
       const response = await fetch(
-        `/api/cases/${encodeURIComponent(propCaseId)}`
+        `${API_BASE_URL}/cases/${encodeURIComponent(propCaseId)}`
       );
 
       const result = await response.json();
@@ -498,7 +499,7 @@ export default function EnforcementActionForm({ navigate, caseId: propCaseId }: 
         formData.append("evidencePhoto", evidencePhoto);
       }
 
-      const response = await fetch(`/api/cases/${encodeURIComponent(propCaseId!)}/enforcement`, {
+      const response = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(propCaseId!)}/enforcement`, {
         method: "POST",
         body: formData,
       });

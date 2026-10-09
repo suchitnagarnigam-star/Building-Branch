@@ -56,7 +56,10 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   useEffect(() => {
     let active = true;
-    fetch(`${API_BASE_URL}/complaints`)
+    const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+    fetch(`${API_BASE_URL}/complaints`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(async (response) => {
         const result = await response.json() as { complaints?: ComplaintRecord[]; message?: string };
         if (!response.ok) throw new Error(result.message || "Unable to load complaints.");

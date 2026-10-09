@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../shared/components/Icon";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 import "./ProfilePage.css";
 
 type ProfilePageProps = {
@@ -69,8 +70,7 @@ export default function ProfilePage({ navigate, onLogout }: ProfilePageProps) {
     setIsSubmittingPin(true);
 
     try {
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/auth/change-pin`, {
+      const res = await fetch(`${API_BASE_URL}/auth/change-pin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -110,8 +110,7 @@ export default function ProfilePage({ navigate, onLogout }: ProfilePageProps) {
     setPushTestResult(null);
 
     try {
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/push/test`, {
+      const res = await fetch(`${API_BASE_URL}/push/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

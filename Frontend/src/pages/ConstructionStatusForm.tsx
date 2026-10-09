@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Icon from "../shared/components/Icon";
 import ConstructionStatusDropdown, {type PartlyCompoundableType,} from "../shared/components/ConstructionStatusDropdown";
 import type { ConstructionStatusType, CompoundableDetails, NonCompoundableDetails, ConstructionFormPayload,} from "../types/construction";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 type ConstructionStatusFormProps = {
   navigate?: (route: string) => void;
@@ -43,7 +44,7 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
       setTargetCaseId(propCaseId);
       fetchCaseDetails(propCaseId);
     } else {
-      fetch("/api/cases")
+      fetch(`${API_BASE_URL}/cases`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success && Array.isArray(data.cases)) {
@@ -79,7 +80,7 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     setIsLoadingCase(true);
     setCaseError("");
     try {
-      const res = await fetch(`/api/cases/${encodeURIComponent(cleanId)}`);
+      const res = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(cleanId)}`);
       const data = await res.json();
       if (data.success && data.caseRecord) {
         setCaseRecord(data.caseRecord);
@@ -222,7 +223,7 @@ function ConstructionStatusForm({ navigate, onSubmitSuccess, caseId: propCaseId 
     }
     setNoticeCheckStatus("checking");
     try {
-      const res = await fetch(`/api/notices/check?noticeNumber=${encodeURIComponent(trimmed)}`);
+      const res = await fetch(`${API_BASE_URL}/notices/check?noticeNumber=${encodeURIComponent(trimmed)}`);
       const data = await res.json();
       if (data.success && data.exists) {
         setNoticeCheckStatus("already_exists");
@@ -500,7 +501,7 @@ if (needsNonCompoundable) {
       }
 
       const response = await fetch(
-        `/api/cases/${encodeURIComponent(targetCaseId.trim())}/construction-status`,
+        `${API_BASE_URL}/cases/${encodeURIComponent(targetCaseId.trim())}/construction-status`,
         {
           method: "POST",
           body: formData,

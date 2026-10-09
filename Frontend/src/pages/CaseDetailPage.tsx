@@ -3,6 +3,7 @@ import Icon from "../shared/components/Icon";
 import { useAuth } from "../context/AuthContext";
 import { getDriveFileProxyUrl } from "../shared/utils/driveUrl";
 import ImageViewerModal from "../shared/components/ImageViewerModal";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 type CaseDetailPageProps = {
   caseId: string;
@@ -196,8 +197,7 @@ export default function CaseDetailPage({ caseId, navigate }: CaseDetailPageProps
 
   const loadCaseData = useCallback(async () => {
     try {
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}`);
+      const res = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}`);
       const data = await res.json();
       if (data.success && data.caseRecord) {
         setCaseRecord(data.caseRecord);
@@ -2130,8 +2130,7 @@ function CloseCaseModal({
     try {
       setIsSubmitting(true);
       setErrorMsg("");
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}/close`, {
+      const res = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2360,8 +2359,7 @@ function ReviewReplyModal({
     try {
       setIsSubmitting(true);
       setErrorMsg("");
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/cases/${encodeURIComponent(caseId)}/review-reply`, {
+      const res = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}/review-reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

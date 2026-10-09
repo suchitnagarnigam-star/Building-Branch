@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 /**
  * Converts a URL-safe Base64 string to a Uint8Array required by PushManager.subscribe().
@@ -55,8 +56,7 @@ export function usePushNotifications(): void {
         const reg = await navigator.serviceWorker.ready;
         if (isCancelled) return;
 
-        const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-        const keyRes = await fetch(`${apiBase.replace(/\/$/, "")}/push/vapid-public-key`);
+        const keyRes = await fetch(`${API_BASE_URL}/push/vapid-public-key`);
         const keyData = await keyRes.json();
 
         if (!keyData.success || !keyData.publicKey || isCancelled) {
@@ -77,7 +77,7 @@ export function usePushNotifications(): void {
         if (isCancelled) return;
 
         // Sync subscription with server (global fetch interceptor attaches Bearer token)
-        await fetch(`${apiBase.replace(/\/$/, "")}/push/subscribe`, {
+        await fetch(`${API_BASE_URL}/push/subscribe`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(subscription.toJSON()),

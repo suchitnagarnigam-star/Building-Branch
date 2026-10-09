@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 export interface AuthUser {
   userId: number;
@@ -44,8 +45,22 @@ if (typeof window !== "undefined" && !(window as unknown as { __mcl_fetch_patche
           ? input.href
           : (input as Request).url;
 
-      // Match relative /api paths and absolute URLs containing /api (e.g. http://localhost:5000/api/...)
-      if (url.startsWith("/api") || url.includes("/api")) {
+      // Match relative and absolute backend requests (regardless of /api prefix)
+      const isBackendRequest =
+        url.startsWith("/") ||
+        url.includes("/api") ||
+        url.includes("/analytics") ||
+        url.includes("/cases") ||
+        url.includes("/complaints") ||
+        url.includes("/users") ||
+        url.includes("/push") ||
+        url.includes("/notifications") ||
+        url.includes("/auth") ||
+        url.includes("/officers") ||
+        url.includes("/drive") ||
+        (Boolean(API_BASE_URL) && url.startsWith(API_BASE_URL.replace(/\/api$/, "")));
+
+      if (isBackendRequest) {
         const headers = new Headers(init?.headers);
         if (!headers.has("Authorization")) {
           headers.set("Authorization", `Bearer ${token}`);
@@ -86,8 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token) return;
 
     let active = true;
-    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-    fetch(`${apiBase.replace(/\/$/, "")}/auth/me`, {
+    fetch(`${API_BASE_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => (res.ok ? res.json() : null))
@@ -105,8 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (identifier: string, password: string): Promise<void> => {
-    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-    const loginUrl = `${apiBase.replace(/\/$/, "")}/auth/login`;
+    const loginUrl = `${API_BASE_URL}/auth/login`;
 
     let response: Response;
     try {
@@ -156,9 +169,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     const curToken = token || localStorage.getItem(TOKEN_KEY);
     if (!curToken) return;
-    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
     try {
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/auth/me`, {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${curToken}` },
       });
       if (res.ok) {
@@ -177,8 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentToken = token || localStorage.getItem(TOKEN_KEY);
 
     if (currentToken) {
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
-      const logoutUrl = `${apiBase.replace(/\/$/, "")}/auth/logout`;
+      const logoutUrl = `${API_BASE_URL}/auth/logout`;
 
       // Best-effort call; do not await or block logout flow
       fetch(logoutUrl, {

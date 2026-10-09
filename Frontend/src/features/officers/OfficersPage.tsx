@@ -55,7 +55,10 @@ function OfficersPage() {
 
   useEffect(() => {
     let active = true;
-    fetch(`${API_BASE_URL}/analytics/officers`)
+    const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+    fetch(`${API_BASE_URL}/analytics/officers`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok || !result.success) {
@@ -83,7 +86,10 @@ function OfficersPage() {
     setDetailsError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/officers/${encodeURIComponent(officerId)}`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+      const response = await fetch(`${API_BASE_URL}/officers/${encodeURIComponent(officerId)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const result = (await response.json()) as OfficerDetailsResponse & { message?: string };
 
       if (!response.ok || !result.success) {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "../shared/components/Icon";
+import { API_BASE_URL } from "../shared/utils/apiConfig";
 
 type MobileHeaderProps = {
   title?: string;
@@ -24,7 +25,7 @@ export default function MobileHeader({
     const fetchUnread = async () => {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
-        const res = await fetch("/api/notifications", {
+        const res = await fetch(`${API_BASE_URL}/notifications`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.ok) {

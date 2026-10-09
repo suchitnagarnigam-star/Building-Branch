@@ -22,14 +22,36 @@ const serverRoot = path.basename(moduleDirectory) === "dist"
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(serverRoot, "uploads")));
+
+// Health check endpoint
+app.get(["/health", "/api/health"], (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Mount routes under both /api/* and /* to seamlessly support all frontend base URL configs
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
+
 app.use("/api/users", userRoutes);
+app.use("/users", userRoutes);
+
 app.use("/api/analytics", analyticsRoutes);
+app.use("/analytics", analyticsRoutes);
+
 app.use("/api/push", pushRoutes);
+app.use("/push", pushRoutes);
+
 app.use("/api/notifications", notificationRoutes);
+app.use("/notifications", notificationRoutes);
+
 app.use("/api/drive", driveRoutes);
+app.use("/drive", driveRoutes);
+
 app.use("/api", complaintRoutes);
+app.use(complaintRoutes);
+
 app.use("/api", enforcementRoutes);
+app.use(enforcementRoutes);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 
