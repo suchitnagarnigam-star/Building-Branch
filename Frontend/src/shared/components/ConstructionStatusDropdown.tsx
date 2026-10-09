@@ -192,7 +192,7 @@ function ConstructionStatusDropdown({
         ? "Non-Compoundable"
         : selectedStatus === "partly_compoundable"
         ? `Partly Compoundable — ${partlyTypeLabel}`
-        : "Construction Status";
+        : "-- Select Construction Status --";
 
     return (
       <div
@@ -219,7 +219,11 @@ function ConstructionStatusDropdown({
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <span className="status-dropdown-label">
+        <span
+          className={`status-dropdown-label ${
+            !selectedStatus ? "status-dropdown-label--placeholder" : ""
+          }`}
+        >
           {primaryLabel}
         </span>
 
@@ -352,7 +356,11 @@ function ConstructionStatusDropdown({
           aria-haspopup="true"
           aria-expanded={isOpen}
         >
-          <span className="status-dropdown-label status-dropdown-label--mobile">
+          <span
+            className={`status-dropdown-label status-dropdown-label--mobile ${
+              !selectedStatus ? "status-dropdown-label--placeholder" : ""
+            }`}
+          >
             {primaryLabel}
           </span>
 

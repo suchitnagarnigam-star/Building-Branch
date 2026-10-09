@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import Icon from "../shared/components/Icon";
 
 type MobileHeaderProps = {
@@ -11,10 +12,36 @@ type MobileHeaderProps = {
 export default function MobileHeader({
   title = "MCL Building Branch",
   userName = "Super Admin",
-  unreadCount = 2,
+  unreadCount: propUnreadCount,
   onOpenDrawer,
   onNavigate,
 }: MobileHeaderProps) {
+  const [liveUnreadCount, setLiveUnreadCount] = useState<number>(0);
+  const unreadCount = propUnreadCount !== undefined ? propUnreadCount : liveUnreadCount;
+
+  useEffect(() => {
+    if (propUnreadCount !== undefined) return;
+    const fetchUnread = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+        const res = await fetch("/api/notifications", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.unreadCount === "number") {
+            setLiveUnreadCount(data.unreadCount);
+          }
+        }
+      } catch {
+        // silent fallback
+      }
+    };
+    fetchUnread();
+    const interval = window.setInterval(fetchUnread, 30000);
+    return () => window.clearInterval(interval);
+  }, [propUnreadCount]);
+
   const initials = userName
     .split(" ")
     .map((n) => n[0])
