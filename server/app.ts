@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "node:path";
@@ -6,6 +7,9 @@ import authRoutes from "./routes/authRoutes";
 import complaintRoutes from "./routes/complaintRoutes";
 import userRoutes from "./routes/userRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
+import enforcementRoutes from "./routes/enforcementRoutes";
+import pushRoutes from "./routes/pushRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import { testDatabaseConnection } from "./db/database";
 
 const app = express();
@@ -20,9 +24,12 @@ app.use("/uploads", express.static(path.join(serverRoot, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/push", pushRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api", complaintRoutes);
+app.use("/api", enforcementRoutes);
 
-const PORT = 5000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 
 app.listen(PORT, async () => {
   console.log(`🚀 [Server] Running on http://localhost:${PORT}`);

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import Icon from "../../shared/components/Icon";
 import type { Role } from "../../shared/types";
 
 type LoginScreenProps = {
@@ -11,6 +12,7 @@ function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -20,7 +22,7 @@ function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
 
     const trimmedIdentifier = identifier.trim();
     if (!trimmedIdentifier || !password) {
-      setError("Please enter both identifier and password/PIN.");
+      setError("Please enter both identifier and PIN.");
       return;
     }
 
@@ -30,7 +32,7 @@ function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
       onLogin?.(trimmedIdentifier);
       onRoleChange?.("Admin");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
+      const message = err instanceof Error ? err.message : "Login failed. Please verify credentials.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -40,67 +42,95 @@ function LoginScreen({ onLogin, onRoleChange }: LoginScreenProps) {
   return (
     <div className="login-wrap">
       <div className="login-card">
+        {/* Header Branding */}
         <div className="login-card__brand">
-          <img src="/mcl-logo.png" alt="MCL logo" className="login-card__logo" />
+          <img src="/mcl-logo.png" alt="MCL Emblem" className="login-card__logo" />
         </div>
-        <h1>Sign in to MCL-BB</h1>
-        <p className="login-subtitle">Ludhiana Municipal Corporation — Complaint Management</p>
 
-        <div className="divider" />
+        <div className="login-brand-titles">
+          <div className="login-gov-header">MUNICIPAL CORPORATION LUDHIANA</div>
+          <h1 className="login-branch-title">Building Branch</h1>
+          <p className="login-branch-subtitle">Building Permission & Enforcement Operations</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="login-form">
-          <label className="field">
-            <span>Username or Phone Number</span>
+          <div className="login-field-wrap">
+            <span className="login-field-icon">
+              <Icon name="user" />
+            </span>
             <input
               type="text"
-              placeholder="e.g. admin or 90410-22742"
+              className="login-input"
+              placeholder="Username / Employee ID"
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
               disabled={isSubmitting}
               autoComplete="username"
               required
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Password or 6-digit PIN</span>
+          <div className="login-field-wrap">
+            <span className="login-field-icon">
+              <Icon name="lock" />
+            </span>
             <input
-              type="password"
-              placeholder="Password or officer PIN"
+              type={showPassword ? "text" : "password"}
+              className="login-input login-input--password"
+              placeholder="PIN"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               disabled={isSubmitting}
               autoComplete="current-password"
               required
             />
-          </label>
+            <button
+              type="button"
+              className="login-password-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide PIN" : "Show PIN"}
+            >
+              <Icon name={showPassword ? "eye-off" : "eye"} />
+            </button>
+          </div>
 
           <button
             type="submit"
-            className="primary-button button-full"
+            className="login-submit-btn"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Logging in..." : "Login"}
           </button>
 
-          {error && (
-            <div
-              style={{
-                marginTop: "14px",
-                padding: "10px 12px",
-                borderRadius: "6px",
-                backgroundColor: "#fef2f2",
-                color: "#b91c1c",
-                fontSize: "13px",
-                border: "1px solid #fecaca",
-                textAlign: "center",
-                lineHeight: "1.4",
-              }}
+          <div className="login-forgot-wrap">
+            <button
+              type="button"
+              className="login-forgot-link"
+              onClick={() => alert("Please contact your Zonal ATP or Super Admin to reset your PIN.")}
             >
+              Forgot PIN?
+            </button>
+          </div>
+
+          {error && (
+            <div className="login-error-badge">
               {error}
             </div>
           )}
         </form>
+
+        {/* Ludhiana Heritage Skyline Footer Art */}
+        <div className="login-footer-art">
+          <img
+            src="/ludhiana-illustration.png"
+            alt="Ludhiana Heritage Landmark"
+            className="login-footer-art__img"
+          />
+          <div className="login-footer-tagline">
+            <span>Our Ludhiana</span>
+            <span>Our Responsibility</span>
+          </div>
+        </div>
       </div>
     </div>
   );

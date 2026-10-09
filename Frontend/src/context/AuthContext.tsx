@@ -3,9 +3,14 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 export interface AuthUser {
   userId: number;
   officerId: string | null;
+  username?: string | null;
+  phoneNumber?: string | null;
   role: "superadmin" | "jc" | "mtp" | "atp" | "bi" | "operator";
   name: string;
   zone: string | null;
+  block?: string | null;
+  blocks?: string[] | null;
+  designation?: string | null;
 }
 
 export interface AuthContextValue {
@@ -14,6 +19,8 @@ export interface AuthContextValue {
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  updateToken: (newToken: string) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,28 +62,47 @@ if (typeof window !== "undefined" && !(window as unknown as { __mcl_fetch_patche
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Initialize auth state from localStorage on mount
-  useEffect(() => {
+  const [token, setToken] = useState<string | null>(() => {
     try {
-      const storedToken = localStorage.getItem(TOKEN_KEY);
-      const storedUser = localStorage.getItem(USER_KEY);
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser) as AuthUser);
-      }
-    } catch (err) {
-      console.error("Failed to parse stored auth session:", err);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-    } finally {
-      setIsLoading(false);
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
     }
-  }, []);
+  });
+
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      const storedUser = localStorage.getItem(USER_KEY);
+      return storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isLoading] = useState(false);
+
+  // Sync latest user profile with /api/auth/me on mount if logged in
+  useEffect(() => {
+    if (!token) return;
+
+    let active = true;
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+    fetch(`${apiBase.replace(/\/$/, "")}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active && data?.success && data.user) {
+          setUser(data.user as AuthUser);
+          localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   const login = async (identifier: string, password: string): Promise<void> => {
     const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
@@ -122,6 +148,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     throw new Error(errorData.message || "Login failed. Please try again.");
   };
 
+  const updateToken = (newToken: string) => {
+    localStorage.setItem(TOKEN_KEY, newToken);
+    setToken(newToken);
+  };
+
+  const refreshUser = async () => {
+    const curToken = token || localStorage.getItem(TOKEN_KEY);
+    if (!curToken) return;
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
+    try {
+      const res = await fetch(`${apiBase.replace(/\/$/, "")}/auth/me`, {
+        headers: { Authorization: `Bearer ${curToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data.user) {
+          setUser(data.user as AuthUser);
+          localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const logout = () => {
     const currentToken = token || localStorage.getItem(TOKEN_KEY);
 
@@ -145,12 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, updateToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextValue => {
   const context = useContext(AuthContext);
   if (!context) {

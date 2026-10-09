@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { pool } from "../db/database";
 import { authenticateToken } from "../middleware/auth";
+import { getUserAssignedBlocks, normalizeBlock } from "../services/accessControl";
 
 const router = Router();
 
@@ -12,9 +13,61 @@ router.get("/overview", async (req: Request, res: Response) => {
     const role = (req.user?.role || "").toLowerCase();
     const userId = req.user?.userId;
     const isOperator = role === "operator" && userId;
+    const isBI = role === "bi";
 
-    const opFilter = isOperator ? "WHERE submitted_by_user_id = $1" : "";
-    const opParams = isOperator ? [userId] : [];
+    // Dashboard overview (KPIs, charts, enforcement, attention items) shows
+    // branch-wide metrics across all BIs (or operator's submitted data for operators).
+    let opFilter = "";
+    let caseFilter = "";
+    let opParams: any[] = [];
+
+    if (isOperator) {
+      opFilter = "WHERE submitted_by_user_id = $1";
+      caseFilter = "JOIN complaints c_flt ON cases.primary_complaint_id = c_flt.complaint_id WHERE c_flt.submitted_by_user_id = $1";
+      opParams = [userId];
+    }
+
+    const hasParams = opParams.length > 0;
+
+    // Recent Complaints filter:
+    // If logged in as BI, only display complaints belonging to this BI.
+    // If logged in as Operator, only display complaints submitted by this operator.
+    // Otherwise, show branch-wide recent complaints.
+    let recentFilter = "";
+    let recentParams: any[] = [];
+
+    if (isOperator) {
+      recentFilter = "WHERE submitted_by_user_id = $1";
+      recentParams = [userId];
+    } else if (isBI) {
+      let biOfficerId = req.user?.officerId || null;
+      let biName = req.user?.name || null;
+
+      if (!biOfficerId && userId) {
+        try {
+          const offRes = await pool.query<{ officer_id: string; name: string }>(
+            "SELECT officer_id, name FROM officers WHERE user_id = $1 LIMIT 1",
+            [userId]
+          );
+          if (offRes.rows[0]) {
+            biOfficerId = offRes.rows[0].officer_id;
+            if (!biName) biName = offRes.rows[0].name;
+          }
+        } catch {
+          // ignore error
+        }
+      }
+
+      const assignedBlocks = await getUserAssignedBlocks(req.user);
+      const normalizedBiBlocks = (assignedBlocks || []).map(normalizeBlock);
+
+      recentFilter = `WHERE (
+        ($1::text IS NOT NULL AND assigned_officer_id = $1)
+        OR ($2::text[] IS NOT NULL AND array_length($2::text[], 1) > 0 AND REPLACE(LOWER(TRIM(block)), 'block ', '') = ANY($2::text[]))
+        OR ($3::text IS NOT NULL AND LOWER(TRIM(assigned_officer_name)) = LOWER(TRIM($3)))
+      )`;
+      recentParams = [biOfficerId, normalizedBiBlocks, biName];
+    }
 
     const [
       kpiRes,
@@ -39,10 +92,10 @@ router.get("/overview", async (req: Request, res: Response) => {
             : `(SELECT COUNT(*)::int FROM field_visits WHERE complaint_id IS NULL)`} AS "standaloneFieldVisits",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM cases ca JOIN complaints c ON ca.primary_complaint_id = c.complaint_id WHERE c.submitted_by_user_id = $1)` 
-            : `(SELECT COUNT(*)::int FROM cases)`} AS "totalCases",
+            : `(SELECT COUNT(*)::int FROM cases ${caseFilter})`} AS "totalCases",
           ${isOperator 
             ? `(SELECT COUNT(*)::int FROM cases ca JOIN complaints c ON ca.primary_complaint_id = c.complaint_id WHERE ca.current_status = 'Resolved' AND c.submitted_by_user_id = $1)` 
-            : `(SELECT COUNT(*)::int FROM cases WHERE current_status = 'Resolved')`} AS "resolvedCases";
+            : `(SELECT COUNT(*)::int FROM cases ${caseFilter ? caseFilter + " AND current_status = 'Resolved'" : "WHERE current_status = 'Resolved'"})`} AS "resolvedCases";
       `, opParams),
 
       // 2. Complaint Status Breakdown
@@ -85,12 +138,12 @@ router.get("/overview", async (req: Request, res: Response) => {
             ) ${isOperator ? "AND c.submitted_by_user_id = $1" : ""}
           ) AS "complaintsNoFieldVisit",
           (
-            SELECT COUNT(*)::int FROM notices 
-            WHERE notice_type = '270' 
-            AND reply_due_at IS NOT NULL AND reply_due_at < NOW()
+            SELECT COUNT(*)::int FROM notices n
+            WHERE n.notice_type = '270' 
+            AND n.reply_due_at IS NOT NULL AND n.reply_due_at < NOW()
           ) AS "notices270Expired",
           (
-            SELECT COUNT(*)::int FROM violator_replies
+            SELECT COUNT(*)::int FROM violator_replies vr
           ) AS "violatorRepliesPending",
           (
             SELECT COUNT(*)::int FROM cases cs
@@ -98,7 +151,7 @@ router.get("/overview", async (req: Request, res: Response) => {
               SELECT 1 FROM notices n WHERE n.case_id = cs.case_id
             )
           ) AS "casesNoNotice";
-      `, opParams),
+      `, hasParams ? opParams : []),
 
       // 6. Recent Complaints
       pool.query(`
@@ -115,10 +168,10 @@ router.get("/overview", async (req: Request, res: Response) => {
             LIMIT 1
           ) AS "caseId"
         FROM complaints
-        ${opFilter}
+        ${recentFilter}
         ORDER BY created_at DESC
         LIMIT 5;
-      `, opParams),
+      `, recentParams),
     ]);
 
     const kpi = kpiRes.rows[0] || {
@@ -172,14 +225,45 @@ router.get("/officers", async (_req: Request, res: Response) => {
         o.zone,
         o.phone_number AS "mobile",
         o.blocks,
-        COUNT(DISTINCT fv.visit_id)::int AS "fieldVisits",
-        COUNT(DISTINCT n.notice_id)::int AS "noticesIssued",
-        COUNT(DISTINCT cs.case_id)::int AS "casesAssigned"
+        CASE 
+          WHEN o.designation = 'ATP' THEN (
+            SELECT COUNT(DISTINCT fv.visit_id)::int
+            FROM field_visits fv
+            JOIN officers bi ON bi.officer_id = fv.bi_id
+            WHERE bi.zone = o.zone
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT fv.visit_id)::int
+            FROM field_visits fv
+            WHERE fv.bi_id = o.officer_id
+          )
+        END AS "fieldVisits",
+        CASE 
+          WHEN o.designation = 'ATP' THEN (
+            SELECT COUNT(DISTINCT n.notice_id)::int
+            FROM notices n
+            JOIN officers bi ON bi.officer_id = n.issued_by_id
+            WHERE bi.zone = o.zone
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT n.notice_id)::int
+            FROM notices n
+            WHERE n.issued_by_id = o.officer_id
+          )
+        END AS "noticesIssued",
+        CASE 
+          WHEN o.designation = 'ATP' THEN (
+            SELECT COUNT(DISTINCT cs.case_id)::int
+            FROM cases cs
+            WHERE cs.assigned_atp_id = o.officer_id OR cs.zone = o.zone
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT cs.case_id)::int
+            FROM cases cs
+            WHERE cs.assigned_bi_id = o.officer_id
+          )
+        END AS "casesAssigned"
       FROM officers o
-      LEFT JOIN field_visits fv ON fv.bi_id = o.officer_id
-      LEFT JOIN notices n ON n.issued_by_id = o.officer_id
-      LEFT JOIN cases cs ON cs.assigned_bi_id = o.officer_id
-      GROUP BY o.officer_id, o.name, o.designation, o.zone, o.phone_number, o.blocks
       ORDER BY "casesAssigned" DESC, "fieldVisits" DESC;
     `);
 

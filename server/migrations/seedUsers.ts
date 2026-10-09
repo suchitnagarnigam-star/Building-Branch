@@ -36,7 +36,11 @@ export async function seedUsers(): Promise<void> {
       ["admin"]
     );
     if (adminCheck.rowCount === 0) {
-      const adminHash = await bcrypt.hash("Admin@MCL2026", rounds);
+      const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || "Admin@MCL2026";
+      if (process.env.NODE_ENV === "production" && adminPassword === "Admin@MCL2026") {
+        console.warn("⚠️  [Security Warning]: Seeding admin user with default password in production. Please set INITIAL_ADMIN_PASSWORD.");
+      }
+      const adminHash = await bcrypt.hash(adminPassword, rounds);
       await client.query(
         `INSERT INTO users (username, password_hash, role, name, is_active, failed_attempts)
          VALUES ($1, $2, 'superadmin', 'Super Admin', true, 0)`,
@@ -53,7 +57,11 @@ export async function seedUsers(): Promise<void> {
       ["operator1"]
     );
     if (operatorCheck.rowCount === 0) {
-      const opHash = await bcrypt.hash("Admin@MCL2026", rounds);
+      const opPassword = process.env.INITIAL_OPERATOR_PASSWORD || "Admin@MCL2026";
+      if (process.env.NODE_ENV === "production" && opPassword === "Admin@MCL2026") {
+        console.warn("⚠️  [Security Warning]: Seeding operator user with default password in production. Please set INITIAL_OPERATOR_PASSWORD.");
+      }
+      const opHash = await bcrypt.hash(opPassword, rounds);
       await client.query(
         `INSERT INTO users (username, password_hash, role, name, is_active, failed_attempts)
          VALUES ($1, $2, 'operator', 'Desk Operator', true, 0)`,

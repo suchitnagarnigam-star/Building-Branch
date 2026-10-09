@@ -175,10 +175,14 @@ function OfficersPage() {
     },
   ];
 
-  // 2. Top Performers Podium (Ranked by casesAssigned DESC, fieldVisits DESC)
+  // 2. Top Performers Podium (Top 3 Building Inspectors ranked by casesAssigned DESC, fieldVisits DESC)
   const topPerformers = useMemo(() => {
     if (officers.length === 0) return [];
-    const sorted = [...officers].sort((a, b) => {
+    const biOnly = officers.filter((o) => {
+      const d = (o.designation || "").trim().toUpperCase();
+      return (d === "BI" || d.includes("BI")) && !d.includes("ATP");
+    });
+    const sorted = [...biOnly].sort((a, b) => {
       if ((b.casesAssigned || 0) !== (a.casesAssigned || 0)) {
         return (b.casesAssigned || 0) - (a.casesAssigned || 0);
       }
@@ -187,39 +191,56 @@ function OfficersPage() {
     return sorted.slice(0, 3);
   }, [officers]);
 
+  // Mobile podium layout order: Rank 2 (Left), Rank 1 (Center/Elevated), Rank 3 (Right)
+  const mobilePodiumItems = useMemo(() => {
+    if (topPerformers.length === 0) return [];
+    if (topPerformers.length === 1) {
+      return [{ officer: topPerformers[0], rank: 1 }];
+    }
+    if (topPerformers.length === 2) {
+      return [
+        { officer: topPerformers[1], rank: 2 },
+        { officer: topPerformers[0], rank: 1 },
+      ];
+    }
+    return [
+      { officer: topPerformers[1], rank: 2 },
+      { officer: topPerformers[0], rank: 1 },
+      { officer: topPerformers[2], rank: 3 },
+    ];
+  }, [topPerformers]);
+
   // Max cases for workload bar calculation
   const maxCases = useMemo(() => {
     return Math.max(1, ...officers.map((o) => o.casesAssigned || 0));
   }, [officers]);
 
   // Filter officers based on designation, search, and zone
-  const filteredOfficers = useMemo(() => {
-    return officers.filter((officer) => {
-      // Designation filter
-      if (designationFilter === "BI") {
-        const d = (officer.designation || "").trim().toUpperCase();
-        if (!d.includes("BI")) return false;
-      } else if (designationFilter === "ATP") {
-        const d = (officer.designation || "").trim().toUpperCase();
-        if (!d.includes("ATP")) return false;
-      }
+  const filteredOfficers = officers.filter((officer) => {
+    // Designation filter
+    if (designationFilter === "BI") {
+      const d = (officer.designation || "").trim().toUpperCase();
+      if (!d.includes("BI")) return false;
+    } else if (designationFilter === "ATP") {
+      const d = (officer.designation || "").trim().toUpperCase();
+      if (!d.includes("ATP")) return false;
+    }
 
-      // Search filter
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        (officer.name || "").toLowerCase().includes(q) ||
-        (officer.officerId || "").toLowerCase().includes(q) ||
-        (officer.designation || "").toLowerCase().includes(q);
+    // Search filter
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      (officer.name || "").toLowerCase().includes(q) ||
+      (officer.officerId || "").toLowerCase().includes(q) ||
+      (officer.designation || "").toLowerCase().includes(q);
 
-      // Zone filter
-      const matchesZone =
-        selectedZone === "All Zones" ||
-        (officer.zone || "").toLowerCase() === selectedZone.toLowerCase() ||
-        `Zone ${officer.zone || ""}`.toLowerCase() === selectedZone.toLowerCase();
+    // Zone filter
+    const matchesZone =
+      selectedZone === "All Zones" ||
+      (officer.zone || "").toLowerCase() === selectedZone.toLowerCase() ||
+      `Zone ${officer.zone || ""}`.toLowerCase() === selectedZone.toLowerCase();
 
-      return matchesSearch && matchesZone;
-    });
-  }, [officers, designationFilter, searchQuery, selectedZone]);
+    return matchesSearch && matchesZone;
+  });
 
   const availableZones = useMemo(() => {
     const zones = new Set<string>();
@@ -245,8 +266,149 @@ function OfficersPage() {
         fontFamily: "Inter, sans-serif",
       }}
     >
-      {/* ── TOP HEADER SECTION ─────────────────────────────────────────────── */}
+      {/* ── MOBILE HEADER ── */}
+      <div className="mobile-only mobile-sub-header">
+        <h1 className="mobile-page-title">Officers</h1>
+      </div>
+
+      {/* ── MOBILE TOP ENFORCEMENT OFFICERS PODIUM (Sections 1-6) ── */}
+      {!loading && !error && mobilePodiumItems.length > 0 && (
+        <div className="mobile-only mobile-podium-section">
+          <div className="mobile-podium-header">
+            <div className="mobile-podium-header-left">
+              <span className="mobile-podium-trophy-icon">🏆</span>
+              <h2 className="mobile-podium-title">Top Enforcement Officers</h2>
+            </div>
+          </div>
+
+          <div className="mobile-podium-container">
+            {mobilePodiumItems.map(({ officer, rank }) => {
+              const initial = officer.name
+                ? officer.name.replace(/^(Sh\.|Smt\.|Er\.)\s*/i, "").trim().charAt(0).toUpperCase() || "O"
+                : "O";
+              const zoneStr = officer.zone
+                ? (officer.zone.startsWith("Zone") ? officer.zone : `Zone ${officer.zone}`)
+                : "Zone";
+
+              return (
+                <div
+                  key={officer.officerId}
+                  className={`mobile-podium-card mobile-podium-card--rank-${rank}`}
+                  onClick={() => handleViewOfficer(officer.officerId)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleViewOfficer(officer.officerId);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${officer.name}, Rank ${rank}, ${officer.casesAssigned} cases assigned`}
+                >
+                  <div className="mobile-podium-card__rank-wrap">
+                    <span className={`mobile-podium-card__rank-pill mobile-podium-card__rank-pill--${rank}`}>
+                      <span className="mobile-podium-medal">
+                        {rank === 1 ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                          </svg>
+                        ) : rank === 2 ? (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm-3.5 1l-2.5 6 6-2.5 6 2.5-2.5-6h-7z" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="mobile-podium-rank-num">#{rank}</span>
+                    </span>
+                  </div>
+
+                  <div className={`mobile-podium-card__avatar mobile-podium-card__avatar--${rank}`}>
+                    {initial}
+                  </div>
+
+                  <div className="mobile-podium-card__info">
+                    <div className="mobile-podium-card__name" title={officer.name}>
+                      {officer.name}
+                    </div>
+                    <div className="mobile-podium-card__meta">
+                      <span className="mobile-podium-card__meta-desig">{officer.designation || "Officer"}</span>
+                      {zoneStr && <span className="mobile-podium-card__meta-sep">•</span>}
+                      {zoneStr && <span className="mobile-podium-card__meta-zone">{zoneStr}</span>}
+                    </div>
+                  </div>
+
+                  <div className="mobile-podium-card__metrics-box">
+                    <div className="mobile-podium-card__hero">
+                      <span className="mobile-podium-card__hero-val">{officer.casesAssigned}</span>
+                      <span className="mobile-podium-card__hero-lbl">Cases Assigned</span>
+                    </div>
+                    <div className="mobile-podium-card__divider" />
+                    <div className="mobile-podium-card__stats">
+                      <div className="mobile-podium-card__stat-col">
+                        <span className="mobile-podium-card__stat-val">{officer.fieldVisits}</span>
+                        <span className="mobile-podium-card__stat-lbl">Visits</span>
+                      </div>
+                      <div className="mobile-podium-card__stat-col">
+                        <span className="mobile-podium-card__stat-val">{officer.noticesIssued}</span>
+                        <span className="mobile-podium-card__stat-lbl">Notices</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE FILTER SECTION (Search -> Role Segmented + Zone Dropdown) ── */}
+      <div className="mobile-only officer-mobile-filter-section">
+        <div className="officer-mobile-search">
+          <Icon name="search" size={16} />
+          <input
+            type="text"
+            placeholder="Search officer name, designation..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="officer-mobile-filter-row">
+          <div className="officer-role-segmented">
+            {(["All", "BI", "ATP"] as const).map((desig) => (
+              <button
+                key={desig}
+                type="button"
+                className={`officer-role-tab ${designationFilter === desig ? "officer-role-tab--active" : ""}`}
+                onClick={() => setDesignationFilter(desig)}
+              >
+                {desig === "All" ? "All Roles" : desig}
+              </button>
+            ))}
+          </div>
+
+          <select
+            className="officer-mobile-zone-select"
+            value={selectedZone}
+            onChange={(e) => setSelectedZone(e.target.value)}
+          >
+            <option value="All Zones">All Zones</option>
+            {availableZones.map((z) => (
+              <option key={z} value={z}>
+                {z}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* ── TOP HEADER SECTION (Desktop Only) ─────────────────────────────────────────── */}
       <div
+        className="desktop-only"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -315,7 +477,8 @@ function OfficersPage() {
         </button>
       </div>
 
-      {/* ── 1. KPI CARDS ROW (RESTORED WITH LIVE METRICS) ────────────────────── */}
+      {/* ── 1. KPI CARDS ROW (RESTORED WITH LIVE METRICS) (Desktop Only) ────────────────────── */}
+      <div className="desktop-only">
       <div className="db-stats">
         {kpiCards.map((card) => (
           <div className="db-stat-card" key={card.label}>
@@ -402,9 +565,11 @@ function OfficersPage() {
           </div>
         </div>
       )}
+      </div>
 
-      {/* ── 3. FILTER CONTROLS BAR ─────────────────────────────────────────── */}
+      {/* ── 3. FILTER CONTROLS BAR (Desktop Only) ─────────────────────────── */}
       <div
+        className="desktop-only"
         style={{
           background: "#fff",
           border: "1px solid var(--border)",
@@ -543,7 +708,60 @@ function OfficersPage() {
         </div>
       )}
 
-      {/* ── 4. OFFICERS ROSTER TABLE WITH PROPORTIONAL WORKLOAD BARS ─────────── */}
+      {/* ── MOBILE OFFICER CARDS (Screenshot 12) ── */}
+      <div className="mobile-only mobile-card-feed" style={{ marginBottom: "24px" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "32px", color: "var(--muted)" }}>Loading officers...</div>
+        ) : error ? (
+          <div style={{ textAlign: "center", padding: "20px", color: "#dc2626" }}>{error}</div>
+        ) : filteredOfficers.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px", color: "var(--muted)" }}>No officers found.</div>
+        ) : (
+          filteredOfficers.map((o) => {
+            const initial = o.name.replace(/^(Sh\.|Smt\.|Er\.)\s*/i, "").trim().charAt(0).toUpperCase() || "O";
+            return (
+              <div
+                key={o.officerId}
+                className="officer-card-mobile"
+                onClick={() => handleViewOfficer(o.officerId)}
+              >
+                <div className="officer-card-mobile__header">
+                  <div className="officer-card-mobile__avatar">
+                    {initial}
+                  </div>
+                  <div className="officer-card-mobile__info">
+                    <div className="officer-card-mobile__name">{o.name}</div>
+                    <div className="officer-card-mobile__meta">
+                      {o.designation} • {o.zone}
+                    </div>
+                  </div>
+                  <span className="officer-card-mobile__chevron">
+                    <Icon name="chevron-right" size={16} />
+                  </span>
+                </div>
+
+                <div className="officer-card-mobile__stats">
+                  <div className="officer-card-mobile__stat-item">
+                    <span className="officer-card-mobile__stat-val">{o.fieldVisits}</span>
+                    <span className="officer-card-mobile__stat-lbl">Visits</span>
+                  </div>
+                  <div className="officer-card-mobile__stat-item">
+                    <span className="officer-card-mobile__stat-val">{o.noticesIssued}</span>
+                    <span className="officer-card-mobile__stat-lbl">Notices</span>
+                  </div>
+                  <div className="officer-card-mobile__stat-item">
+                    <span className="officer-card-mobile__stat-val">{o.casesAssigned}</span>
+                    <span className="officer-card-mobile__stat-lbl">Cases</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── 4. OFFICERS ROSTER TABLE (Desktop Only) ─────────── */}
+      <div className="desktop-only">
       {!loading && !error && (
         <div
           style={{
@@ -714,6 +932,7 @@ function OfficersPage() {
           </table>
         </div>
       )}
+      </div>
 
       {/* ── 5. RIGHT-SIDE OFFICER PROFILE DRAWER ────────────────────────────── */}
       {(detailsLoading || detailsError || selectedOfficer) && (
@@ -969,6 +1188,55 @@ function OfficersPage() {
                       <strong style={{ fontSize: "18px", color: "var(--midnight)" }}>
                         {activeDrawerOfficerRecord.casesAssigned || 0}
                       </strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* Supervised Building Inspectors for ATP */}
+                {selectedOfficer.officer.designation === "ATP" && (
+                  <div>
+                    <h4
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "var(--muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        margin: "0 0 8px 0",
+                      }}
+                    >
+                      Supervised Building Inspectors ({selectedOfficer.officer.zone ? (selectedOfficer.officer.zone.startsWith("Zone") ? selectedOfficer.officer.zone : `Zone ${selectedOfficer.officer.zone}`) : ""})
+                    </h4>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {officers
+                        .filter((o) => {
+                          const isBi = (o.designation || "").toUpperCase().includes("BI");
+                          const sameZone = (o.zone || "").replace(/^Zone\s*/i, "").toUpperCase() === (selectedOfficer.officer.zone || "").replace(/^Zone\s*/i, "").toUpperCase();
+                          return isBi && sameZone;
+                        })
+                        .map((bi) => (
+                          <div
+                            key={bi.officerId}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 12px",
+                              background: "#f8fafc",
+                              border: "1px solid var(--border)",
+                              borderRadius: "6px",
+                              fontSize: "12px",
+                            }}
+                          >
+                            <div>
+                              <strong style={{ color: "var(--navy)" }}>{bi.name}</strong>
+                              <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "6px" }}>({bi.designation})</span>
+                            </div>
+                            <div style={{ fontSize: "11.5px", color: "var(--ink)", fontWeight: 500 }}>
+                              {bi.casesAssigned || 0} cases · {bi.fieldVisits || 0} visits
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 )}

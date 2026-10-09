@@ -7,8 +7,9 @@
     "build": "node ./node_modules/typescript/bin/tsc",
     "start": "node dist/app.js",
     "db:test": "node node_modules/tsx/dist/cli.mjs db/testConnection.ts",
-    "seed:users": "tsx migrations/seedUsers.ts",
-    "migrate": "psql $DATABASE_URL -f migrations/001_create_users_table.sql"
+    "seed:users": "node node_modules/tsx/dist/cli.mjs migrations/seedUsers.ts",
+    "migrate": "node node_modules/tsx/dist/cli.mjs migrations/runMigrations.ts",
+    "test": "node node_modules/tsx/dist/cli.mjs testAuthorization.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,13 +18,17 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
     "@mistralai/mistralai": "^2.6.4",
+    "@types/pdf-parse": "^1.1.5",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.1",
-    "pg": "^8.23.0"
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.23.0",
+    "tesseract.js": "^7.0.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -33,6 +38,7 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^26.4.0",
     "@types/pg": "^8.23.1",
+    "@types/web-push": "^3.6.4",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }

@@ -20,6 +20,9 @@ const driveService_1 = require("../services/driveService");
 const database_1 = require("../db/database");
 const authRoutes_1 = __importDefault(require("./authRoutes"));
 const auth_1 = require("../middleware/auth");
+const accessControl_1 = require("../services/accessControl");
+const workflowService_1 = require("../services/workflowService");
+const pushService_1 = require("../services/pushService");
 const router = (0, express_1.Router)();
 // Auth routes (public login, protected logout)
 router.use("/auth", authRoutes_1.default);
@@ -229,9 +232,10 @@ router.get("/complaints", async (req, res) => {
     try {
         const role = (req.user?.role || "").toLowerCase();
         const userId = req.user?.userId;
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
         const complaints = role === "operator" && userId
-            ? await (0, complaintStorage_1.getComplaints)(userId)
-            : await (0, complaintStorage_1.getComplaints)();
+            ? await (0, complaintStorage_1.getComplaints)(userId, assignedBlocks)
+            : await (0, complaintStorage_1.getComplaints)(undefined, assignedBlocks);
         res.json({ success: true, complaints });
     }
     catch (error) {
@@ -241,17 +245,25 @@ router.get("/complaints", async (req, res) => {
 });
 router.get("/complaints/:complaintId", async (req, res) => {
     try {
-        const role = (req.user?.role || "").toLowerCase();
-        const userId = req.user?.userId;
-        const complaints = role === "operator" && userId
-            ? await (0, complaintStorage_1.getComplaints)(userId)
-            : await (0, complaintStorage_1.getComplaints)();
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const complaints = await (0, complaintStorage_1.getComplaints)();
         const complaint = complaints.find((item) => item.complaintId === req.params.complaintId);
         if (!complaint) {
             res.status(404).json({ success: false, message: "Complaint not found." });
             return;
         }
-        res.json({ success: true, complaint });
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(complaint.block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
+        res.json({
+            success: true,
+            complaint: {
+                ...complaint,
+                created_by: complaint.created_by || complaint.createdBy || null,
+                createdBy: complaint.createdBy || complaint.created_by || null,
+            },
+        });
     }
     catch (error) {
         console.error("Error loading complaint:", error);
@@ -270,6 +282,11 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
             return;
         }
         const complaint = complaintResult.rows[0];
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(complaint.block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
         const existingCaseResult = await client.query(`SELECT case_id FROM cases WHERE primary_complaint_id = $1
        UNION
        SELECT case_id FROM case_complaints WHERE complaint_id = $1
@@ -317,6 +334,14 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
              updated_at = NOW()
          WHERE case_id = $5`, [biOfficerId, biOfficerName, atpOfficerId, atpOfficerName, caseId]);
             await client.query("COMMIT");
+            if (biOfficerId) {
+                void (0, pushService_1.notifyOfficer)(biOfficerId, {
+                    title: "New Complaint Assigned",
+                    body: `Complaint ${complaintId} assigned. Case: ${caseId}`,
+                    tag: `case-${caseId}-assigned`,
+                    url: `/cases/${encodeURIComponent(caseId)}`,
+                });
+            }
             res.json({
                 success: true,
                 message: "Complaint assigned. Existing case reused.",
@@ -392,6 +417,14 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
         case_id, previous_status, new_status, changed_by_name, reason, note
       ) VALUES ($1, NULL, 'Open', $2, 'Case created from assigned complaint', $3)`, [caseId, biOfficerName || "Operations Desk", `Promoted from complaint ${complaintId}`]);
         await client.query("COMMIT");
+        if (biOfficerId) {
+            void (0, pushService_1.notifyOfficer)(biOfficerId, {
+                title: "New Complaint Assigned",
+                body: `Complaint ${complaintId} assigned. New Case: ${caseId}`,
+                tag: `case-${caseId}-assigned`,
+                url: `/cases/${encodeURIComponent(caseId)}`,
+            });
+        }
         res.status(201).json({
             success: true,
             message: "Complaint assigned and case created successfully.",
@@ -417,8 +450,17 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
     }
 });
 // ── GET /api/cases ────────────────────────────────────────────────────────────
-router.get("/cases", async (_req, res) => {
+router.get("/cases", async (req, res) => {
     try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        if (assignedBlocks !== null && assignedBlocks.length === 0) {
+            res.json({ success: true, cases: [] });
+            return;
+        }
+        const whereClause = assignedBlocks !== null
+            ? "WHERE REPLACE(LOWER(TRIM(c.block)), 'block ', '') = ANY($1::text[])"
+            : "";
+        const params = assignedBlocks !== null ? [assignedBlocks.map(accessControl_1.normalizeBlock)] : [];
         const result = await database_1.pool.query(`
       SELECT c.*, 
              cs.construction_type,
@@ -432,8 +474,9 @@ router.get("/cases", async (_req, res) => {
         ORDER BY created_at DESC
         LIMIT 1
       ) cs ON true
+      ${whereClause}
       ORDER BY c.created_at DESC
-    `);
+    `, params);
         if (result.rows.length > 0) {
             res.json({ success: true, cases: result.rows });
             return;
@@ -443,7 +486,8 @@ router.get("/cases", async (_req, res) => {
         console.warn("[Cases] PostgreSQL query failed, using fallback case list:", error);
     }
     // High-availability fallback case list
-    const fallbackCases = [
+    const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+    let fallbackCases = [
         {
             case_id: "CASE-9A2E3B1C",
             source_type: "complaint",
@@ -473,11 +517,15 @@ router.get("/cases", async (_req, res) => {
             created_at: new Date().toISOString()
         }
     ];
+    if (assignedBlocks !== null) {
+        fallbackCases = fallbackCases.filter((c) => (0, accessControl_1.isBlockAssigned)(c.block, assignedBlocks));
+    }
     res.json({ success: true, cases: fallbackCases });
 });
 // ── GET /api/cases/:caseId ────────────────────────────────────────────────────
 router.get("/cases/:caseId", async (req, res) => {
     const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
     try {
         const result = await database_1.pool.query(`SELECT * FROM cases
        WHERE LOWER(case_id) = LOWER($1)
@@ -486,6 +534,10 @@ router.get("/cases/:caseId", async (req, res) => {
        LIMIT 1`, [caseId]);
         if (result.rows.length > 0) {
             const caseRecord = result.rows[0];
+            if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(caseRecord.block, assignedBlocks)) {
+                res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+                return;
+            }
             const actualCaseId = caseRecord.case_id;
             const summaryResult = await database_1.pool.query("SELECT * FROM case_construction_summary WHERE LOWER(case_id) = LOWER($1) ORDER BY construction_status_id DESC LIMIT 1", [actualCaseId]);
             const noticesResult = await database_1.pool.query("SELECT * FROM notices WHERE LOWER(case_id) = LOWER($1) ORDER BY created_at DESC", [actualCaseId]);
@@ -514,6 +566,27 @@ router.get("/cases/:caseId", async (req, res) => {
         )`, [actualCaseId]);
             const compoundablePart = partsResult.rows.find(p => p.part_type === 'compoundable');
             const nonCompoundablePart = partsResult.rows.find(p => p.part_type === 'non_compoundable');
+            const demolitionResult = await database_1.pool.query(`SELECT d.*,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'evidence_id', de.evidence_id,
+                'file_name', de.file_name,
+                'mime_type', de.mime_type,
+                'drive_file_id', de.drive_file_id,
+                'drive_file_url', de.drive_file_url,
+                'evidence_type', de.evidence_type,
+                'uploaded_at', de.uploaded_at
+              )
+            ) FILTER (WHERE de.evidence_id IS NOT NULL),
+            '[]'
+          ) AS evidence_files
+        FROM demolition_records d
+        LEFT JOIN demolition_evidence de ON de.demolition_id = d.demolition_id
+        WHERE LOWER(d.case_id) = LOWER($1)
+        GROUP BY d.demolition_id
+        ORDER BY d.created_at DESC
+        LIMIT 1`, [actualCaseId]);
             res.json({
                 success: true,
                 caseRecord,
@@ -522,6 +595,8 @@ router.get("/cases/:caseId", async (req, res) => {
                 notices: noticesResult.rows,
                 violatorReplies: repliesResult.rows,
                 statusHistory: historyResult.rows,
+                demolitionRecord: demolitionResult.rows[0] || null,
+                caseClosure: (await database_1.pool.query("SELECT * FROM case_closures WHERE LOWER(case_id) = LOWER($1) ORDER BY closed_at DESC LIMIT 1", [actualCaseId])).rows[0] || null,
                 compoundable: compoundablePart ? {
                     partStatus: compoundablePart.part_status,
                     assessmentStatus: compoundablePart.assessment_status,
@@ -557,7 +632,10 @@ router.get("/cases/:caseId", async (req, res) => {
         current_status: "Open",
         created_at: new Date().toISOString()
     };
-    res.json({ success: true, caseRecord: fallbackCase });
+    if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(fallbackCase.block, assignedBlocks)) {
+        res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+        return;
+    }
     res.json({
         success: true,
         caseRecord: fallbackCase,
@@ -568,10 +646,177 @@ router.get("/cases/:caseId", async (req, res) => {
         statusHistory: [],
     });
 });
+// ── POST /api/cases/:caseId/review-reply ──────────────────────────────────────
+router.post("/cases/:caseId/review-reply", (0, auth_1.requireRole)("atp", "mtp", "jc", "superadmin", "admin"), async (req, res) => {
+    const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const { replyId, verdict, reviewRemarks } = req.body;
+    if (!replyId || !verdict || !["valid", "invalid"].includes(verdict)) {
+        res.status(400).json({
+            success: false,
+            message: "Invalid payload: replyId and verdict ('valid' or 'invalid') are required.",
+        });
+        return;
+    }
+    try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const caseCheck = await database_1.pool.query("SELECT case_id, block, assigned_bi_id, assigned_atp_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        if (caseCheck.rows.length === 0) {
+            res.status(404).json({ success: false, message: `Case "${caseId}" not found.` });
+            return;
+        }
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
+        const actualCaseId = caseCheck.rows[0].case_id;
+        const targetStatus = verdict === "valid" ? "reply_reviewed_valid" : "reply_reviewed_invalid";
+        // Apply transition through workflow domain service
+        await (0, workflowService_1.applyTransition)(actualCaseId, targetStatus, req.user, database_1.pool, `Violator reply evaluated as ${verdict.toUpperCase()}: ${reviewRemarks || "No remarks provided"}`);
+        // Update review columns in violator_replies
+        await database_1.pool.query(`UPDATE violator_replies
+         SET review_status = $1,
+             reviewed_by_id = $2,
+             reviewed_by_name = $3,
+             reviewed_at = NOW(),
+             review_remarks = $4
+         WHERE reply_id = $5 AND LOWER(case_id) = LOWER($6)`, [
+            verdict,
+            req.user?.officerId || String(req.user?.userId),
+            req.user?.name || "Supervisory Officer",
+            reviewRemarks || null,
+            replyId,
+            actualCaseId,
+        ]);
+        // Web Push notification to assigned Building Inspector
+        if (caseCheck.rows[0].assigned_bi_id) {
+            void (0, pushService_1.notifyOfficer)(caseCheck.rows[0].assigned_bi_id, {
+                title: `Violator Reply ${verdict === "valid" ? "Accepted ✓" : "Rejected ✗"}`,
+                body: `Violator reply for Case ${actualCaseId} was evaluated as ${verdict}`,
+                tag: `case-${actualCaseId}-reply-review`,
+                url: `/cases/${encodeURIComponent(actualCaseId)}`,
+            });
+        }
+        res.json({
+            success: true,
+            message: `Violator reply successfully evaluated as ${verdict}.`,
+            caseId: actualCaseId,
+            newStatus: targetStatus,
+        });
+    }
+    catch (error) {
+        console.error("[Cases] Error reviewing violator reply:", error);
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || "Failed to record reply evaluation.",
+        });
+    }
+});
+// ── POST /api/cases/:caseId/close ─────────────────────────────────────────────
+router.post("/cases/:caseId/close", (0, auth_1.requireRole)("atp", "mtp", "jc", "superadmin", "admin"), async (req, res) => {
+    const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
+    const { closureReason, closingDescription, evidenceFileName, evidenceUrl, evidenceDriveId } = req.body;
+    if (!closureReason || !closingDescription) {
+        res.status(400).json({
+            success: false,
+            message: "Missing required fields: closureReason and closingDescription are required.",
+        });
+        return;
+    }
+    try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const caseCheck = await database_1.pool.query("SELECT case_id, block, assigned_bi_id, assigned_atp_id FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        if (caseCheck.rows.length === 0) {
+            res.status(404).json({ success: false, message: `Case "${caseId}" not found.` });
+            return;
+        }
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
+        const actualCaseId = caseCheck.rows[0].case_id;
+        // Apply transition through workflow domain service (governance and statutory checks)
+        await (0, workflowService_1.applyTransition)(actualCaseId, "closed", req.user, database_1.pool, `Case closed by ${req.user?.name} (${req.user?.role}): ${closureReason} — ${closingDescription}`);
+        // Record statutory closure record
+        const closureResult = await database_1.pool.query(`INSERT INTO case_closures (
+           case_id, closed_by_id, closed_by_name, closed_by_role, closure_reason,
+           closing_description, evidence_file_name, evidence_drive_file_id, evidence_drive_file_url, closed_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+         RETURNING *`, [
+            actualCaseId,
+            req.user?.officerId || String(req.user?.userId),
+            req.user?.name || "Supervisory Officer",
+            req.user?.role || "ATP",
+            closureReason,
+            closingDescription,
+            evidenceFileName || null,
+            evidenceDriveId || null,
+            evidenceUrl || null,
+        ]);
+        // Web Push notification to both assigned BI and ATP
+        const assignedOfficers = [caseCheck.rows[0].assigned_bi_id, caseCheck.rows[0].assigned_atp_id];
+        void (0, pushService_1.notifyOfficers)(assignedOfficers, {
+            title: "Statutory Case Closed",
+            body: `Case ${actualCaseId} closed by ${req.user?.name}: ${closureReason}`,
+            tag: `case-${actualCaseId}-closed`,
+            url: `/cases/${encodeURIComponent(actualCaseId)}`,
+        });
+        res.json({
+            success: true,
+            message: "Case successfully closed under statutory authority.",
+            caseId: actualCaseId,
+            closure: closureResult.rows[0],
+        });
+    }
+    catch (error) {
+        console.error("[Cases] Error closing case:", error);
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || "Failed to close case.",
+        });
+    }
+});
+// ── GET /api/notices/check ───────────────────────────────────────────────────
+router.get("/notices/check", async (req, res) => {
+    const noticeNumber = String(req.query.noticeNumber || "").trim();
+    if (!noticeNumber) {
+        res.json({ success: true, exists: false });
+        return;
+    }
+    try {
+        const result = await database_1.pool.query("SELECT * FROM notices WHERE LOWER(notice_number) = LOWER($1) LIMIT 1", [noticeNumber]);
+        if (result.rows.length > 0) {
+            res.json({
+                success: true,
+                exists: true,
+                notice: result.rows[0],
+            });
+        }
+        else {
+            res.json({
+                success: true,
+                exists: false,
+            });
+        }
+    }
+    catch (error) {
+        console.error("[Notices] Error checking notice number:", error);
+        res.status(500).json({ success: false, message: "Error checking notice number." });
+    }
+});
 // ── GET /api/cases/:caseId/construction-status ─────────────────────────────────
 router.get("/cases/:caseId/construction-status", async (req, res) => {
     const caseId = (Array.isArray(req.params.caseId) ? req.params.caseId[0] : String(req.params.caseId || "")).trim();
     try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const caseCheck = await database_1.pool.query("SELECT block FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [caseId]);
+        if (assignedBlocks !== null && caseCheck.rows.length > 0) {
+            if (!(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+                res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+                return;
+            }
+        }
         // Fetch construction summary
         const summaryResult = await database_1.pool.query("SELECT * FROM case_construction_summary WHERE LOWER(case_id) = LOWER($1) ORDER BY construction_status_id DESC LIMIT 1", [caseId]);
         // Fetch notices (Section 269)
@@ -630,11 +875,18 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
         });
         return;
     }
-    // Connect DB client for transaction
     const client = await database_1.pool.connect();
     try {
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
         // 1. Check or ensure case exists
         const caseCheck = await client.query("SELECT * FROM cases WHERE LOWER(case_id) = LOWER($1) LIMIT 1", [rawCaseId]);
+        if (assignedBlocks !== null && caseCheck.rows.length > 0) {
+            if (!(0, accessControl_1.isBlockAssigned)(caseCheck.rows[0].block, assignedBlocks)) {
+                client.release();
+                res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+                return;
+            }
+        }
         let actualCaseId = rawCaseId;
         let previousStatus = "Open";
         if (caseCheck.rows.length === 0) {
@@ -740,19 +992,30 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
         const existingNonCompoundable = existingPartsRes.rows.find(p => p.part_type === 'non_compoundable');
         let compoundableCompleted = existingCompoundable?.part_status === 'completed';
         let nonCompoundableCompleted = existingNonCompoundable?.part_status === 'completed';
+        if (compoundableCompleted) {
+            if (status === "compoundable" || (status === "partly_compoundable" && body.compoundableType?.trim() === "compoundable")) {
+                await client.query("ROLLBACK");
+                client.release();
+                res.status(400).json({
+                    success: false,
+                    message: "Compoundable section is already completed and immutable."
+                });
+                return;
+            }
+        }
         const compoundableType = body.compoundableType?.trim() || "full";
         const processCompoundable = status === "compoundable" ||
             (status === "partly_compoundable" && (compoundableType === "full" || compoundableType === "compoundable"));
         const processNonCompoundable = status === "non_compoundable" ||
             (status === "partly_compoundable" && (compoundableType === "full" || compoundableType === "non_compoundable"));
         // 4. Handle Compoundable section
-        if (processCompoundable) {
+        if (processCompoundable && !compoundableCompleted) {
             const rawAssessment = body.assessmentStatus?.trim().toLowerCase();
             const assessmentStatus = rawAssessment === "pending" ? "pending" : "assessed";
-            const totalCharges = body.totalCharges ? parseFloat(body.totalCharges) : null;
-            const assessmentDate = body.assessmentDate?.trim() || null;
-            const receiptNumber = body.receiptNumber?.trim() || null;
-            const receiptDate = body.receiptDate?.trim() || null;
+            const totalCharges = body.totalCharges && !isNaN(parseFloat(body.totalCharges)) ? parseFloat(body.totalCharges) : null;
+            const assessmentDate = body.assessmentDate?.trim() ? body.assessmentDate.trim() : null;
+            const receiptNumber = body.receiptNumber?.trim() ? body.receiptNumber.trim() : null;
+            const receiptDate = body.receiptDate?.trim() ? body.receiptDate.trim() : null;
             const partStatus = assessmentStatus === "assessed" ? "completed" : "pending";
             await client.query(`INSERT INTO construction_parts (
               construction_status_id, part_type, part_status, assessment_status,
@@ -793,25 +1056,49 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
         const rawNoticeDate = body.noticeDate?.trim();
         const hasNoticeData = Boolean(rawNoticeNumber || rawNoticeDate || noticePhoto);
         if (processNonCompoundable && (status === "non_compoundable" || hasNoticeData)) {
-            const noticeNumber = rawNoticeNumber || `MCL/SEC269/${Date.now().toString().slice(-6)}`;
-            const noticeDate = rawNoticeDate || new Date().toISOString();
-            const noticeInsert = await client.query(`INSERT INTO notices (
-             case_id, notice_type, notice_number, issued_by_id, issued_by_name,
-             issued_at, enforcement_path, document_name, drive_file_id, drive_file_url,
-             metadata
-           ) VALUES ($1, '269', $2, $3, $4, $5, 'demolition_sealing', $6, $7, $8, $9)
-           RETURNING notice_id`, [
-                actualCaseId,
-                noticeNumber,
-                officerId,
-                officerName,
-                noticeDate,
-                noticeDocumentName || null,
-                noticeDriveId || null,
-                noticeDriveUrl || null,
-                JSON.stringify({ noticeType: "269", constructionType: status, generatedVia: "field_inspection" })
-            ]);
-            notice269Id = noticeInsert.rows[0].notice_id;
+            const existing269 = await client.query(`SELECT notice_id FROM notices WHERE LOWER(case_id) = LOWER($1) AND notice_type = '269' LIMIT 1`, [actualCaseId]);
+            if ((existing269.rowCount ?? 0) > 0) {
+                const isFullyHandled = status === "non_compoundable" || (status === "partly_compoundable" && compoundableCompleted && nonCompoundableCompleted);
+                if (isFullyHandled) {
+                    await client.query("ROLLBACK");
+                    client.release();
+                    res.status(400).json({
+                        success: false,
+                        message: "Section 269 notice has already been issued and is immutable for this fully handled case."
+                    });
+                    return;
+                }
+                notice269Id = existing269.rows[0].notice_id;
+            }
+            else {
+                const noticeNumber = rawNoticeNumber || `MCL/SEC269/${Date.now().toString().slice(-6)}`;
+                const noticeDate = rawNoticeDate || new Date().toISOString();
+                const noticeInsert = await client.query(`INSERT INTO notices (
+               case_id, notice_type, notice_number, issued_by_id, issued_by_name,
+               issued_at, enforcement_path, document_name, drive_file_id, drive_file_url,
+               metadata
+             ) VALUES ($1, '269', $2, $3, $4, $5, 'demolition_sealing', $6, $7, $8, $9)
+             RETURNING notice_id`, [
+                    actualCaseId,
+                    noticeNumber,
+                    officerId,
+                    officerName,
+                    noticeDate,
+                    noticeDocumentName || null,
+                    noticeDriveId || null,
+                    noticeDriveUrl || null,
+                    JSON.stringify({ noticeType: "269", constructionType: status, generatedVia: "field_inspection" })
+                ]);
+                notice269Id = noticeInsert.rows[0].notice_id;
+                if (caseCheck.rows[0]?.assigned_atp_id) {
+                    void (0, pushService_1.notifyOfficer)(caseCheck.rows[0].assigned_atp_id, {
+                        title: "Section 269 Notice Issued",
+                        body: `Notice ${noticeNumber} issued for Case ${actualCaseId}`,
+                        tag: `case-${actualCaseId}-notice-269`,
+                        url: `/cases/${encodeURIComponent(actualCaseId)}`,
+                    });
+                }
+            }
             const nonCompoundablePartStatus = "completed";
             await client.query(`INSERT INTO construction_parts (
               construction_status_id, part_type, part_status, notice_id,
@@ -946,6 +1233,13 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
 router.get("/complaints/:complaintId/files", async (req, res) => {
     try {
         const complaintId = req.params.complaintId;
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        const complaints = await (0, complaintStorage_1.getComplaints)();
+        const complaint = complaints.find((c) => c.complaintId === complaintId);
+        if (complaint && assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(complaint.block, assignedBlocks)) {
+            res.status(403).json({ success: false, message: "Forbidden: Access restricted to assigned blocks only." });
+            return;
+        }
         const files = await (0, driveService_1.listComplaintDriveFiles)(complaintId);
         res.json({
             success: true,
@@ -1069,10 +1363,11 @@ router.post("/complaints/process-source", handleUpload, async (req, res) => {
     }
     catch (error) {
         console.error("[OCR] Source processing failed:", error);
+        const message = error instanceof Error ? error.message : "Failed to process the uploaded source document.";
         res.status(500).json({
             success: false,
             status: "failed",
-            message: "Failed to process the uploaded source document.",
+            message,
         });
     }
 });
@@ -1255,10 +1550,11 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
         const sourceOfReport = body.sourceOfReport?.trim();
         const inspectionOutcome = body.inspectionOutcome?.trim();
         if (inspectionOutcome !== "no_violation" &&
-            inspectionOutcome !== "violation_found") {
+            inspectionOutcome !== "violation_found" &&
+            inspectionOutcome !== "complete_violated") {
             res.status(400).json({
                 success: false,
-                message: "inspectionOutcome must be no_violation or violation_found.",
+                message: "inspectionOutcome must be no_violation, violation_found, or complete_violated.",
             });
             return;
         }
@@ -1283,6 +1579,14 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
             res.status(400).json({
                 success: false,
                 message: "Block is required.",
+            });
+            return;
+        }
+        const assignedBlocks = await (0, accessControl_1.getUserAssignedBlocks)(req.user);
+        if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(block, assignedBlocks)) {
+            res.status(403).json({
+                success: false,
+                message: "Forbidden: You are not assigned to the selected block.",
             });
             return;
         }
@@ -1453,6 +1757,17 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
             body.noticeDate?.trim() ||
             noticePhotos.length > 0);
         if (inspectionOutcome === "violation_found") {
+            const targetComplaintId = body.complaintId?.trim() || null;
+            if (targetComplaintId) {
+                const existing270 = await database_1.pool.query(`SELECT n.notice_id FROM notices n JOIN case_complaints cc ON n.case_id = cc.case_id WHERE cc.complaint_id = $1 AND n.notice_type = '270' LIMIT 1`, [targetComplaintId]);
+                if ((existing270.rowCount ?? 0) > 0) {
+                    res.status(400).json({
+                        success: false,
+                        message: "Section 270 notice has already been issued for this case and cannot be modified or re-submitted."
+                    });
+                    return;
+                }
+            }
             if (!body.noticeNumber?.trim() ||
                 !body.noticeDate?.trim() ||
                 noticePhotos.length === 0) {
@@ -1463,10 +1778,13 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 return;
             }
         }
+        else if (inspectionOutcome === "complete_violated") {
+            // Complete & Violated no longer requires or processes notices during inspection submission.
+        }
         else if (hasNoticeData) {
             res.status(400).json({
                 success: false,
-                message: "A Section 270 notice can only be recorded when violation is found.",
+                message: "A notice can only be recorded when violation is found or complete & violated.",
             });
             return;
         }
@@ -1509,7 +1827,8 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
          * A proactive field inspection starts a case.
          */
         let caseId = null;
-        if (inspectionOutcome === "violation_found") {
+        if (inspectionOutcome === "violation_found" ||
+            inspectionOutcome === "complete_violated") {
             caseId = await generateCaseId();
             const caseSourceType = sourceOfReport === "complaint"
                 ? "complaint"
@@ -1517,6 +1836,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
             const primaryComplaintId = sourceOfReport === "complaint"
                 ? complaintId
                 : null;
+            const initialCaseStatus = "Open";
             await database_1.pool.query(`
             INSERT INTO cases (
               case_id,
@@ -1552,7 +1872,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
               $12,
               $13,
               $14,
-              'Open',
+              $15,
               NOW(),
               NOW()
             )
@@ -1571,6 +1891,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 reportingOfficer.name,
                 atp?.officerId ?? null,
                 atp?.name ?? null,
+                initialCaseStatus,
             ]);
             /*
              * Link complaint-based violations to the case.
@@ -1737,8 +2058,9 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
    * - notice photo exists
    * - inspection is case-based
    */
-        if (hasNoticeData) {
+        if (hasNoticeData && inspectionOutcome !== "complete_violated") {
             const uploadedNotice = await (0, driveService_1.uploadInspectionNoticeFile)(parentType, parentId, visitId, noticePhotos[0]);
+            const noticeType = "270";
             await database_1.pool.query(`
       INSERT INTO notices (
         case_id,
@@ -1755,7 +2077,6 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
       )
       VALUES (
         $1,
-        '270',
         $2,
         $3,
         $4,
@@ -1763,11 +2084,13 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
         $6,
         $7,
         $8,
-        $9::jsonb,
+        $9,
+        $10::jsonb,
         NOW()
       )
     `, [
                 caseId,
+                noticeType,
                 body.noticeNumber.trim(),
                 reportingOfficer.officerId,
                 reportingOfficer.name,
@@ -1778,8 +2101,18 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 JSON.stringify({
                     source: "field_inspection",
                     visitId,
+                    inspectionOutcome,
                 }),
             ]);
+            // Web Push notification to supervising Assistant Town Planner (ATP)
+            if (atp?.officerId && caseId) {
+                void (0, pushService_1.notifyOfficer)(atp.officerId, {
+                    title: "Section 270 Notice Issued",
+                    body: `Notice ${body.noticeNumber.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
+                    tag: `case-${caseId}-notice-270`,
+                    url: `/cases/${encodeURIComponent(caseId)}`,
+                });
+            }
         }
         /*
          * ------------------------------------------------------

@@ -15,6 +15,7 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
 import { useCountUp } from "../../shared/hooks/useCountUp";
+import { useAuth } from "../../context/AuthContext";
 
 type DashboardPageProps = {
   navigate: (route: string) => void;
@@ -86,6 +87,8 @@ const currentMonth = new Intl.DateTimeFormat("en-IN", {
 
 /* ─── Component ─── */
 function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps) {
+  const { user } = useAuth();
+  const isBI = (user?.role || "").toLowerCase() === "bi";
   const [data, setData] = useState<DashboardData>(INITIAL_DATA);
 
   useEffect(() => {
@@ -287,8 +290,156 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
     document.body.removeChild(link);
   };
 
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  })();
+
+  const formattedToday = new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date());
+
   return (
     <div className="db-page">
+      {/* ─── Mobile View (Screenshots 1 & 4) ─── */}
+      <div className="mobile-only">
+        {/* Greeting Banner with Heritage Skyline */}
+        <div className="mobile-greeting-card">
+          <img
+            src="/ludhiana-illustration.png"
+            alt="Ludhiana Skyline"
+            className="mobile-greeting-card__bg"
+          />
+          <div className="mobile-greeting-card__time">
+            <span>{greeting}</span> • <span>{formattedToday}</span>
+          </div>
+          <div className="mobile-greeting-card__user">
+            {user?.name || "Super Admin"}
+          </div>
+        </div>
+
+        {/* 2x2 Metric Cards (Section 4) */}
+        <div className="mobile-kpi-grid">
+          <div className="mobile-kpi-card">
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--blue">
+              <Icon name="file" size={20} />
+            </div>
+            <div className="mobile-kpi-card__label">Complaints</div>
+            <div className="mobile-kpi-card__value">{data.kpi.totalComplaints}</div>
+          </div>
+
+          <div className="mobile-kpi-card">
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--green">
+              <Icon name="pin" size={20} />
+            </div>
+            <div className="mobile-kpi-card__label">Field Visits</div>
+            <div className="mobile-kpi-card__value">{data.kpi.totalFieldVisits}</div>
+          </div>
+
+          <div className="mobile-kpi-card">
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--orange">
+              <Icon name="folder" size={20} />
+            </div>
+            <div className="mobile-kpi-card__label">Cases</div>
+            <div className="mobile-kpi-card__value">{data.kpi.totalCases}</div>
+          </div>
+
+          <div className="mobile-kpi-card">
+            <div className="mobile-kpi-card__icon mobile-kpi-card__icon--purple">
+              <Icon name="check-circle" size={20} />
+            </div>
+            <div className="mobile-kpi-card__label">Resolved</div>
+            <div className="mobile-kpi-card__value">{data.kpi.resolvedCases}</div>
+          </div>
+        </div>
+
+        {/* Quick Actions (2x2 Grid) */}
+        <div style={{ marginBottom: "8px", fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
+          Quick Actions
+        </div>
+        <div className="mobile-quick-actions">
+          <button
+            type="button"
+            className="mobile-quick-action-btn"
+            onClick={() => navigate("/complaints/new")}
+          >
+            <div className="mobile-quick-action-icon">
+              <Icon name="plus" size={18} />
+            </div>
+            <span>Register Complaint</span>
+          </button>
+          <button
+            type="button"
+            className="mobile-quick-action-btn"
+            onClick={() => navigate("/field-inspection")}
+          >
+            <div className="mobile-quick-action-icon">
+              <Icon name="search" size={18} />
+            </div>
+            <span>Start Inspection</span>
+          </button>
+          <button
+            type="button"
+            className="mobile-quick-action-btn"
+            onClick={() => navigate("/cases")}
+          >
+            <div className="mobile-quick-action-icon">
+              <Icon name="folder" size={18} />
+            </div>
+            <span>View Cases</span>
+          </button>
+          <button
+            type="button"
+            className="mobile-quick-action-btn"
+            onClick={() => navigate("/officers")}
+          >
+            <div className="mobile-quick-action-icon">
+              <Icon name="users" size={18} />
+            </div>
+            <span>Officers</span>
+          </button>
+        </div>
+
+        {/* Needs Attention Card */}
+        <div className="mobile-attention-card">
+          <div className="mobile-attention-header">
+            <span className="mobile-attention-title">Needs Attention</span>
+            <button
+              type="button"
+              className="mobile-attention-view-all"
+              onClick={() => navigate("/complaints")}
+            >
+              View All
+            </button>
+          </div>
+          <div className="mobile-attention-list">
+            {attentionItems.map((item) => (
+              <div
+                key={item.label}
+                className="mobile-attention-item"
+                onClick={() => navigate(item.route)}
+              >
+                <div className="mobile-attention-left">
+                  <span
+                    className="mobile-attention-dot"
+                    style={{ backgroundColor: item.dotColor }}
+                  />
+                  <span>{item.label}</span>
+                </div>
+                <span className="mobile-attention-count">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Desktop View (Preserved Existing UI) ─── */}
+      <div className="desktop-only">
       {/* Page header */}
       <div className="db-page__header">
         <div>
@@ -586,7 +737,9 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                 Recent Complaints
               </h3>
               <p className="db-recent-card__subtitle">
-                Latest complaints requiring Building Branch attention
+                {isBI
+                  ? "Latest complaints assigned to you"
+                  : "Latest complaints requiring Building Branch attention"}
               </p>
             </div>
             <button
@@ -614,7 +767,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
                     colSpan={5}
                     style={{ textAlign: "center", padding: "24px", color: "var(--muted)" }}
                   >
-                    No complaints found
+                    {isBI ? "No complaints assigned to you yet" : "No complaints found"}
                   </td>
                 </tr>
               ) : (
@@ -646,6 +799,7 @@ function DashboardPage({ navigate, setSelectedComplaintId }: DashboardPageProps)
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );

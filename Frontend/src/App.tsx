@@ -8,12 +8,19 @@ import { useRouter } from "./shared/hooks/useRouter";
 import { useAuth } from "./context/AuthContext";
 import LoginScreen from "./features/auth/LoginScreen";
 
+// Notifications
+import { usePushNotifications } from "./hooks/usePushNotifications";
+
 // Types
 import type { AppComplaint } from "./shared/types";
 
 // Layout
 import Topbar from "./layout/Topbar";
 import Sidebar from "./layout/Sidebar";
+import MobileHeader from "./layout/MobileHeader";
+import MobileNavDrawer from "./layout/MobileNavDrawer";
+import MobileBottomNav from "./layout/MobileBottomNav";
+import { useBreakpoint } from "./shared/hooks/useBreakpoint";
 
 // Dashboard
 import DashboardPage from "./features/dashboard/DashboardPage";
@@ -36,6 +43,8 @@ import CasesPage from "./pages/CasesPage";
 import CaseDetailPage from "./pages/CaseDetailPage";
 import FieldInspectionPage from "./pages/FieldInspectionPage";
 import ConstructionStatusForm from "./pages/ConstructionStatusForm";
+import EnforcementActionForm from "./pages/EnforcementActionForm";
+import ProfilePage from "./pages/ProfilePage";
 
 // Shared
 import ComingSoonPage from "./shared/components/ComingSoonPage";
@@ -77,9 +86,9 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
     return ["bi", "atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
   }
 
-  // /officers → allowed: atp, mtp, jc, superadmin
+  // /officers → allowed: bi, atp, mtp, jc, superadmin
   if (currentRoute === "/officers" || currentRoute.startsWith("/officers/")) {
-    return ["atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
+    return ["bi", "atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
   }
 
   // /settings → allowed: superadmin
@@ -92,19 +101,28 @@ const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean =
     return normRole === "superadmin";
   }
 
-  // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
-  // /complaints/new, /complaints, / (dashboard), etc. → allowed: all roles
+  // /complaints/new (and sub-routes) → not allowed for BI
+  if (currentRoute === "/complaints/new" || currentRoute.startsWith("/complaints/new/")) {
+    return normRole !== "bi";
+  }
+
+  // /complaints, / (dashboard), etc. → allowed: all roles
   return true;
 };
 
 function App() {
   const { route, navigate } = useRouter();
   const { user, isLoading, logout } = useAuth();
+  const { isMobile } = useBreakpoint();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [, setSelectedComplaintId] = useState("");
+
+  // Push notifications registration for officers
+  usePushNotifications();
 
   // Route matching helpers
   const getCaseIdFromRoute = (): string | null => {
-    const match = route.match(/^\/cases\/([^/]+)(?:\/construction-status)?$/);
+    const match = route.match(/^\/cases\/([^/]+)(?:\/(?:construction-status|enforcement))?$/);
     return match ? decodeURIComponent(match[1]) : null;
   };
 
@@ -267,6 +285,15 @@ function App() {
 
     // Case detail
     if (route.startsWith("/cases/") && caseIdFromRoute) {
+      // Check if it's the enforcement action route
+      if (route.endsWith("/enforcement")) {
+        return (
+          <EnforcementActionForm
+            caseId={caseIdFromRoute}
+            navigate={navigate}
+          />
+        );
+      }
       return (
         <CaseDetailPage
           caseId={caseIdFromRoute}
@@ -298,6 +325,11 @@ function App() {
     // Officers
     if (route === "/officers") {
       return <OfficersPage />;
+    }
+
+    // Officer Profile
+    if (route === "/profile") {
+      return <ProfilePage navigate={navigate} onLogout={logout} />;
     }
 
     // Settings
@@ -333,28 +365,58 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
-      <Topbar
-        userName={user.name}
-        userRole={user.role}
-        onLogout={logout}
-      />
+    <div className={`app-shell ${isMobile ? "app-shell--mobile" : "app-shell--desktop"}`}>
+      {isMobile ? (
+        <MobileHeader
+          userName={user.name}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+          onNavigate={navigate}
+        />
+      ) : (
+        <Topbar
+          userName={user.name}
+          userRole={user.role}
+          onLogout={logout}
+          navigate={navigate}
+        />
+      )}
 
       <div className="app-workspace">
-        <Sidebar
-          route={route}
-          userRole={user.role}
-          userName={user.name}
-          navigate={navigate}
-          onLogout={logout}
-        />
+        {!isMobile && (
+          <Sidebar
+            route={route}
+            userRole={user.role}
+            userName={user.name}
+            navigate={navigate}
+            onLogout={logout}
+          />
+        )}
 
-        <div className="app-content">
+        <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
           <main className="page-shell">
             {renderPage()}
           </main>
         </div>
       </div>
+
+      {isMobile && (
+        <>
+          <MobileNavDrawer
+            isOpen={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+            route={route}
+            userRole={user.role}
+            userName={user.name}
+            navigate={navigate}
+            onLogout={logout}
+          />
+          <MobileBottomNav
+            currentRoute={route}
+            navigate={navigate}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
+          />
+        </>
+      )}
     </div>
   );
 }

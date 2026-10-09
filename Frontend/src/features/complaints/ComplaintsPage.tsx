@@ -5,6 +5,7 @@ import { locationData } from "../../data/locationData";
 import { useEffect, useMemo, useState } from "react";
 import { getComplaintAction } from "../../shared/utils/complaintNavigation";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
+import { useAuth } from "../../context/AuthContext";
 
 const ALL_STATUSES = [
   "Registered",
@@ -42,6 +43,8 @@ function isResolved(status: string): boolean {
 }
 
 function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsPageProps) {
+  const { user } = useAuth();
+  const isBI = (user?.role || "").toLowerCase() === "bi";
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [search, setSearch] = useState("");
   const [zone, setZone] = useState("All zones");
@@ -155,50 +158,69 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
 
   return (
     <div className="panel panel--table">
-      <div className="complaints-page-header">
+      {/* ─── Mobile Sub-header ─── */}
+      <div className="mobile-only mobile-sub-header">
+        <h1 className="mobile-page-title">Complaints</h1>
+        <div className="mobile-sub-actions">
+          {!isBI && (
+            <button
+              type="button"
+              className="mobile-circle-btn"
+              onClick={() => navigate("/complaints/new")}
+              aria-label="Register Complaint"
+            >
+              <Icon name="plus" size={18} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="complaints-page-header desktop-only">
         <div>
           <h2 className="complaints-page-title">Complaints & Applications</h2>
           <p className="complaints-page-subtitle">Track, assign, and register building violation complaints</p>
         </div>
-        <button
-          className="primary-button small-button complaints-create-btn"
-          type="button"
-          onClick={() => navigate("/complaints/new")}
-        >
-          <Icon name="plus" /> Register New Complaint
-        </button>
+        {!isBI && (
+          <button
+            className="primary-button small-button complaints-create-btn"
+            type="button"
+            onClick={() => navigate("/complaints/new")}
+          >
+            <Icon name="plus" /> Register New Complaint
+          </button>
+        )}
       </div>
 
-      {/* Category Tabs */}
-      <div style={{ marginBottom: "16px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-        <div className="source-type-tabs">
+      {/* Category Tabs (Desktop & Mobile Pills) */}
+      <div style={{ marginBottom: "12px" }}>
+        <div className="mobile-pill-tabs">
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "all" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "all" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("all")}
           >
-            All Complaints ({categoryCounts.all})
+            All ({categoryCounts.all})
           </button>
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "unassigned" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "unassigned" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("unassigned")}
           >
-            Active / Unassigned ({categoryCounts.unassigned})
+            Active ({categoryCounts.unassigned})
           </button>
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "assigned_case" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "assigned_case" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("assigned_case")}
           >
-            Assigned / Converted to Case ({categoryCounts.assigned_case})
+            Assigned ({categoryCounts.assigned_case})
           </button>
           <button
             type="button"
-            className={`source-type-tab ${categoryTab === "resolved" ? "source-type-tab--active" : ""}`}
+            className={`mobile-pill-tab ${categoryTab === "resolved" ? "mobile-pill-tab--active" : ""}`}
             onClick={() => setCategoryTab("resolved")}
           >
-            Resolved / Closed ({categoryCounts.resolved})
+            Resolved ({categoryCounts.resolved})
           </button>
         </div>
       </div>
@@ -206,17 +228,66 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
       <div className="complaints-toolbar">
         <div className="complaints-filters">
           <div className="search-box complaints-search">
-            <Icon name="search" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} type="text" placeholder="Complaint ID, case, citizen, block" />
+            <Icon name="search" size={16} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} type="text" placeholder="Search complaint ID, citizen..." />
           </div>
           <select value={zone} onChange={(event) => handleZoneChange(event.target.value)}>{zones.map((item) => <option key={item}>{item}</option>)}</select>
           <select value={block} onChange={(event) => handleBlockChange(event.target.value)}>{blocks.map((item) => <option key={item}>{item}</option>)}</select>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>{statuses.map((item) => <option key={item}>{item}</option>)}</select>
-          <button className="secondary-button small-button complaints-export" type="button">
+          <button className="secondary-button small-button complaints-export desktop-only" type="button">
             <Icon name="download"/>Export CSV</button>
         </div>
       </div>
 
+      {/* ─── Mobile Card Feed ─── */}
+      <div className="mobile-only mobile-card-feed">
+        {loading && <div style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>Loading complaints...</div>}
+        {!loading && error && <div style={{ textAlign: "center", padding: "20px", color: "#dc2626" }}>{error}</div>}
+        {!loading && !error && visibleComplaints.length === 0 && (
+          <div style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>No complaints match the selected filters.</div>
+        )}
+        {!loading && !error && visibleComplaints.map((complaint) => {
+          const action = getComplaintAction(complaint);
+          const formattedDate = new Date(complaint.createdAt).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          });
+          return (
+            <div
+              key={complaint.complaintId}
+              className="mobile-feed-card"
+              onClick={() => {
+                setSelectedComplaintId(complaint.complaintId);
+                navigate(action.route);
+              }}
+            >
+              <div className="mobile-feed-card__header">
+                <span className="mobile-feed-card__id">{complaint.complaintId}</span>
+                <span className="mobile-feed-card__date">{formattedDate}</span>
+              </div>
+              <div className="mobile-feed-card__title">{complaint.citizenName}</div>
+              <div className="mobile-feed-card__meta-row">
+                <Icon name="pin" size={15} />
+                <span>{complaint.block ? `${complaint.block} • ` : ""}{complaint.zone}</span>
+              </div>
+              <div className="mobile-feed-card__meta-row">
+                <Icon name="user" size={15} />
+                <span>{complaint.assignedOfficerName ?? "Pending assignment"}</span>
+              </div>
+              <div className="mobile-feed-card__footer">
+                <StatusBadge status={complaint.status} />
+                <span className="mobile-feed-card__chevron">
+                  <Icon name="chevron-right" size={16} />
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── Desktop Table (Preserved Existing UI) ─── */}
+      <div className="desktop-only">
       <table className="data-table">
         <thead>
           <tr>
@@ -308,6 +379,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

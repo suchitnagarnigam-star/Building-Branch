@@ -1,5 +1,63 @@
 [
   {
+    "complaintId": "95040620916276",
+    "registrationSource": "document",
+    "citizenName": "news",
+    "phoneNumber": "7986221208",
+    "zone": "Zone A",
+    "block": "Block 2",
+    "address": "Ludhiana, Building Branch",
+    "title": "Illegal Buildings and Unauthorized Construction - CLU Violations",
+    "description": "A news report highlighting the issue of illegal and unauthorized buildings in Ludhiana. Complaints have been raised that buildings are being constructed without proper CLU (Change of Land Use) approval and without compliance with building bylaws. The Building Inspection department has reportedly been receiving complaints about unauthorized residential building plans being approved or overlooked. Citizens are questioning why action is not being taken against illegal constructions. A phone number 7986221208 is mentioned in the article in connection with the complaints or the building inspection authority.",
+    "attachments": [
+      {
+        "fileName": "pbi-news-complaint.jpeg",
+        "fileType": "image/jpeg",
+        "category": "source",
+        "index": 1
+      }
+    ],
+    "driveFolderUrl": "https://drive.google.com/drive/folders/1ftUCQfRHNSHbmY5qj75jjOCmaxraShZW",
+    "assignedOfficerId": "OFF-002",
+    "assignedOfficerName": "Sh. Gurwinder Singh",
+    "assignedOfficerMobile": "96461-89006",
+    "assignedAtpId": "OFF-001",
+    "assignedAtpName": "Sh. Kapil Dev",
+    "assignedAtpMobile": "90410-22742",
+    "status": "Registered",
+    "createdAt": "2026-10-05T05:59:15.810Z",
+    "submittedByUserId": 7
+  },
+  {
+    "complaintId": "20579084675996",
+    "registrationSource": "manual",
+    "citizenName": "Deep Kaur",
+    "phoneNumber": "9876543219",
+    "zone": "Zone D",
+    "block": "Block 1",
+    "address": "hbfhb jndcskjvfjvld jckjwjkk",
+    "title": "morning complaint",
+    "description": "5th oct complaint",
+    "attachments": [
+      {
+        "fileName": "unauthorized building.jpg",
+        "fileType": "image/jpeg",
+        "category": "pre",
+        "index": 1
+      }
+    ],
+    "driveFolderUrl": "https://drive.google.com/drive/folders/1s9pRcSeYHhUs8Vj4l192ybyZUbZlWCAD",
+    "assignedOfficerId": "OFF-012",
+    "assignedOfficerName": "Sh. Ravinder Walia",
+    "assignedOfficerMobile": "98551-99191",
+    "assignedAtpId": "OFF-009",
+    "assignedAtpName": "Sh. Raj Kumar",
+    "assignedAtpMobile": "9814245882",
+    "status": "Registered",
+    "createdAt": "2026-10-05T05:30:41.864Z",
+    "submittedByUserId": 7
+  },
+  {
     "complaintId": "MCL-BB-0001",
     "registrationSource": "manual",
     "citizenName": "Arshdeep Kaur",

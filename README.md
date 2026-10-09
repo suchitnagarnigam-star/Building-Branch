@@ -6,12 +6,12 @@ MCL-BB is an internal complaint-management application for the Municipal Corpora
 
 - Frontend: React 19, TypeScript, Vite, custom CSS
 - Backend: Node.js, Express 5, TypeScript
-- Authentication: JWT (JSON Web Tokens), bcrypt PIN/password hashing, AuthContext with global fetch interceptor
-- Database: PostgreSQL through `pg`
+- Authentication & RBAC: JWT (JSON Web Tokens) with 365-day persistent login sessions, bcrypt PIN/password hashing, AuthContext with global fetch interceptor, and block-level access control (`server/services/accessControl.ts`)
+- Database: PostgreSQL through `pg` (with Neon cloud pooling)
 - Development runtime: `tsx`
-- File storage: Google Drive API (per-complaint folders & file uploads; temporary staging in `server/uploads/`)
+- File storage: Google Drive API (per-complaint folders, case demolition evidence, & file uploads; temporary staging in `server/uploads/`)
 - Integrations: Google Sheets sync, Google Drive service
-- OCR: Mistral OCR
+- OCR: Dual-engine pipeline — Mistral OCR (primary) with local `tesseract.js` (images) and `pdf-parse` (PDFs) fallbacks
 - Complaint extraction: Anthropic Claude structured JSON output
 
 ## Run locally
@@ -36,7 +36,7 @@ The backend runs at `http://localhost:5000`.
 
 ## Authoritative Statutory Enforcement Workflow (`workflow.pdf`)
 
-For full product specifications, legal citations, and architecture, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md) and [`docs/implementation_plan.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/implementation_plan.md).
+For full product specifications, legal citations, and architecture, see [`docs/MASTER.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/MASTER.md) and [`docs/context-handoff.md`](file:///mnt/Data/1YUVRAJ/program/MCL/building%20branch/docs/context-handoff.md).
 
 ```mermaid
 flowchart TD
@@ -183,31 +183,65 @@ Processing endpoints:
 - `/cases`
 - `/cases/:caseId`
 - `/cases/:caseId/construction-status`
+- `/cases/:caseId/enforcement`
 - `/construction-status`
 - `/field-inspection`
 - `/officers`
+- `/users`
 - `/settings`
+- `/profile` (Internal Officer Profile, posting details, PIN change, push alert test, and sign out)
 
 ## Backend API
 
+### Authentication & Authorization
 - `POST /api/auth/login` (JWT authentication & PIN verification)
 - `POST /api/auth/logout`
-- `GET /api/complaints` (requires Bearer token; includes subqueried `caseId`)
-- `GET /api/complaints/:complaintId`
+- `GET /api/auth/me`
+- `POST /api/auth/change-pin` (verifies current PIN, updates bcrypt hash, and issues fresh 365-day token)
+
+### Complaints & Intake
+- `GET /api/complaints` (requires Bearer token; block-scoped for BI/ATP; submitter-scoped for Desk Operators; includes subqueried `caseId`)
+- `GET /api/complaints/:complaintId` (block-scoped; returns 403 if outside assigned blocks for BI/ATP)
 - `GET /api/complaints/:complaintId/files`
 - `GET /api/complaints/:complaintId/files/:fileId`
-- `POST /api/complaints/:complaintId/assign` (promotes complaint to enforcement case)
-- `GET /api/cases`
-- `GET /api/cases/:caseId` (resolves by case_id, primary_complaint_id, or case_complaints)
-- `POST /api/cases/:caseId/construction-status`
+- `POST /api/complaints/source-upload`
+- `POST /api/complaints/process-source` (dual-engine OCR: Mistral OCR primary with local `tesseract.js` and `pdf-parse` fallbacks)
+- `POST /api/complaints/extract-source` (Claude 3.5 Sonnet structured JSON extraction)
+- `POST /api/complaints` (multipart complaint registration, Drive folder creation, & BI/ATP mapping)
+- `POST /api/complaints/:complaintId/assign` (promotes complaint to enforcement case `CASE-XXXXXXXXXXXX`)
+
+### Field Inspections & Notices
+- `POST /api/inspections` (geotagged inspection evidence; Section 270 notice recording; block-scoped; triggers push notification)
+- `GET /api/cases/:caseId/notices` (retrieves Section 270 and Section 269 notice records for a case)
+
+### Statutory Enforcement, Case Lifecycle & Closures
+- `GET /api/cases` (block-scoped search/list of enforcement cases)
+- `GET /api/cases/:caseId` (fully hydrated case record; block-scoped)
+- `GET /api/cases/:caseId/construction-status` (compoundable assessment & Section 269 notice status)
+- `POST /api/cases/:caseId/construction-status` (upserts section-level construction decisions & violator replies)
+- `POST /api/cases/:caseId/review-reply` (evaluates violator reply as valid or invalid with statutory status transition)
+- `POST /api/cases/:caseId/close` (statutory supervisory case closure with mandatory description and evidence)
+- `GET /api/cases/:caseId/enforcement` (retrieves recorded demolition details, cost recovery, stay orders, & Drive evidence files)
+- `POST /api/cases/:caseId/enforcement` (statutory demolition & enforcement action recording, Google Drive upload, & status transition)
+
+### Web Push Notifications (PWA)
+- `GET /api/push/vapid-public-key` (returns server VAPID public key for browser push subscription)
+- `POST /api/push/subscribe` (upserts officer device push subscription with unique constraints)
+- `DELETE /api/push/subscribe` (removes device endpoint from subscription table)
+- `POST /api/push/test` (dispatches test push notification to officer's registered device)
+
+### Analytics & Officer Operations
+- `GET /api/analytics/overview` (live operational KPI counts, complaint statuses, zone breakdowns, and statutory Needs Attention flags)
+- `GET /api/analytics/officers` (live officer inspection, notice, and case assignment metrics with ATP supervisory rollup by zone)
 - `GET /api/officers`
 - `GET /api/officers/roster`
 - `GET /api/officers/:officerId`
-- `POST /api/complaints/source-upload`
-- `POST /api/complaints/process-source`
-- `POST /api/complaints/extract-source`
-- `POST /api/complaints`
-- `POST /api/inspections`
+
+### Administration
+- `GET /api/users` (superadmin user list)
+- `POST /api/users` (superadmin create user)
+- `PUT /api/users/:userId` (superadmin update user)
+- `DELETE /api/users/:userId` (superadmin delete user)
 
 ## Layout
 

@@ -140,8 +140,50 @@ export default function CasesPage({ navigate }: CasesPageProps) {
 
   return (
     <div className="field-inspection-page" style={{ maxWidth: "1120px", margin: "0 auto", paddingBottom: "48px" }}>
-      {/* ── HEADER ── */}
-      <div className="field-inspection-page__intro" style={{ marginBottom: "20px" }}>
+      {/* ── MOBILE HEADER ── */}
+      <div className="mobile-only mobile-sub-header">
+        <h1 className="mobile-page-title">Enforcement Cases</h1>
+        <div className="mobile-sub-actions">
+          <button
+            type="button"
+            className="mobile-circle-btn"
+            onClick={() => navigate?.("/field-inspection")}
+            aria-label="New Inspection"
+          >
+            <Icon name="plus" size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── MOBILE STATUS PILL TABS (Screenshot 8) ── */}
+      <div className="mobile-only" style={{ marginBottom: "12px" }}>
+        <div className="mobile-pill-tabs">
+          <button
+            type="button"
+            className={`mobile-pill-tab ${lifecycleFilter === "all" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setLifecycleFilter("all")}
+          >
+            All ({totalCases})
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${lifecycleFilter === "active" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setLifecycleFilter("active")}
+          >
+            Active ({activeCount})
+          </button>
+          <button
+            type="button"
+            className={`mobile-pill-tab ${lifecycleFilter === "pending" ? "mobile-pill-tab--active" : ""}`}
+            onClick={() => setLifecycleFilter("pending")}
+          >
+            Pending ({pendingCount})
+          </button>
+        </div>
+      </div>
+
+      {/* ── DESKTOP HEADER (Preserved Existing UI) ── */}
+      <div className="field-inspection-page__intro desktop-only" style={{ marginBottom: "20px" }}>
         <div>
           <p className="eyebrow" style={{ textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.08em", color: "var(--accent)" }}>
             Building Enforcement Operations
@@ -174,8 +216,8 @@ export default function CasesPage({ navigate }: CasesPageProps) {
         </div>
       </div>
 
-      {/* ── STATS METRICS ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+      {/* ── STATS METRICS (Desktop Only) ── */}
+      <div className="desktop-only" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px", marginBottom: "20px" }}>
         <div className="inspection-card" style={{ margin: 0, padding: "16px" }}>
           <span style={{ fontSize: "12px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>Total Cases</span>
           <strong style={{ fontSize: "24px", color: "var(--text-primary)" }}>{totalCases}</strong>
@@ -274,7 +316,59 @@ export default function CasesPage({ navigate }: CasesPageProps) {
         </div>
       </section>
 
-      {/* ── CASES TABLE ── */}
+      {/* ── MOBILE CARD FEED (Screenshot 8) ── */}
+      <div className="mobile-only mobile-card-feed" style={{ marginBottom: "24px" }}>
+        {loading ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
+            Loading enforcement cases...
+          </div>
+        ) : error ? (
+          <div className="field-error" style={{ padding: "16px", borderRadius: "8px", background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
+            {error}
+          </div>
+        ) : filteredCases.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 16px", color: "var(--muted)" }}>
+            No cases match the selected filter criteria.
+          </div>
+        ) : (
+          filteredCases.map((c) => (
+            <div
+              key={c.case_id}
+              className="mobile-feed-card"
+              onClick={() => navigate?.(`/cases/${encodeURIComponent(c.case_id)}`)}
+            >
+              <div className="mobile-feed-card__header">
+                <span className="mobile-feed-card__id">{c.case_id}</span>
+                <span className={`status-pill status-pill--${isCaseSolved(c.current_status) ? "green" : "blue"}`}>
+                  {c.current_status || "Open"}
+                </span>
+              </div>
+              <div className="mobile-feed-card__title">
+                {c.building_identity || c.location || "Building Site"}
+              </div>
+              <div className="mobile-feed-card__meta-row">
+                <Icon name="pin" size={15} />
+                <span>{c.zone || "Zone"} • {c.block ? `Block ${c.block}` : "Block"}</span>
+              </div>
+              <div className="mobile-feed-card__meta-row">
+                <Icon name="user" size={15} />
+                <span>{c.assigned_bi_name || "Unassigned BI"}</span>
+              </div>
+              <div className="mobile-feed-card__footer">
+                <span style={{ fontSize: "11px", color: "#64748b" }}>
+                  Registered: {formatDate(c.created_at)}
+                </span>
+                <span className="mobile-feed-card__chevron">
+                  <Icon name="chevron-right" size={16} />
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ── CASES TABLE (Desktop Only) ── */}
+      <div className="desktop-only">
       {loading ? (
         <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
           Loading enforcement cases...
@@ -401,6 +495,7 @@ export default function CasesPage({ navigate }: CasesPageProps) {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }
