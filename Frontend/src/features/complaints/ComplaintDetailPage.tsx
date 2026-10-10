@@ -5,6 +5,7 @@ import type { AppComplaint } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
 import { getDriveFileProxyUrl } from "../../shared/utils/driveUrl";
 import ImageViewerModal from "../../shared/components/ImageViewerModal";
+import { useAuth } from "../../context/AuthContext";
 
 type DriveFile = {
   fileId: string;
@@ -37,6 +38,7 @@ type StoredComplaint = {
   ward?: string;
   address: string;
   description: string;
+  assignedOfficerId?: string | null;
   assignedOfficerName: string | null;
   assignedOfficerMobile: string | null;
   assignedAtpName: string | null;
@@ -47,6 +49,8 @@ type StoredComplaint = {
   caseId?: string | null;
   created_by?: { name: string; role: string } | null;
   createdBy?: { name: string; role: string } | null;
+  assignmentAcknowledgedAt?: string | null;
+  acknowledgedByOfficerId?: string | null;
 };
 
 const TIMELINE_STAGES = [
@@ -79,6 +83,8 @@ function readLocalComplaint(complaintId: string): StoredComplaint | null {
 }
 
 function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, navigate }: ComplaintDetailPageProps) {
+  const { user } = useAuth();
+  const isBI = (user?.role || "").toLowerCase() === "bi";
   const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "evidence" | "case">("overview");
   const [storedComplaint, setStoredComplaint] = useState<StoredComplaint | null>(
     () => readLocalComplaint(complaintId),
@@ -88,6 +94,13 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const [loading, setLoading] = useState(!storedComplaint);
   const [error, setError] = useState("");
   const [viewerImage, setViewerImage] = useState<{ url: string; title?: string } | null>(null);
+
+  const isAssignedToMe = Boolean(
+    storedComplaint?.assignedOfficerId &&
+    user?.officerId &&
+    storedComplaint.assignedOfficerId.trim().toUpperCase() === user.officerId.trim().toUpperCase()
+  );
+  const isAcknowledged = Boolean(storedComplaint?.assignmentAcknowledgedAt);
 
   const apiUrl = API_BASE_URL;
 
@@ -122,6 +135,43 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
       active = false;
     };
   }, [complaintId, apiUrl]);
+
+  // Auto-acknowledge assignment if viewed by the assigned BI
+  useEffect(() => {
+    if (!storedComplaint || !user?.officerId || !isBI) return;
+    const isMyAssignment = Boolean(
+      storedComplaint.assignedOfficerId &&
+      storedComplaint.assignedOfficerId.trim().toUpperCase() === user.officerId.trim().toUpperCase()
+    );
+
+    if (isMyAssignment && !storedComplaint.assignmentAcknowledgedAt) {
+      const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+      fetch(`${apiUrl}/complaints/${encodeURIComponent(complaintId)}/acknowledge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.assignmentAcknowledgedAt) {
+            setStoredComplaint((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    assignmentAcknowledgedAt: data.assignmentAcknowledgedAt,
+                    acknowledgedByOfficerId: user.officerId || null,
+                  }
+                : null
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn("[ComplaintDetail] Auto-acknowledgement notice:", err);
+        });
+    }
+  }, [complaintId, storedComplaint?.assignedOfficerId, storedComplaint?.assignmentAcknowledgedAt, user?.officerId, isBI, apiUrl]);
 
   useEffect(() => {
     let active = true;
@@ -261,10 +311,20 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
         <div className="mobile-hero-header">
           <div className="mobile-hero-header__top">
             <span className="mobile-hero-header__id">{complaint.id}</span>
-            <StatusBadge status={complaint.status} />
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              {isAssignedToMe && !isAcknowledged && (
+                <span className="badge-new-assignment">NEW</span>
+              )}
+              <StatusBadge status={complaint.status} />
+            </div>
           </div>
           <div className="mobile-hero-header__sub">
             Registered on {complaint.registered || "Recent"}
+            {isAssignedToMe && isAcknowledged && (
+              <span style={{ display: "inline-block", marginLeft: "8px", color: "#166534", fontSize: "11px", fontWeight: 600 }}>
+                • ✓ Acknowledged
+              </span>
+            )}
           </div>
         </div>
 
@@ -468,7 +528,17 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
         </button>
 
         <div className="detail-header">
-          <div className="detail-header__meta">{complaint.id}</div>
+          <div className="detail-header__meta" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>{complaint.id}</span>
+            {isAssignedToMe && !isAcknowledged && (
+              <span className="badge-new-assignment">NEW ASSIGNMENT</span>
+            )}
+            {isAssignedToMe && isAcknowledged && (
+              <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: "#dcfce7", color: "#166534", fontWeight: 600 }}>
+                ✓ Acknowledged
+              </span>
+            )}
+          </div>
           <h2>{complaint.title}</h2>
           <div className="detail-header__info">
             <StatusBadge status={complaint.status} />

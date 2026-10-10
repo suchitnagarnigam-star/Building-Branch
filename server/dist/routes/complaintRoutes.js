@@ -317,6 +317,17 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
         let caseId;
         if (existingCaseResult.rows.length > 0) {
             caseId = existingCaseResult.rows[0].case_id;
+            // Handle reassignment: archive unread notifications for previously assigned BI
+            const prevBiId = complaint.assigned_officer_id?.trim();
+            const isReassigned = Boolean(prevBiId && biOfficerId && prevBiId.toUpperCase() !== biOfficerId.toUpperCase());
+            if (isReassigned) {
+                await client.query(`UPDATE notifications
+           SET read_at = NOW()
+           WHERE entity_type = 'complaint'
+             AND entity_id = $1
+             AND UPPER(recipient_officer_id) = UPPER($2)
+             AND read_at IS NULL`, [complaintId, prevBiId]);
+            }
             await client.query(`UPDATE complaints
          SET assigned_officer_id = COALESCE($1, assigned_officer_id),
              assigned_officer_name = COALESCE($2, assigned_officer_name),
@@ -324,7 +335,9 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
              assigned_atp_id = COALESCE($4, assigned_atp_id),
              assigned_atp_name = COALESCE($5, assigned_atp_name),
              assigned_atp_mobile = COALESCE($6, assigned_atp_mobile),
-             status = 'Assigned'
+             status = 'Assigned',
+             assignment_acknowledged_at = NULL,
+             acknowledged_by_officer_id = NULL
          WHERE complaint_id = $7`, [biOfficerId, biOfficerName, biOfficerMobile, atpOfficerId, atpOfficerName, atpOfficerMobile, complaintId]);
             await client.query(`UPDATE cases
          SET assigned_bi_id = COALESCE($1, assigned_bi_id),
@@ -337,9 +350,16 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
             if (biOfficerId) {
                 void (0, pushService_1.notifyOfficer)(biOfficerId, {
                     title: "New Complaint Assigned",
-                    body: `Complaint ${complaintId} assigned. Case: ${caseId}`,
-                    tag: `case-${caseId}-assigned`,
-                    url: `/cases/${encodeURIComponent(caseId)}`,
+                    body: `Complaint #${complaintId} assigned. Case: ${caseId}`,
+                    tag: `complaint-${complaintId}-assigned`,
+                    url: `/complaints/${encodeURIComponent(complaintId)}`,
+                    type: "complaint_assignment",
+                    entityType: "complaint",
+                    entityId: complaintId,
+                    data: {
+                        complaintId,
+                        caseId,
+                    },
                 });
             }
             res.json({
@@ -404,6 +424,17 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
         await client.query(`INSERT INTO case_complaints (case_id, complaint_id, relationship_type, linked_at)
        VALUES ($1, $2, 'primary', NOW())
        ON CONFLICT DO NOTHING`, [caseId, complaintId]);
+        // Handle reassignment for new case flow: archive unread notifications for previously assigned BI
+        const prevBiId = complaint.assigned_officer_id?.trim();
+        const isReassigned = Boolean(prevBiId && biOfficerId && prevBiId.toUpperCase() !== biOfficerId.toUpperCase());
+        if (isReassigned) {
+            await client.query(`UPDATE notifications
+         SET read_at = NOW()
+         WHERE entity_type = 'complaint'
+           AND entity_id = $1
+           AND UPPER(recipient_officer_id) = UPPER($2)
+           AND read_at IS NULL`, [complaintId, prevBiId]);
+        }
         await client.query(`UPDATE complaints
        SET assigned_officer_id = COALESCE($1, assigned_officer_id),
            assigned_officer_name = COALESCE($2, assigned_officer_name),
@@ -411,7 +442,9 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
            assigned_atp_id = COALESCE($4, assigned_atp_id),
            assigned_atp_name = COALESCE($5, assigned_atp_name),
            assigned_atp_mobile = COALESCE($6, assigned_atp_mobile),
-           status = 'Assigned'
+           status = 'Assigned',
+           assignment_acknowledged_at = NULL,
+           acknowledged_by_officer_id = NULL
        WHERE complaint_id = $7`, [biOfficerId, biOfficerName, biOfficerMobile, atpOfficerId, atpOfficerName, atpOfficerMobile, complaintId]);
         await client.query(`INSERT INTO case_status_history (
         case_id, previous_status, new_status, changed_by_name, reason, note
@@ -420,9 +453,16 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
         if (biOfficerId) {
             void (0, pushService_1.notifyOfficer)(biOfficerId, {
                 title: "New Complaint Assigned",
-                body: `Complaint ${complaintId} assigned. New Case: ${caseId}`,
-                tag: `case-${caseId}-assigned`,
-                url: `/cases/${encodeURIComponent(caseId)}`,
+                body: `Complaint #${complaintId} assigned. New Case: ${caseId}`,
+                tag: `complaint-${complaintId}-assigned`,
+                url: `/complaints/${encodeURIComponent(complaintId)}`,
+                type: "complaint_assignment",
+                entityType: "complaint",
+                entityId: complaintId,
+                data: {
+                    complaintId,
+                    caseId,
+                },
             });
         }
         res.status(201).json({
@@ -449,6 +489,66 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
         client.release();
     }
 });
+// ── POST & PATCH /api/complaints/:complaintId/acknowledge ─────────────────────
+const handleAcknowledgeComplaint = async (req, res) => {
+    const complaintId = (Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : String(req.params.complaintId || "")).trim();
+    const actor = req.user;
+    if (!actor) {
+        res.status(401).json({ success: false, message: "Authentication required." });
+        return;
+    }
+    try {
+        const compRes = await database_1.pool.query(`SELECT complaint_id, assigned_officer_id, assignment_acknowledged_at, acknowledged_by_officer_id
+       FROM complaints WHERE complaint_id = $1 LIMIT 1`, [complaintId]);
+        if (compRes.rowCount === 0) {
+            res.status(404).json({ success: false, message: `Complaint ${complaintId} not found.` });
+            return;
+        }
+        const complaint = compRes.rows[0];
+        const actorOfficerId = actor.officerId?.trim() || "";
+        const actorRole = (actor.role || "").toLowerCase();
+        const isAssignedOfficer = Boolean(actorOfficerId &&
+            complaint.assigned_officer_id &&
+            actorOfficerId.toUpperCase() === complaint.assigned_officer_id.trim().toUpperCase());
+        const isAuthority = ["admin", "superadmin", "operator", "jc", "mtp", "atp"].includes(actorRole);
+        if (!isAssignedOfficer && !isAuthority) {
+            res.status(403).json({
+                success: false,
+                message: "Forbidden: You are not the assigned Building Inspector for this complaint.",
+            });
+            return;
+        }
+        const acknowledgingOfficer = actorOfficerId || complaint.assigned_officer_id || "OFFICER";
+        const updateRes = await database_1.pool.query(`UPDATE complaints
+       SET assignment_acknowledged_at = NOW(),
+           acknowledged_by_officer_id = $1
+       WHERE complaint_id = $2
+       RETURNING assignment_acknowledged_at AS "assignmentAcknowledgedAt",
+                 acknowledged_by_officer_id AS "acknowledgedByOfficerId"`, [acknowledgingOfficer, complaintId]);
+        // Mark corresponding in-app notification read for this officer
+        if (complaint.assigned_officer_id) {
+            await database_1.pool.query(`UPDATE notifications
+         SET read_at = NOW()
+         WHERE entity_type = 'complaint'
+           AND entity_id = $1
+           AND UPPER(recipient_officer_id) = UPPER($2)
+           AND read_at IS NULL`, [complaintId, complaint.assigned_officer_id]);
+        }
+        res.json({
+            success: true,
+            message: "Complaint assignment acknowledged successfully.",
+            complaintId,
+            assignmentAcknowledgedAt: updateRes.rows[0]?.assignmentAcknowledgedAt,
+            acknowledgedByOfficerId: updateRes.rows[0]?.acknowledgedByOfficerId,
+        });
+    }
+    catch (error) {
+        console.error(`[Complaints] Error acknowledging complaint ${complaintId}:`, error);
+        res.status(500).json({ success: false, message: "Unable to acknowledge complaint assignment." });
+    }
+};
+router.post("/complaints/:complaintId/acknowledge", handleAcknowledgeComplaint);
+router.patch("/complaints/:complaintId/acknowledge", handleAcknowledgeComplaint);
 // ── GET /api/cases ────────────────────────────────────────────────────────────
 router.get("/cases", async (req, res) => {
     try {
@@ -1442,9 +1542,36 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
             return;
         }
         // Build attachment metadata
-        // Officer mapping
-        const bi = await (0, officerMapping_1.findResponsibleOfficer)(derivedZone, block, "BI");
-        const atp = await (0, officerMapping_1.findResponsibleOfficer)(derivedZone, block, "ATP");
+        // Officer mapping: allow explicit assignment in request body, otherwise resolve via roster
+        let biOfficerId = body.assignedOfficerId?.trim() || body.officerId?.trim() || null;
+        let biOfficerName = body.assignedOfficerName?.trim() || body.officerName?.trim() || null;
+        let biOfficerMobile = body.assignedOfficerMobile?.trim() || body.officerMobile?.trim() || null;
+        if (!biOfficerId) {
+            const bi = await (0, officerMapping_1.findResponsibleOfficer)(derivedZone, block, "BI");
+            if (bi) {
+                biOfficerId = bi.officerId;
+                biOfficerName = bi.name;
+                biOfficerMobile = bi.mobile;
+            }
+        }
+        else if (!biOfficerName) {
+            const offRes = await database_1.pool.query("SELECT name, phone FROM officers WHERE UPPER(officer_id) = UPPER($1) LIMIT 1", [biOfficerId]);
+            if (offRes.rows.length > 0) {
+                biOfficerName = offRes.rows[0].name;
+                biOfficerMobile = offRes.rows[0].phone;
+            }
+        }
+        let atpOfficerId = body.assignedAtpId?.trim() || body.atpId?.trim() || null;
+        let atpOfficerName = body.assignedAtpName?.trim() || body.atpName?.trim() || null;
+        let atpOfficerMobile = body.assignedAtpMobile?.trim() || body.atpMobile?.trim() || null;
+        if (!atpOfficerId) {
+            const atp = await (0, officerMapping_1.findResponsibleOfficer)(derivedZone, block, "ATP");
+            if (atp) {
+                atpOfficerId = atp.officerId;
+                atpOfficerName = atp.name;
+                atpOfficerMobile = atp.mobile;
+            }
+        }
         // Generate ID and persist
         const complaintId = await (0, complaintStorage_1.generateComplaintId)();
         console.log(`[Drive] Creating folder for complaint ${complaintId}...`);
@@ -1501,17 +1628,36 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
             description: body.description.trim(),
             attachments,
             driveFolderUrl: driveFolder.folderUrl,
-            assignedOfficerId: bi?.officerId ?? null,
-            assignedOfficerName: bi?.name ?? null,
-            assignedOfficerMobile: bi?.mobile ?? null,
-            assignedAtpId: atp?.officerId ?? null,
-            assignedAtpName: atp?.name ?? null,
-            assignedAtpMobile: atp?.mobile ?? null,
-            status: "Registered",
+            assignedOfficerId: biOfficerId,
+            assignedOfficerName: biOfficerName,
+            assignedOfficerMobile: biOfficerMobile,
+            assignedAtpId: atpOfficerId,
+            assignedAtpName: atpOfficerName,
+            assignedAtpMobile: atpOfficerMobile,
+            status: biOfficerId ? "Assigned" : "Registered",
             createdAt: new Date().toISOString(),
             submittedByUserId: req.user?.userId ?? null,
+            assignmentAcknowledgedAt: null,
+            acknowledgedByOfficerId: null,
         };
         await (0, complaintStorage_1.saveComplaint)(complaint);
+        // Web Push and In-App notification to assigned Building Inspector (BI)
+        if (biOfficerId) {
+            void (0, pushService_1.notifyOfficer)(biOfficerId, {
+                title: "New Complaint Assigned",
+                body: `Complaint #${complaintId} in ${block} (${derivedZone}) has been assigned to you.`,
+                tag: `complaint-${complaintId}-assigned`,
+                url: `/complaints/${encodeURIComponent(complaintId)}`,
+                type: "complaint_assignment",
+                entityType: "complaint",
+                entityId: complaintId,
+                data: {
+                    complaintId,
+                    block,
+                    zone: derivedZone,
+                },
+            });
+        }
         await deleteTemporaryFiles([
             ...sourceImages,
             ...complaintImages,

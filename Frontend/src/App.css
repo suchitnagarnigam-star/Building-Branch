@@ -1242,6 +1242,94 @@ textarea {
 .status-badge--green { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
 .status-badge--red { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
 
+/* ─── Newly Assigned Complaint Highlights & Badges ─── */
+.table-row--new-assignment {
+  background: #f0f7ff !important;
+  box-shadow: inset 4px 0 0 #2563eb;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.table-row--new-assignment:hover {
+  background: #e0f0fe !important;
+}
+
+.mobile-feed-card--new-assignment {
+  background: #f0f7ff !important;
+  border-left: 4px solid #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.09) !important;
+}
+
+.badge-new-assignment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.35);
+  animation: pulse-new-badge 2s infinite ease-in-out;
+  user-select: none;
+  vertical-align: middle;
+}
+
+@keyframes pulse-new-badge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.35);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
+  }
+}
+
+.btn-acknowledge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.btn-acknowledge:hover:not(:disabled) {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.btn-acknowledge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.new-assignments-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  color: #1e40af;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

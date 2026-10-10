@@ -2,7 +2,7 @@ import Icon from "../../shared/components/Icon";
 import StatusBadge from "../../shared/components/StatusBadge";
 import type { Status } from "../../shared/types";
 import { locationData } from "../../data/locationData";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getComplaintAction } from "../../shared/utils/complaintNavigation";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
 import { useAuth } from "../../context/AuthContext";
@@ -23,10 +23,13 @@ type ComplaintRecord = {
   citizenName: string;
   zone: string;
   block: string;
+  assignedOfficerId?: string | null;
   assignedOfficerName: string | null;
   status: Status;
   createdAt: string;
   caseId?: string | null;
+  assignmentAcknowledgedAt?: string | null;
+  acknowledgedByOfficerId?: string | null;
 };
 
 type ComplaintsPageProps = {
@@ -53,6 +56,69 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
   const [categoryTab, setCategoryTab] = useState<CategoryFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [acknowledgingIds, setAcknowledgingIds] = useState<Set<string>>(new Set());
+
+  const isNewAssignment = useCallback((complaint: ComplaintRecord): boolean => {
+    if (!isBI || !user?.officerId || !complaint.assignedOfficerId) return false;
+    const isAssignedToMe = complaint.assignedOfficerId.trim().toUpperCase() === user.officerId.trim().toUpperCase();
+    if (!isAssignedToMe) return false;
+    return !complaint.assignmentAcknowledgedAt;
+  }, [isBI, user?.officerId]);
+
+  const newAssignmentsCount = useMemo(() => {
+    if (!isBI || !user?.officerId) return 0;
+    return complaints.filter(isNewAssignment).length;
+  }, [complaints, isBI, user?.officerId, isNewAssignment]);
+
+  const handleAcknowledge = async (complaintId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    if (acknowledgingIds.has(complaintId)) return;
+
+    setAcknowledgingIds((prev) => new Set(prev).add(complaintId));
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+      const res = await fetch(`${API_BASE_URL}/complaints/${encodeURIComponent(complaintId)}/acknowledge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const ackTime = data.assignmentAcknowledgedAt || new Date().toISOString();
+        setComplaints((prev) =>
+          prev.map((c) =>
+            c.complaintId === complaintId
+              ? {
+                  ...c,
+                  assignmentAcknowledgedAt: ackTime,
+                  acknowledgedByOfficerId: user?.officerId || null,
+                }
+              : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to acknowledge complaint assignment:", err);
+    } finally {
+      setAcknowledgingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(complaintId);
+        return next;
+      });
+    }
+  };
+
+  const handleOpenComplaint = (complaint: ComplaintRecord) => {
+    if (isNewAssignment(complaint)) {
+      void handleAcknowledge(complaint.complaintId);
+    }
+    const action = getComplaintAction(complaint);
+    setSelectedComplaintId(complaint.complaintId);
+    navigate(action.route);
+  };
 
   useEffect(() => {
     let active = true;
@@ -194,6 +260,19 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
         )}
       </div>
 
+      {/* Newly assigned alert banner for Building Inspector */}
+      {isBI && newAssignmentsCount > 0 && (
+        <div className="new-assignments-banner">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Icon name="bell" size={16} />
+            <span>
+              <strong>{newAssignmentsCount} new complaint assignment{newAssignmentsCount > 1 ? "s" : ""}</strong> pending your review and acknowledgement.
+            </span>
+          </div>
+          <span className="badge-new-assignment">Action Required</span>
+        </div>
+      )}
+
       {/* Category Tabs (Desktop & Mobile Pills) */}
       <div style={{ marginBottom: "12px" }}>
         <div className="mobile-pill-tabs">
@@ -250,7 +329,7 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           <div style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>No complaints match the selected filters.</div>
         )}
         {!loading && !error && visibleComplaints.map((complaint) => {
-          const action = getComplaintAction(complaint);
+          const isNew = isNewAssignment(complaint);
           const formattedDate = new Date(complaint.createdAt).toLocaleDateString("en-GB", {
             day: "2-digit",
             month: "2-digit",
@@ -259,14 +338,14 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           return (
             <div
               key={complaint.complaintId}
-              className="mobile-feed-card"
-              onClick={() => {
-                setSelectedComplaintId(complaint.complaintId);
-                navigate(action.route);
-              }}
+              className={`mobile-feed-card ${isNew ? "mobile-feed-card--new-assignment" : ""}`}
+              onClick={() => handleOpenComplaint(complaint)}
             >
               <div className="mobile-feed-card__header">
-                <span className="mobile-feed-card__id">{complaint.complaintId}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span className="mobile-feed-card__id">{complaint.complaintId}</span>
+                  {isNew && <span className="badge-new-assignment">NEW</span>}
+                </div>
                 <span className="mobile-feed-card__date">{formattedDate}</span>
               </div>
               <div className="mobile-feed-card__title">{complaint.citizenName}</div>
@@ -279,7 +358,20 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
                 <span>{complaint.assignedOfficerName ?? "Pending assignment"}</span>
               </div>
               <div className="mobile-feed-card__footer">
-                <StatusBadge status={complaint.status} />
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <StatusBadge status={complaint.status} />
+                  {isNew && (
+                    <button
+                      type="button"
+                      className="btn-acknowledge"
+                      disabled={acknowledgingIds.has(complaint.complaintId)}
+                      onClick={(e) => handleAcknowledge(complaint.complaintId, e)}
+                    >
+                      <Icon name="check" size={12} />
+                      <span>{acknowledgingIds.has(complaint.complaintId) ? "..." : "Acknowledge"}</span>
+                    </button>
+                  )}
+                </div>
                 <span className="mobile-feed-card__chevron">
                   <Icon name="chevron-right" size={16} />
                 </span>
@@ -309,17 +401,20 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
           {!loading && error && <tr><td colSpan={8} className="table-message table-message--error">{error}</td></tr>}
           {!loading && !error && visibleComplaints.length === 0 && <tr><td colSpan={8} className="table-message">No complaints match the selected filters.</td></tr>}
           {!loading && !error && visibleComplaints.map((complaint) => {
+            const isNew = isNewAssignment(complaint);
             const action = getComplaintAction(complaint);
             return (
               <tr
                 key={complaint.complaintId}
-                className="table-row"
-                onClick={() => {
-                  setSelectedComplaintId(complaint.complaintId);
-                  navigate(action.route);
-                }}
+                className={`table-row ${isNew ? "table-row--new-assignment" : ""}`}
+                onClick={() => handleOpenComplaint(complaint)}
               >
-                <td><strong>{complaint.complaintId}</strong></td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <strong>{complaint.complaintId}</strong>
+                    {isNew && <span className="badge-new-assignment">NEW</span>}
+                  </div>
+                </td>
                 <td>{complaint.citizenName}</td>
                 <td>{complaint.block}</td>
                 <td>{complaint.assignedOfficerName ?? "Pending assignment"}</td>
@@ -356,26 +451,39 @@ function ComplaintsPage({ route, navigate, setSelectedComplaintId }: ComplaintsP
                 <td><StatusBadge status={complaint.status} /></td>
                 <td>{new Date(complaint.createdAt).toLocaleDateString()}</td>
                 <td>
-                  <button
-                    className="primary-button small-button"
-                    type="button"
-                    style={{
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      background: action.isCase ? "var(--accent, #0284c7)" : undefined,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedComplaintId(complaint.complaintId);
-                      navigate(action.route);
-                    }}
-                  >
-                    <span>{action.label}</span>
-                    <Icon name="arrow-right" />
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {isNew && (
+                      <button
+                        type="button"
+                        className="btn-acknowledge"
+                        disabled={acknowledgingIds.has(complaint.complaintId)}
+                        onClick={(e) => handleAcknowledge(complaint.complaintId, e)}
+                        title="Acknowledge this assignment"
+                      >
+                        <Icon name="check" size={12} />
+                        <span>{acknowledgingIds.has(complaint.complaintId) ? "..." : "Acknowledge"}</span>
+                      </button>
+                    )}
+                    <button
+                      className="primary-button small-button"
+                      type="button"
+                      style={{
+                        padding: "4px 10px",
+                        fontSize: "12px",
+                        background: action.isCase ? "var(--accent, #0284c7)" : undefined,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleOpenComplaint(complaint);
+                      }}
+                    >
+                      <span>{action.label}</span>
+                      <Icon name="arrow-right" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             );

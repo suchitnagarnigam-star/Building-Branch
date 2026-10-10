@@ -69,6 +69,8 @@ const getComplaints = async (filterByUserId, assignedBlocks) => {
         complaints.created_at AS "createdAt",
         complaints.drive_folder_url AS "driveFolderUrl",
         complaints.submitted_by_user_id AS "submittedByUserId",
+        complaints.assignment_acknowledged_at AS "assignmentAcknowledgedAt",
+        complaints.acknowledged_by_officer_id AS "acknowledgedByOfficerId",
         CASE 
           WHEN u_sub.user_id IS NOT NULL THEN json_build_object('name', u_sub.name, 'role', u_sub.role)
           ELSE NULL 
@@ -155,16 +157,20 @@ const saveComplaint = async (complaint) => {
           status,
           created_at,
           drive_folder_url,
-          submitted_by_user_id
+          submitted_by_user_id,
+          assignment_acknowledged_at,
+          acknowledged_by_officer_id
         )
         VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11::jsonb, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+          $11::jsonb, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
         )
         ON CONFLICT (complaint_id) DO UPDATE SET
           status = EXCLUDED.status,
           assigned_officer_id = EXCLUDED.assigned_officer_id,
-          assigned_officer_name = EXCLUDED.assigned_officer_name
+          assigned_officer_name = EXCLUDED.assigned_officer_name,
+          assignment_acknowledged_at = EXCLUDED.assignment_acknowledged_at,
+          acknowledged_by_officer_id = EXCLUDED.acknowledged_by_officer_id
       `, [
             complaint.complaintId,
             complaint.registrationSource,
@@ -187,6 +193,8 @@ const saveComplaint = async (complaint) => {
             complaint.createdAt,
             complaint.driveFolderUrl ?? null,
             complaint.submittedByUserId ?? null,
+            complaint.assignmentAcknowledgedAt ?? null,
+            complaint.acknowledgedByOfficerId ?? null,
         ]);
     }
     catch (error) {
