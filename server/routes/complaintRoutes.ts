@@ -2616,7 +2616,7 @@ const hasNoticeData = Boolean(
 
       /*
        * ------------------------------------------------------
-       * 7. COMPLAINT VALIDATION
+       * 7. COMPLAINT VALIDATION & AUTHORIZATION
        * ------------------------------------------------------
        */
 
@@ -2641,9 +2641,15 @@ const hasNoticeData = Boolean(
         }
 
         const complaintResult =
-          await pool.query(
+          await pool.query<{
+            complaint_id: string;
+            block: string;
+            zone: string;
+            assigned_officer_id: string | null;
+            status: string;
+          }>(
             `
-              SELECT complaint_id
+              SELECT complaint_id, block, zone, assigned_officer_id, status
               FROM complaints
               WHERE complaint_id = $1
               LIMIT 1
@@ -2659,15 +2665,58 @@ const hasNoticeData = Boolean(
           });
           return;
         }
+
+        const targetComplaint = complaintResult.rows[0];
+        const userRole = (req.user?.role || "").toLowerCase();
+        const userOfficerId = req.user?.officerId?.trim().toUpperCase();
+        const assignedOfficerId = targetComplaint.assigned_officer_id?.trim().toUpperCase();
+
+        if (userRole === "bi") {
+          // If assigned to an officer, verify it matches the current BI
+          if (assignedOfficerId && userOfficerId && assignedOfficerId !== userOfficerId) {
+            res.status(403).json({
+              success: false,
+              message: "Forbidden: You are not authorized to inspect this complaint as it is assigned to another officer.",
+            });
+            return;
+          }
+
+          // Verify block assignment
+          if (assignedBlocks !== null && !isBlockAssigned(targetComplaint.block, assignedBlocks)) {
+            res.status(403).json({
+              success: false,
+              message: "Forbidden: Access restricted. You are not assigned to this complaint's block.",
+            });
+            return;
+          }
+        }
+
+        // Prevent accidental rapid duplicate submissions
+        const duplicateCheck = await pool.query(
+          `SELECT visit_id FROM field_visits
+           WHERE complaint_id = $1
+             AND bi_id = $2
+             AND submitted_at > NOW() - INTERVAL '10 seconds'
+           LIMIT 1`,
+          [complaintId, reportingOfficer.officerId]
+        );
+        if ((duplicateCheck.rowCount ?? 0) > 0) {
+          res.status(409).json({
+            success: false,
+            message: "An inspection was just submitted for this complaint. Please avoid duplicate submissions.",
+          });
+          return;
+        }
       }
 
 
       /*
        * ------------------------------------------------------
-       * 8. PROACTIVE CASE CREATION
+       * 8. CASE IDENTIFICATION OR CREATION
        * ------------------------------------------------------
        *
-       * A proactive field inspection starts a case.
+       * Reuses existing cases linked to this complaint to prevent duplicates.
+       * Creates a new case for proactive violations or unlinked complaints.
        */
 
       let caseId:
@@ -2678,104 +2727,155 @@ const hasNoticeData = Boolean(
         inspectionOutcome === "violation_found" ||
         inspectionOutcome === "complete_violated"
       ) {
-        caseId = await generateCaseId();
-
-        const caseSourceType = sourceOfReport === "complaint"
-          ? "complaint"
-          : "proactive_bi";
-
-        const primaryComplaintId = 
-          sourceOfReport === "complaint"
-            ? complaintId
-            : null;
-
-        const initialCaseStatus = "Open";
-
-        await pool.query(
-          `
-            INSERT INTO cases (
-              case_id,
-              source_type,
-              primary_complaint_id,
-              building_identity,
-              location,
-              zone,
-              block,
-              ward,
-              latitude,
-              longitude,
-              assigned_bi_id,
-              assigned_bi_name,
-              assigned_atp_id,
-              assigned_atp_name,
-              current_status,
-              created_at,
-              updated_at
-            )
-            VALUES (
-              $1,
-              $2,
-              $3,
-              $4,
-              $5,
-              $6,
-              $7,
-              $8,
-              $9,
-              $10,
-              $11,
-              $12,
-              $13,
-              $14,
-              $15,
-              NOW(),
-              NOW()
-            )
-          `,
-          [
-            caseId,
-            caseSourceType,
-            primaryComplaintId,
-            finalBuildingType,
-            location,
-            derivedZone,
-            block,
-            body.ward?.trim() || null,
-            latitude,
-            longitude,
-            reportingOfficer.officerId,
-            reportingOfficer.name,
-            atp?.officerId ?? null,
-            atp?.name ?? null,
-            initialCaseStatus,
-          ],
-        );
-
-        /*
-         * Link complaint-based violations to the case.
-         */
-        if(sourceOfReport === "complaint" && complaintId) {
-          await pool.query(
-            `
-              INSERT INTO case_complaints (
-                case_id,
-                complaint_id,
-                relationship_type,
-                linked_at
-              )
-              VALUES ($1, $2, 'primary', NOW())
-              ON CONFLICT (case_id, complaint_id) 
-              DO NOTHING
-            `,
-            [caseId, complaintId],
+        let existingCaseId: string | null = null;
+        if (body.caseId?.trim()) {
+          existingCaseId = body.caseId.trim();
+        } else if (sourceOfReport === "complaint" && complaintId) {
+          const caseCheck = await pool.query<{ case_id: string }>(
+            `SELECT case_id FROM cases WHERE primary_complaint_id = $1
+             UNION
+             SELECT case_id FROM case_complaints WHERE complaint_id = $1
+             LIMIT 1`,
+            [complaintId]
           );
+          if ((caseCheck.rowCount ?? 0) > 0) {
+            existingCaseId = caseCheck.rows[0].case_id;
+          }
         }
 
-        /**
-         * Create the permanent Google Drive folder
-         * for newly created proactive case.
-         */ 
-        await createCaseDriveFolder(caseId);
+        if (existingCaseId) {
+          caseId = existingCaseId;
+          await pool.query(
+            `UPDATE cases
+             SET building_identity = COALESCE($1, building_identity),
+                 location = COALESCE($2, location),
+                 latitude = COALESCE($3, latitude),
+                 longitude = COALESCE($4, longitude),
+                 updated_at = NOW()
+             WHERE LOWER(case_id) = LOWER($5)`,
+            [finalBuildingType, location, latitude, longitude, caseId]
+          );
+
+          if (sourceOfReport === "complaint" && complaintId) {
+            await pool.query(
+              `INSERT INTO case_complaints (case_id, complaint_id, relationship_type, linked_at)
+               VALUES ($1, $2, 'primary', NOW())
+               ON CONFLICT (case_id, complaint_id) DO NOTHING`,
+              [caseId, complaintId]
+            );
+          }
+        } else {
+          caseId = await generateCaseId();
+
+          const caseSourceType = sourceOfReport === "complaint"
+            ? "complaint"
+            : "proactive_bi";
+
+          const primaryComplaintId = 
+            sourceOfReport === "complaint"
+              ? complaintId
+              : null;
+
+          const initialCaseStatus = "Open";
+
+          await pool.query(
+            `
+              INSERT INTO cases (
+                case_id,
+                source_type,
+                primary_complaint_id,
+                building_identity,
+                location,
+                zone,
+                block,
+                ward,
+                latitude,
+                longitude,
+                assigned_bi_id,
+                assigned_bi_name,
+                assigned_atp_id,
+                assigned_atp_name,
+                current_status,
+                created_at,
+                updated_at
+              )
+              VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                $9,
+                $10,
+                $11,
+                $12,
+                $13,
+                $14,
+                $15,
+                NOW(),
+                NOW()
+              )
+            `,
+            [
+              caseId,
+              caseSourceType,
+              primaryComplaintId,
+              finalBuildingType,
+              location,
+              derivedZone,
+              block,
+              body.ward?.trim() || null,
+              latitude,
+              longitude,
+              reportingOfficer.officerId,
+              reportingOfficer.name,
+              atp?.officerId ?? null,
+              atp?.name ?? null,
+              initialCaseStatus,
+            ],
+          );
+
+          /*
+           * Link complaint-based violations to the case.
+           */
+          if (sourceOfReport === "complaint" && complaintId) {
+            await pool.query(
+              `
+                INSERT INTO case_complaints (
+                  case_id,
+                  complaint_id,
+                  relationship_type,
+                  linked_at
+                )
+                VALUES ($1, $2, 'primary', NOW())
+                ON CONFLICT (case_id, complaint_id) 
+                DO NOTHING
+              `,
+              [caseId, complaintId],
+            );
+          }
+
+          /**
+           * Create the permanent Google Drive folder
+           * for newly created proactive case.
+           */ 
+          await createCaseDriveFolder(caseId);
+        }
+      } else if (sourceOfReport === "complaint" && complaintId) {
+        // Link to existing case if present even if no violation is found
+        const caseCheck = await pool.query<{ case_id: string }>(
+          `SELECT case_id FROM cases WHERE primary_complaint_id = $1
+           UNION
+           SELECT case_id FROM case_complaints WHERE complaint_id = $1
+           LIMIT 1`,
+          [complaintId]
+        );
+        if ((caseCheck.rowCount ?? 0) > 0) {
+          caseId = caseCheck.rows[0].case_id;
+        }
       }
 
 
@@ -3055,6 +3155,37 @@ if (hasNoticeData && inspectionOutcome !== "complete_violated") {
       await deleteTemporaryFiles(
         temporaryFiles,
       );
+
+      /*
+       * ------------------------------------------------------
+       * 15.5 UPDATE COMPLAINT STATUS & NOTIFICATIONS
+       * ------------------------------------------------------
+       */
+
+      if (sourceOfReport === "complaint" && complaintId) {
+        await pool.query(
+          `UPDATE complaints
+           SET status = CASE
+             WHEN status IN ('Registered', 'Assigned') THEN 'In progress'
+             ELSE status
+           END,
+           assignment_acknowledged_at = COALESCE(assignment_acknowledged_at, NOW()),
+           acknowledged_by_officer_id = COALESCE(acknowledged_by_officer_id, $2)
+           WHERE complaint_id = $1`,
+          [complaintId, reportingOfficer.officerId]
+        );
+
+        // Mark unread in-app assignment notifications as read for this officer
+        await pool.query(
+          `UPDATE notifications
+           SET read_at = NOW()
+           WHERE entity_type = 'complaint'
+             AND entity_id = $1
+             AND UPPER(recipient_officer_id) = UPPER($2)
+             AND read_at IS NULL`,
+          [complaintId, reportingOfficer.officerId]
+        );
+      }
 
 
       /*

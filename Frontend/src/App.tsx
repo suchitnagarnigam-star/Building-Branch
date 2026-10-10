@@ -73,8 +73,13 @@ const EMPTY_COMPLAINT: AppComplaint = {
 const isRoutePermittedForRole = (currentRoute: string, role?: string): boolean => {
   const normRole = (role || "").toLowerCase();
 
-  // /field-inspection → allowed: bi, atp, mtp, jc, superadmin
-  if (currentRoute === "/field-inspection" || currentRoute.startsWith("/field-inspection?")) {
+  // /field-inspection & /inspections → allowed: bi, atp, mtp, jc, superadmin
+  if (
+    currentRoute === "/field-inspection" ||
+    currentRoute.startsWith("/field-inspection?") ||
+    currentRoute === "/inspections" ||
+    currentRoute.startsWith("/inspections?")
+  ) {
     return ["bi", "atp", "mtp", "jc", "superadmin", "admin"].includes(normRole);
   }
 
@@ -263,9 +268,8 @@ function App() {
 
     // Complaint detail
     if (route.startsWith("/complaints/") && route !== "/complaints") {
-      const complaintId = decodeURIComponent(
-        route.replace("/complaints/", "")
-      );
+      const rawId = route.replace("/complaints/", "").split("?")[0];
+      const complaintId = decodeURIComponent(rawId);
       return (
         <ComplaintDetailPage
           complaint={EMPTY_COMPLAINT}
@@ -311,12 +315,15 @@ function App() {
 
     // Field inspection
     if (
+      route === "/inspections" ||
+      route.startsWith("/inspections?") ||
       route === "/field-inspection" ||
       route.startsWith("/field-inspection?")
     ) {
       const searchParams = new URLSearchParams(route.split("?")[1] ?? "");
       const caseId = searchParams.get("caseId") ?? undefined;
-      return <FieldInspectionPage navigate={navigate} caseId={caseId} />;
+      const complaintId = searchParams.get("complaintId") ?? searchParams.get("complaint_id") ?? undefined;
+      return <FieldInspectionPage navigate={navigate} caseId={caseId} complaintId={complaintId} />;
     }
 
     // Standalone construction status

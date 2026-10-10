@@ -52,5 +52,11 @@ const BLOCK_ZONE_MAP: Record<string, string> = {
 
 /** Returns the Zone for a given Block, or null if unrecognised. */
 export function zoneForBlock(block: string): string | null {
-  return BLOCK_ZONE_MAP[block] ?? null;
+  if (!block) return null;
+  const directMatch = BLOCK_ZONE_MAP[block];
+  if (directMatch) return directMatch;
+  const cleaned = block.replace(/^block\s*/i, "").trim();
+  const withPrefix = `Block ${cleaned}`;
+  return BLOCK_ZONE_MAP[withPrefix] ?? null;
 }
+
