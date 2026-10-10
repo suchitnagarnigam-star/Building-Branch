@@ -46,6 +46,8 @@ import ConstructionStatusForm from "./pages/ConstructionStatusForm";
 import EnforcementActionForm from "./pages/EnforcementActionForm";
 import ProfilePage from "./pages/ProfilePage";
 
+import AlertsPage from "./pages/AlertsPage";
+
 // Shared
 import ComingSoonPage from "./shared/components/ComingSoonPage";
 
@@ -342,10 +344,12 @@ function App() {
       return <UsersPage />;
     }
 
-    // Coming soon placeholders
-    if (route === "/notices") {
-      return <ComingSoonPage title="Notices" />;
+    // Alerts & Notifications
+    if (route === "/notices" || route === "/alerts") {
+      return <AlertsPage navigate={navigate} />;
     }
+
+    // Coming soon placeholders
 
     if (route === "/gis-map") {
       return <ComingSoonPage title="GIS / Map View" />;
