@@ -1594,13 +1594,35 @@ If it does not improve one of these, it should not take priority during the curr
 
 ---
 
+## 26. Recent Architectural Evolutions & Production Hardening
+
+### 26.1 Render Server Keep-Alive & Automated Disk Hygiene
+- **Heartbeat Self-Ping**: Render free-tier instances sleep after 15 minutes of inactivity. Scheduled a 14-minute cron job (`executeKeepAlivePing`) targeting `/api/health` using `SERVER_PUBLIC_URL` or `RENDER_EXTERNAL_URL`.
+- **Activity Tracking**: Express middleware captures real user request timestamps while filtering internal health checks to prevent masking true system idle periods.
+- **Idle Server Cleanup**: When user traffic is idle for $\ge 30$ minutes, a 15-minute cleaner (`runIdleServerCleanup`) automatically removes temporary upload artifacts (>1 hour old) and clears cached Google Drive proxy files (`uploads/drive_cache/`) older than 7 days.
+
+### 26.2 Complete Decommissioning of Google Sheets
+- **Single Source of Truth**: All spreadsheet synchronization mechanisms (`googleSheetsService.ts`) have been completely removed.
+- **PostgreSQL Authority**: The cloud PostgreSQL database (Neon pool) is now the sole authority for complaint intake, case tracking, inspections, and enforcement.
+
+### 26.3 Out-of-Application PWA Web Push & Notification Control Center
+- **Control Center & Lock Screen Delivery**: PWA Service Worker (`sw.js`) configured with `requireInteraction: true`, distinctive vibration cadence `[300, 150, 300, 150, 300]`, `renotify: true`, and actionable buttons ("Open Case" / "Dismiss").
+- **Backend Urgency**: Dispatches VAPID Web Push packets with `urgency: 'high'` and `topic: 'mcl-statutory-alert'` for prompt lock screen delivery even when the application is backgrounded or closed.
+- **User Preference & Permission Management**: Interactive ON/OFF toggle switch within the Officer Profile Portal (`ProfilePage.tsx`). Provides browser-specific permission unblocking instructions if permissions were previously denied by the officer.
+
+### 26.4 Complaint Assignment Acknowledgement & Notice Hub
+- **Assignment Tracking**: Migration `008_complaint_assignment_ack.sql` adds `acknowledged_at` and `acknowledged_by_user_id` to `complaints` table, providing verifiable acknowledgement timestamps when inspectors receive assignments.
+- **Alerts Hub & Single-Click Read**: Dedicated alerts view (`AlertsPage.tsx`) mounted at `#/notices` and `#/alerts` with bulk mark-all-read endpoint (`PATCH /api/notifications/read-all`) and event-driven badge synchronization.
+
+---
+
 ## Document Status
 
 **Document:** MASTER.md
 
 **Purpose:** Single master reference for project discussion, workflow, architecture, scope and implementation planning.
 
-**Current prototype target:** Approximately 1–1.5 weeks.
+**Current milestone status:** Complete statutory enforcement automation, RBAC, keep-alive cron, idle cleanup, pure PostgreSQL architecture, out-of-application Web Push alerts, and officer profile management.
 
 **Workflow source:** Clarified project discussion. Legal details explicitly marked for future official verification.
 

@@ -4,24 +4,24 @@ MCL-BB is an internal complaint-management application for the Municipal Corpora
 
 ## Stack
 
-- Frontend: React 19, TypeScript, Vite, custom CSS, PWA (`manifest.webmanifest`, service worker)
+- Frontend: React 19, TypeScript, Vite, custom CSS, PWA (`manifest.json`, enhanced service worker)
 - Backend: Node.js, Express 5, TypeScript
 - Authentication & RBAC: JWT (JSON Web Tokens) with 365-day persistent login sessions, bcrypt PIN/password hashing, AuthContext with global fetch interceptor, and block-level access control (`server/services/accessControl.ts`)
-- Database: PostgreSQL through `pg` (with Neon cloud pooling & automated migrations 001–007)
+- Database: PostgreSQL through `pg` (with Neon cloud pooling & automated migrations 001–008)
 - Development runtime: `tsx`
 - File storage & Proxy: Google Drive API with secure universal proxy (`/api/drive/files/:fileId`), disk caching (`server/uploads/drive_cache/`), and in-app Lightbox viewer
-- Push & In-App Notifications: Web Push (VAPID) dual-written to PostgreSQL `notifications` table and in-app notification center
-- Integrations: Google Sheets sync, Google Drive service
+- Push & In-App Notifications: Web Push (VAPID) dual-written to PostgreSQL `notifications` table, interactive phone control centre alerts (high urgency, custom tactile vibration cadence, interactive actions), and in-app Alerts page (`#/notices`) with live bell synchronization
+- Background Maintenance & Reliability: Render keep-alive heartbeat cron job (14-min self-ping to prevent free-tier spin-down) and idle server cleanup (purges orphan temporary multipart uploads and stale Drive proxy cache)
 - OCR: Dual-engine pipeline — Mistral OCR (primary) with local `tesseract.js` (images) and `pdf-parse` (PDFs) fallbacks
 - Complaint extraction: Anthropic Claude structured JSON output
 
 ## Database Migrations
 
-Run database migrations 001–007 and user seeds against PostgreSQL:
+Run database migrations 001–008 and user seeds against PostgreSQL:
 
 ```bash
 cd server
-npm run migrate      # Applies migrations 001 through 007 in order
+npm run migrate      # Applies migrations 001 through 008 in order
 npm run seed:users   # Seeds initial superadmin & operator accounts
 ```
 
@@ -241,10 +241,15 @@ Processing endpoints:
 ### In-App Notifications & Web Push (PWA)
 - `GET /api/notifications` (in-app notification center feed with unread counts)
 - `PATCH /api/notifications/:id/read` (marks specific notification as read)
+- `PATCH /api/notifications/read-all` (marks all unread notifications as read for officer)
+- `DELETE /api/notifications/:id` (deletes an alert record)
 - `GET /api/push/vapid-public-key` (returns server VAPID public key for browser push subscription)
 - `POST /api/push/subscribe` (upserts officer device push subscription with unique constraints)
 - `DELETE /api/push/subscribe` (removes device endpoint from subscription table)
 - `POST /api/push/test` (dispatches test push notification to officer's registered device)
+
+### Maintenance & Health Checks
+- `GET /api/health` (health check returning status and ISO timestamp; targeted by keep-alive cron)
 
 ### Analytics & Officer Operations
 - `GET /api/analytics/overview` (live operational KPI counts, complaint statuses, zone breakdowns, and statutory Needs Attention flags)
@@ -275,7 +280,8 @@ On your production server (e.g. Railway, Render, VPS), set the following environ
 | `VAPID_PRIVATE_KEY` | Private VAPID key for Web Push |
 | `VAPID_SUBJECT` | Contact URI (e.g. `mailto:mcl-bb@ludhiana.gov.in`) |
 | `GOOGLE_DRIVE_WEB_APP_URL` | Apps Script URL for Drive folder & evidence creation |
-| `GOOGLE_SHEETS_WEB_APP_URL` | Apps Script URL for Google Sheets synchronization |
+| `SERVER_PUBLIC_URL` | Public Render domain (e.g. `https://mcl-building-branch.onrender.com`) for self-ping keep-alive |
+| `IDLE_CLEANUP_THRESHOLD_MINUTES` | Inactivity threshold before running temp upload & disk cache cleanup (default: `30`) |
 
 ## Layout
 
