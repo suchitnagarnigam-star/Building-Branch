@@ -1742,7 +1742,15 @@ router.get("/complaints/:complaintId/files", async (req, res) => {
       success: true,
       files,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message && /folder not found/i.test(error.message)) {
+      res.json({
+        success: true,
+        files: [],
+      });
+      return;
+    }
+
     console.error(
       "[Drive] Failed to list complaint files:",
       error,

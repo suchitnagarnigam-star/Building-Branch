@@ -576,20 +576,30 @@ export const listComplaintDriveFiles =
     complaintId: string,
   ): Promise<DriveFile[]> => {
 
-    const result =
-      (await callDriveService({
-        action: "listFiles",
-        complaintId,
-      })) as DriveListFilesResponse;
+    try {
+      const result =
+        (await callDriveService({
+          action: "listFiles",
+          complaintId,
+        })) as DriveListFilesResponse;
 
-    if (!result.success) {
-      throw new Error(
-        result.message ||
-          "Failed to list complaint Drive files.",
-      );
+      if (!result.success) {
+        if (result.message && /folder not found/i.test(result.message)) {
+          return [];
+        }
+        throw new Error(
+          result.message ||
+            "Failed to list complaint Drive files.",
+        );
+      }
+
+      return result.files ?? [];
+    } catch (err: unknown) {
+      if (err instanceof Error && /folder not found/i.test(err.message)) {
+        return [];
+      }
+      throw err;
     }
-
-    return result.files ?? [];
   };
 
 
