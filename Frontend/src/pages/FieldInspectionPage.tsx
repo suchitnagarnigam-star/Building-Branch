@@ -165,6 +165,53 @@ function FieldInspectionPage({ navigate, caseId: propCaseId, complaintId: propCo
   const photoUploadInputRef = useRef<HTMLInputElement>(null);
   const noticeInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Inspection registration modal & feedback state ──────────────────────
+  type InspectionStatus = "idle" | "submitting" | "success" | "error";
+  const [inspectionStatus, setInspectionStatus] = useState<InspectionStatus>("idle");
+  const [registeredResult, setRegisteredResult] = useState<{
+    visitId?: string;
+    complaintId?: string | null;
+    caseId?: string | null;
+  } | null>(null);
+  const [successCountdown, setSuccessCountdown] = useState<number>(5);
+  const autoRedirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoRedirectTimerRef.current) clearTimeout(autoRedirectTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
+
+  const handleProceedAfterSuccess = (
+    overrideResult?: {
+      visitId?: string;
+      complaintId?: string | null;
+      caseId?: string | null;
+    } | null,
+  ) => {
+    if (autoRedirectTimerRef.current) {
+      clearTimeout(autoRedirectTimerRef.current);
+      autoRedirectTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    setInspectionStatus("idle");
+
+    const ref = overrideResult || registeredResult;
+    if (ref?.complaintId) {
+      navigate(`/complaints/${encodeURIComponent(ref.complaintId)}?inspectionSuccess=true`);
+    } else if (ref?.caseId) {
+      navigate(`/cases/${encodeURIComponent(ref.caseId)}`);
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   useEffect(() => {
     let active = true;
     fetch(OFFICERS_API_URL)
@@ -504,7 +551,7 @@ const submitInspection = async (
   event: FormEvent<HTMLFormElement>,
 ) => {
   event.preventDefault();
-  if (submitting) return;
+  if (submitting || inspectionStatus === "submitting") return;
   setSubmitError("");
 
   const effectiveInspectionOutcome =
@@ -625,6 +672,8 @@ const submitInspection = async (
 
   try {
     setSubmitting(true);
+    setInspectionStatus("submitting");
+    setSubmitError("");
 
     const formData = new FormData();
 
@@ -767,23 +816,36 @@ const submitInspection = async (
     }
 
     /*
-     * Successful submission: Navigate back to Complaint Details with success banner, or to case/dashboard.
+     * Successful submission: Display success modal and start 5-second countdown timer.
      */
-    if (result.complaintId) {
-      navigate(`/complaints/${encodeURIComponent(result.complaintId)}?inspectionSuccess=true`);
-    } else if (result.caseId) {
-      navigate(`/cases/${encodeURIComponent(result.caseId)}`);
-    } else {
-      navigate("/dashboard");
-    }
+    const regData = {
+      visitId: result.visitId ? String(result.visitId) : undefined,
+      complaintId: result.complaintId || (sourceOfReport === "complaint" ? complaintId.trim() : null),
+      caseId: result.caseId || null,
+    };
+
+    setRegisteredResult(regData);
+    setInspectionStatus("success");
+    setSuccessCountdown(5);
+
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = setInterval(() => {
+      setSuccessCountdown((prev) => (prev > 1 ? prev - 1 : 1));
+    }, 1000);
+
+    if (autoRedirectTimerRef.current) clearTimeout(autoRedirectTimerRef.current);
+    autoRedirectTimerRef.current = setTimeout(() => {
+      handleProceedAfterSuccess(regData);
+    }, 5000);
 
   } catch (error) {
 
-    setSubmitError(
+    const errorMsg =
       error instanceof Error
         ? error.message
-        : "Unable to register inspection.",
-    );
+        : "Unable to register inspection.";
+    setSubmitError(errorMsg);
+    setInspectionStatus("error");
 
   } finally {
     setSubmitting(false);
@@ -1286,7 +1348,7 @@ const submitInspection = async (
                 navigate("/dashboard");
               }
             }}
-            disabled={submitting}
+            disabled={submitting || inspectionStatus === "submitting"}
           >
             Cancel
           </button>
@@ -1294,16 +1356,113 @@ const submitInspection = async (
           <button
             type="submit"
             className="primary-button"
-            disabled={submitting}
+            disabled={submitting || inspectionStatus === "submitting"}
           >
-            {submitting
+            {submitting || inspectionStatus === "submitting"
               ? "Registering..."
               : "Register Inspection"}
 
-            {!submitting && <Icon name="arrow" />}
+            {!submitting && inspectionStatus !== "submitting" && <Icon name="arrow" />}
           </button>
         </div>
       </form>
+
+      {/* ── Inspection Registration Feedback Modal ── */}
+      {inspectionStatus !== "idle" && (
+        <div
+          className="complaint-status-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            inspectionStatus === "submitting"
+              ? "Registering Inspection"
+              : inspectionStatus === "success"
+              ? "Inspection Registered"
+              : "Registration Failed"
+          }
+        >
+          <div className="complaint-status-modal" onClick={(e) => e.stopPropagation()}>
+            {inspectionStatus === "submitting" && (
+              <>
+                <div className="complaint-status-modal__icon-wrap complaint-status-modal__icon-wrap--submitting">
+                  <div className="complaint-status-modal__spinner" />
+                </div>
+                <h3 className="complaint-status-modal__title">Registering Inspection</h3>
+                <p className="complaint-status-modal__message">
+                  Registering inspection… Please wait.
+                </p>
+              </>
+            )}
+
+            {inspectionStatus === "success" && (
+              <>
+                <div className="complaint-status-modal__icon-wrap complaint-status-modal__icon-wrap--success">
+                  <Icon name="check" />
+                </div>
+                <h3 className="complaint-status-modal__title">Inspection Registered</h3>
+                <p className="complaint-status-modal__message">
+                  {registeredResult?.complaintId
+                    ? "The field inspection has been successfully registered and linked to the complaint."
+                    : "The field inspection report has been successfully recorded."}
+                </p>
+                <div className="complaint-status-modal__ref-box">
+                  {registeredResult?.complaintId && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                      <span>Complaint ID:</span>
+                      <span className="complaint-status-modal__ref-id">#{registeredResult.complaintId}</span>
+                    </div>
+                  )}
+                  {registeredResult?.caseId && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                      <span>Case Reference:</span>
+                      <span className="complaint-status-modal__ref-id">#{registeredResult.caseId}</span>
+                    </div>
+                  )}
+                  {registeredResult?.visitId && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                      <span>Inspection Visit ID:</span>
+                      <span className="complaint-status-modal__ref-id">#{registeredResult.visitId}</span>
+                    </div>
+                  )}
+                  <span className="complaint-status-modal__countdown">
+                    Redirecting in {successCountdown}s...
+                  </span>
+                </div>
+                <div className="complaint-status-modal__actions">
+                  <button
+                    type="button"
+                    className="primary-button complaint-status-modal__button"
+                    onClick={() => handleProceedAfterSuccess()}
+                  >
+                    OK
+                  </button>
+                </div>
+              </>
+            )}
+
+            {inspectionStatus === "error" && (
+              <>
+                <div className="complaint-status-modal__icon-wrap complaint-status-modal__icon-wrap--error">
+                  <Icon name="alert-triangle" />
+                </div>
+                <h3 className="complaint-status-modal__title">Registration Failed</h3>
+                <p className="complaint-status-modal__message">
+                  {submitError || "Unable to register inspection. Please check the details and try again."}
+                </p>
+                <div className="complaint-status-modal__actions">
+                  <button
+                    type="button"
+                    className="primary-button complaint-status-modal__button"
+                    onClick={() => setInspectionStatus("idle")}
+                  >
+                    Back to Form &amp; Retry
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

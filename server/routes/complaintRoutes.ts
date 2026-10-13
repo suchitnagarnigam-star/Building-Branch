@@ -1689,9 +1689,9 @@ router.post(
 
       await client.query("COMMIT");
 
-      // Clean up local temp files that were successfully uploaded to remote Drive
+      // Clean up local temp files that were successfully uploaded to remote Drive (non-blocking)
       if (temporaryFilesToDelete.length > 0) {
-        await deleteTemporaryFiles(temporaryFilesToDelete);
+        void deleteTemporaryFiles(temporaryFilesToDelete);
       }
 
       // 9. Fetch and return full updated summary
@@ -2109,53 +2109,26 @@ router.post(
       // Generate ID and persist
       const complaintId = await generateComplaintId();
 
-      console.log(
-        `[Drive] Creating folder for complaint ${complaintId}...`,
-      );
-
-      const driveFolder = await createComplaintDriveFolder(
-        complaintId,
-      );
-
-      console.log(
-        `[Drive] Folder ready: ${driveFolder.folderUrl}`,
-      );
-
-
-      /*
-       * Upload external source files.
-       *
-       * sourceImage → source_1, source_2, ...
-       */
-      if (sourceImages.length > 0) {
+      let driveFolderUrl: string | null = null;
+      try {
         console.log(
-          `[Drive] Uploading ${sourceImages.length} source file(s)...`,
+          `[Drive] Creating folder for complaint ${complaintId}...`,
         );
 
-        await uploadComplaintFiles(
+        const driveFolder = await createComplaintDriveFolder(
           complaintId,
-          "source",
-          sourceImages,
+        );
+        driveFolderUrl = driveFolder.folderUrl ?? null;
+
+        console.log(
+          `[Drive] Folder ready: ${driveFolderUrl}`,
+        );
+      } catch (folderError) {
+        console.warn(
+          `[Drive] Could not create folder for complaint ${complaintId}:`,
+          folderError,
         );
       }
-
-      /*
-       * Upload complaint/preliminary evidence.
-       *
-       * complaintImage → pre_1, pre_2, ...
-       */
-      if (complaintImages.length > 0) {
-        console.log(
-          `[Drive] Uploading ${complaintImages.length} pre file(s)...`,
-        );
-      
-        await uploadComplaintFiles(
-          complaintId,
-          "pre",
-          complaintImages,
-        );
-      }
-
 
       /*
        * We no longer use local server storage as permanent
@@ -2190,7 +2163,7 @@ router.post(
         title:                body.title.trim(),
         description:          body.description.trim(),
         attachments,
-        driveFolderUrl:       driveFolder.folderUrl,
+        driveFolderUrl,
         assignedOfficerId:    biOfficerId,
         assignedOfficerName:  biOfficerName,
         assignedOfficerMobile: biOfficerMobile,
@@ -2206,7 +2179,17 @@ router.post(
 
       await saveComplaint(complaint);
 
-      // Web Push and In-App notification to assigned Building Inspector (BI)
+      // Return response immediately so UI can display the registered complaint without delay
+      res.status(201).json({
+        success: true,
+        complaintId: complaint.complaintId,
+        message: "Complaint registered successfully.",
+        complaint,
+      });
+
+      // Background tasks (non-blocking):
+
+      // 1. Web Push and In-App notification to assigned Building Inspector (BI)
       if (biOfficerId) {
         void notifyOfficer(biOfficerId, {
           title: "New Complaint Assigned",
@@ -2224,19 +2207,49 @@ router.post(
         });
       }
 
-      await deleteTemporaryFiles([
-        ...sourceImages,
-        ...complaintImages,
-      ]);
-      
-      res.status(201).json({
-        success: true,
-        complaintId: complaint.complaintId,
-        message: "Complaint registered successfully.",
-        complaint,
-      });
+      // 2. Upload files to Google Drive in the background and clean up temporary files once done
+      void (async () => {
+        try {
+          if (sourceImages.length > 0) {
+            console.log(
+              `[Drive] Uploading ${sourceImages.length} source file(s)...`,
+            );
+            await uploadComplaintFiles(
+              complaintId,
+              "source",
+              sourceImages,
+            );
+          }
+
+          if (complaintImages.length > 0) {
+            console.log(
+              `[Drive] Uploading ${complaintImages.length} pre file(s)...`,
+            );
+            await uploadComplaintFiles(
+              complaintId,
+              "pre",
+              complaintImages,
+            );
+          }
+        } catch (uploadError) {
+          console.error(
+            `[Drive] Background file upload failed for complaint ${complaintId}:`,
+            uploadError,
+          );
+        } finally {
+          void deleteTemporaryFiles([
+            ...sourceImages,
+            ...complaintImages,
+          ]);
+        }
+      })();
     } catch (error) {
       console.error("Error registering complaint:", error);
+      // Clean up temp files if registration failed
+      void deleteTemporaryFiles([
+        ...(req.files as Record<string, Express.Multer.File[]> | undefined)?.["sourceImage"] ?? [],
+        ...(req.files as Record<string, Express.Multer.File[]> | undefined)?.["complaintImage"] ?? [],
+      ]);
       res.status(500).json({ success: false, message: "Unable to register complaint." });
     }
   },
@@ -3005,45 +3018,105 @@ const hasNoticeData = Boolean(
 
       /*
        * ------------------------------------------------------
-       * 12. UPLOAD INSPECTION EVIDENCE
+       * 12. UPLOAD INSPECTION EVIDENCE & OPTIONAL NOTICE (CONCURRENT)
        * ------------------------------------------------------
        */
 
-      const uploadedEvidence =
-        await uploadInspectionEvidenceFiles(
+      const shouldUploadNotice = Boolean(
+        hasNoticeData &&
+        inspectionOutcome !== "complete_violated" &&
+        noticePhotos.length > 0
+      );
+
+      const [uploadedEvidence, uploadedNotice] = await Promise.all([
+        uploadInspectionEvidenceFiles(
           parentType,
           parentId,
           visitId,
           inspectionPhotos,
-        );
+        ),
+        shouldUploadNotice
+          ? uploadInspectionNoticeFile(
+              parentType,
+              parentId,
+              visitId,
+              noticePhotos[0],
+            )
+          : Promise.resolve(null),
+      ]);
 
 
       /*
        * ------------------------------------------------------
-       * 13. SAVE EVIDENCE METADATA
+       * 13. SAVE EVIDENCE METADATA (CONCURRENT)
        * ------------------------------------------------------
        */
 
-      for (
-        const [index, uploaded]
-        of uploadedEvidence.entries()
-      ) {
+      await Promise.all(
+        uploadedEvidence.map((uploaded, index) => {
+          const originalFile = inspectionPhotos[index];
+          return pool.query(
+            `
+              INSERT INTO visit_evidence (
+                visit_id,
+                file_name,
+                mime_type,
+                drive_file_id,
+                drive_file_url,
+                storage_provider,
+                latitude,
+                longitude,
+                captured_at,
+                created_at
+              )
+              VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                'google_drive',
+                $6,
+                $7,
+                $8,
+                NOW()
+              )
+            `,
+            [
+              visitId,
+              uploaded.fileName || originalFile.originalname,
+              uploaded.mimeType || originalFile.mimetype,
+              uploaded.fileId,
+              uploaded.fileUrl || null,
+              latitude,
+              longitude,
+              new Date().toISOString(),
+            ],
+          );
+        }),
+      );
 
-        const originalFile =
-          inspectionPhotos[index];
+      /*
+       * ------------------------------------------------------
+       * 14. OPTIONAL NOTICE
+       * ------------------------------------------------------
+       */
+      if (uploadedNotice) {
+        const noticeType = "270";
 
         await pool.query(
           `
-            INSERT INTO visit_evidence (
-              visit_id,
-              file_name,
-              mime_type,
+            INSERT INTO notices (
+              case_id,
+              notice_type,
+              notice_number,
+              issued_by_id,
+              issued_by_name,
+              issued_at,
+              document_name,
               drive_file_id,
               drive_file_url,
-              storage_provider,
-              latitude,
-              longitude,
-              captured_at,
+              metadata,
               created_at
             )
             VALUES (
@@ -3052,151 +3125,85 @@ const hasNoticeData = Boolean(
               $3,
               $4,
               $5,
-              'google_drive',
               $6,
               $7,
               $8,
+              $9,
+              $10::jsonb,
               NOW()
             )
           `,
           [
-            visitId,
-            uploaded.fileName ||
-              originalFile.originalname,
-            uploaded.mimeType ||
-              originalFile.mimetype,
-            uploaded.fileId,
-            uploaded.fileUrl || null,
-            latitude,
-            longitude,
-            new Date().toISOString(),
+            caseId,
+            noticeType,
+            body.noticeNumber!.trim(),
+            reportingOfficer.officerId,
+            reportingOfficer.name,
+            body.noticeDate,
+            uploadedNotice.fileName,
+            uploadedNotice.fileId,
+            uploadedNotice.fileUrl || null,
+            JSON.stringify({
+              source: "field_inspection",
+              visitId,
+              inspectionOutcome,
+            }),
           ],
+        );
+
+        // Web Push notification to supervising Assistant Town Planner (ATP)
+        if (atp?.officerId && caseId) {
+          void notifyOfficer(atp.officerId, {
+            title: "Section 270 Notice Issued",
+            body: `Notice ${body.noticeNumber!.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
+            tag: `case-${caseId}-notice-270`,
+            url: `/cases/${encodeURIComponent(caseId)}`,
+          });
+        }
+      }
+
+
+      /*
+       * ------------------------------------------------------
+       * 15. CLEAN TEMPORARY FILES (NON-BLOCKING)
+       * ------------------------------------------------------
+       */
+
+      if (temporaryFiles.length > 0) {
+        void deleteTemporaryFiles(
+          temporaryFiles,
         );
       }
 
       /*
- * ------------------------------------------------------
- * 14. OPTIONAL NOTICE
- * ------------------------------------------------------
- *
- * At this point notice validation has already happened.
- *
- * We only reach this block when:
- *
- * - notice number exists
- * - notice date exists
- * - notice photo exists
- * - inspection is case-based
- */
-if (hasNoticeData && inspectionOutcome !== "complete_violated") {
-  const uploadedNotice =
-    await uploadInspectionNoticeFile(
-      parentType,
-      parentId,
-      visitId,
-      noticePhotos[0],
-    );
-
-  const noticeType = "270";
-
-  await pool.query(
-    `
-      INSERT INTO notices (
-        case_id,
-        notice_type,
-        notice_number,
-        issued_by_id,
-        issued_by_name,
-        issued_at,
-        document_name,
-        drive_file_id,
-        drive_file_url,
-        metadata,
-        created_at
-      )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10::jsonb,
-        NOW()
-      )
-    `,
-    [
-      caseId,
-      noticeType,
-      body.noticeNumber!.trim(),
-      reportingOfficer.officerId,
-      reportingOfficer.name,
-      body.noticeDate,
-      uploadedNotice.fileName,
-      uploadedNotice.fileId,
-      uploadedNotice.fileUrl || null,
-      JSON.stringify({
-        source: "field_inspection",
-        visitId,
-        inspectionOutcome,
-      }),
-    ],
-  );
-
-  // Web Push notification to supervising Assistant Town Planner (ATP)
-  if (atp?.officerId && caseId) {
-    void notifyOfficer(atp.officerId, {
-      title: "Section 270 Notice Issued",
-      body: `Notice ${body.noticeNumber!.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
-      tag: `case-${caseId}-notice-270`,
-      url: `/cases/${encodeURIComponent(caseId)}`,
-    });
-  }
-}
-
-
-      /*
        * ------------------------------------------------------
-       * 15. CLEAN TEMPORARY FILES
-       * ------------------------------------------------------
-       */
-
-      await deleteTemporaryFiles(
-        temporaryFiles,
-      );
-
-      /*
-       * ------------------------------------------------------
-       * 15.5 UPDATE COMPLAINT STATUS & NOTIFICATIONS
+       * 15.5 UPDATE COMPLAINT STATUS & NOTIFICATIONS (CONCURRENT)
        * ------------------------------------------------------
        */
 
       if (sourceOfReport === "complaint" && complaintId) {
-        await pool.query(
-          `UPDATE complaints
-           SET status = CASE
-             WHEN status IN ('Registered', 'Assigned') THEN 'In progress'
-             ELSE status
-           END,
-           assignment_acknowledged_at = COALESCE(assignment_acknowledged_at, NOW()),
-           acknowledged_by_officer_id = COALESCE(acknowledged_by_officer_id, $2)
-           WHERE complaint_id = $1`,
-          [complaintId, reportingOfficer.officerId]
-        );
-
-        // Mark unread in-app assignment notifications as read for this officer
-        await pool.query(
-          `UPDATE notifications
-           SET read_at = NOW()
-           WHERE entity_type = 'complaint'
-             AND entity_id = $1
-             AND UPPER(recipient_officer_id) = UPPER($2)
-             AND read_at IS NULL`,
-          [complaintId, reportingOfficer.officerId]
-        );
+        await Promise.all([
+          pool.query(
+            `UPDATE complaints
+             SET status = CASE
+               WHEN status IN ('Registered', 'Assigned') THEN 'In progress'
+               ELSE status
+             END,
+             assignment_acknowledged_at = COALESCE(assignment_acknowledged_at, NOW()),
+             acknowledged_by_officer_id = COALESCE(acknowledged_by_officer_id, $2)
+             WHERE complaint_id = $1`,
+            [complaintId, reportingOfficer.officerId],
+          ),
+          pool.query(
+            `UPDATE notifications
+             SET read_at = NOW()
+             WHERE entity_type = 'complaint'
+               AND entity_id = $1
+               AND UPPER(recipient_officer_id) = UPPER($2)
+               AND read_at IS NULL`,
+            [complaintId, reportingOfficer.officerId],
+          ),
+        ]);
       }
 
 
@@ -3238,7 +3245,7 @@ if (hasNoticeData && inspectionOutcome !== "complete_violated") {
        * Best-effort cleanup of temporary uploads.
        */
       if (temporaryFiles.length > 0) {
-        await deleteTemporaryFiles(
+        void deleteTemporaryFiles(
           temporaryFiles,
         );
       }
