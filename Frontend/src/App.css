@@ -4654,3 +4654,132 @@ svg:focus {
   animation: spin 0.8s linear infinite;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   COMPLAINT REGISTRATION FEEDBACK MODAL
+══════════════════════════════════════════════════════════════════════ */
+.complaint-status-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.complaint-status-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 440px;
+  width: 100%;
+  padding: 32px 28px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  animation: scaleUp 0.2s ease-out;
+}
+
+.complaint-status-modal__icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.complaint-status-modal__icon-wrap--submitting {
+  background: #eef2ff;
+  color: var(--primary, #3b82f6);
+}
+
+.complaint-status-modal__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3.5px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.complaint-status-modal__icon-wrap--success {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.complaint-status-modal__icon-wrap--error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.complaint-status-modal__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.complaint-status-modal__message {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.complaint-status-modal__ref-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px;
+  color: #334155;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.complaint-status-modal__ref-id {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.5px;
+}
+
+.complaint-status-modal__countdown {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.complaint-status-modal__actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.complaint-status-modal__button {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.complaint-status-modal__button:hover {
+  opacity: 0.9;
+}
+
+

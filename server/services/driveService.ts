@@ -250,27 +250,18 @@ export const uploadComplaintFiles =
     files: Express.Multer.File[],
   ): Promise<DriveUploadResponse[]> => {
 
-    const uploaded: DriveUploadResponse[] = [];
-
-    for (
-      const [index, file]
-      of files.entries()
-    ) {
-
-      const result =
-        await uploadComplaintFile(
+    return Promise.all(
+      files.map((file, index) =>
+        uploadComplaintFile(
           complaintId,
           type,
           index + 1,
           file.path,
           file.originalname,
           file.mimetype,
-        );
-
-      uploaded.push(result);
-    }
-
-    return uploaded;
+        ),
+      ),
+    );
   };
 
 
@@ -473,20 +464,9 @@ export const uploadInspectionEvidenceFiles =
     }>
   > => {
 
-    const uploaded: Array<{
-      fileId: string;
-      fileName: string;
-      mimeType: string;
-      fileUrl?: string;
-    }> = [];
-
-    for (
-      const [index, file]
-      of files.entries()
-    ) {
-
-      const result =
-        await uploadInspectionFile(
+    return Promise.all(
+      files.map((file, index) =>
+        uploadInspectionFile(
           parentType,
           parentId,
           visitId,
@@ -495,12 +475,9 @@ export const uploadInspectionEvidenceFiles =
           file.path,
           file.originalname,
           file.mimetype,
-        );
-
-      uploaded.push(result);
-    }
-
-    return uploaded;
+        ),
+      ),
+    );
   };
 
 

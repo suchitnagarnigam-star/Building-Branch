@@ -66,6 +66,21 @@ function ComplaintFormPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingSource, setIsProcessingSource] = useState(false);
 
+  // ── Complaint registration modal & feedback state ────────────────────────
+  type RegistrationStatus = "idle" | "submitting" | "success" | "error";
+  const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus>("idle");
+  const [registeredComplaintId, setRegisteredComplaintId] = useState<string | null>(null);
+  const [successCountdown, setSuccessCountdown] = useState<number>(5);
+  const autoRedirectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoRedirectTimerRef.current) clearTimeout(autoRedirectTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
+
   // ── Complaint image evidence ─────────────────────────────────────────────
   const [complaintImages, setComplaintImages]     = useState<UploadedFile[]>([]);
   const [previewImage, setPreviewImage]           = useState<UploadedFile | null>(null);
@@ -246,16 +261,51 @@ function ComplaintFormPage({
     return next;
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
+  // ── Submit & Confirmation Navigation ────────────────────────────────────
+
+  const handleProceedToConfirmation = (complaintId: string) => {
+    if (autoRedirectTimerRef.current) {
+      clearTimeout(autoRedirectTimerRef.current);
+      autoRedirectTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    setRegistrationStatus("idle");
+
+    if (typeof setSelectedComplaintId === "function") {
+      setSelectedComplaintId(complaintId);
+    }
+    if (typeof navigate === "function") {
+      navigate(`/complaints/confirm/${complaintId}`);
+    }
+
+    // Reset form and revoke temporary image previews
+    setFormData(initialFormData);
+    setErrors({});
+    setSubmitError("");
+    complaintImages.forEach((image) => {
+      if (image.preview) URL.revokeObjectURL(image.preview);
+    });
+    setComplaintImages([]);
+    setSourceFiles([]);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    // Prevent repeated clicks while processing
+    if (isSubmitting || registrationStatus === "submitting") return;
 
     const validatedErrors = validateForm();
     setErrors(validatedErrors);
     if (Object.keys(validatedErrors).length > 0) return;
 
     setIsSubmitting(true);
+    setRegistrationStatus("submitting");
+    setSubmitError("");
 
     try {
       const registrationSource = sourceFiles.length > 0 ? "document" : "manual";
@@ -270,21 +320,28 @@ function ComplaintFormPage({
 
       if (!complaintId) throw new Error("Complaint registration response did not include an ID.");
 
-      if (typeof setSelectedComplaintId === "function") setSelectedComplaintId(complaintId);
-      if (typeof navigate === "function") navigate(`/complaints/confirm/${complaintId}`);
+      setRegisteredComplaintId(complaintId);
+      setRegistrationStatus("success");
+      setSuccessCountdown(5);
 
-      // Reset form
-      setFormData(initialFormData);
-      setErrors({});
-      setSubmitError("");
-      complaintImages.forEach((image) => {
-        if (image.preview) URL.revokeObjectURL(image.preview);
-      });
-      setComplaintImages([]);
-      setSourceFiles([]);
+      // Start 5-second countdown to auto-navigate
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = setInterval(() => {
+        setSuccessCountdown((prev) => (prev > 1 ? prev - 1 : 1));
+      }, 1000);
+
+      if (autoRedirectTimerRef.current) clearTimeout(autoRedirectTimerRef.current);
+      autoRedirectTimerRef.current = setTimeout(() => {
+        handleProceedToConfirmation(complaintId);
+      }, 5000);
     } catch (error) {
       console.error("Complaint submission failed:", error);
-      setSubmitError("Unable to submit the complaint right now. Please try again.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unable to submit the complaint right now. Please try again.";
+      setSubmitError(errorMessage);
+      setRegistrationStatus("error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1153,6 +1210,86 @@ function ComplaintFormPage({
               />
             )}
             <span className="image-preview-modal__name">{previewSourceFile.name}</span>
+          </div>
+        </div>
+      )}
+      {/* ── Complaint Registration Feedback Modal ── */}
+      {registrationStatus !== "idle" && (
+        <div
+          className="complaint-status-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            registrationStatus === "submitting"
+              ? "Registering Complaint"
+              : registrationStatus === "success"
+              ? "Complaint Registered"
+              : "Registration Failed"
+          }
+        >
+          <div className="complaint-status-modal" onClick={(e) => e.stopPropagation()}>
+            {registrationStatus === "submitting" && (
+              <>
+                <div className="complaint-status-modal__icon-wrap complaint-status-modal__icon-wrap--submitting">
+                  <div className="complaint-status-modal__spinner" />
+                </div>
+                <h3 className="complaint-status-modal__title">Registering Complaint</h3>
+                <p className="complaint-status-modal__message">
+                  Registering complaint… Please wait.
+                </p>
+              </>
+            )}
+
+            {registrationStatus === "success" && (
+              <>
+                <div className="complaint-status-modal__icon-wrap complaint-status-modal__icon-wrap--success">
+                  <Icon name="check" />
+                </div>
+                <h3 className="complaint-status-modal__title">Complaint Registered</h3>
+                <p className="complaint-status-modal__message">
+                  The complaint has been successfully registered and saved.
+                </p>
+                {registeredComplaintId && (
+                  <div className="complaint-status-modal__ref-box">
+                    <span>Complaint Reference Number</span>
+                    <span className="complaint-status-modal__ref-id">#{registeredComplaintId}</span>
+                    <span className="complaint-status-modal__countdown">
+                      Redirecting in {successCountdown}s...
+                    </span>
+                  </div>
+                )}
+                <div className="complaint-status-modal__actions">
+                  <button
+                    type="button"
+                    className="primary-button complaint-status-modal__button"
+                    onClick={() => handleProceedToConfirmation(registeredComplaintId!)}
+                  >
+                    OK
+                  </button>
+                </div>
+              </>
+            )}
+
+            {registrationStatus === "error" && (
+              <>
+                <div className="complaint-status-modal__icon-wrap complaint-status-modal__icon-wrap--error">
+                  <Icon name="alert-triangle" />
+                </div>
+                <h3 className="complaint-status-modal__title">Registration Failed</h3>
+                <p className="complaint-status-modal__message">
+                  {submitError || "Unable to register the complaint right now. Please check the details and try again."}
+                </p>
+                <div className="complaint-status-modal__actions">
+                  <button
+                    type="button"
+                    className="primary-button complaint-status-modal__button"
+                    onClick={() => setRegistrationStatus("idle")}
+                  >
+                    Back to Form &amp; Retry
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
