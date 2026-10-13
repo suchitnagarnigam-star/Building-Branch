@@ -12,6 +12,7 @@ import pushRoutes from "./routes/pushRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import driveRoutes from "./routes/driveRoutes";
 import { testDatabaseConnection } from "./db/database";
+import { activityTrackerMiddleware, initCronJobs } from "./services/cronService";
 
 const app = express();
 const moduleDirectory = __dirname;
@@ -21,6 +22,7 @@ const serverRoot = path.basename(moduleDirectory) === "dist"
 
 app.use(cors());
 app.use(express.json());
+app.use(activityTrackerMiddleware);
 app.use("/uploads", express.static(path.join(serverRoot, "uploads")));
 
 // Health check endpoint
@@ -58,6 +60,9 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(PORT, async () => {
   console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
   await testDatabaseConnection();
+  if (process.env.NODE_ENV !== "test") {
+    initCronJobs(PORT);
+  }
 });
 
 export default app;

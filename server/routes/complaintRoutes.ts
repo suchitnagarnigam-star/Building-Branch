@@ -10,7 +10,6 @@ import { findResponsibleOfficer } from "../services/officerMapping";
 import { generateComplaintId, getComplaints, saveComplaint } from "../services/complaintStorage";
 import { zoneForBlock } from "../services/locationMapping";
 import { getOfficers } from "../services/officerMapping.js";
-import { appendComplaintToGoogleSheet } from "../services/googleSheetsService";
 import { processFileWithOCR } from "../services/ocrService";
 import { extractComplaintFromOCR } from "../services/claudeService";
 import {
@@ -2228,15 +2227,7 @@ router.post(
       await deleteTemporaryFiles([
         ...sourceImages,
         ...complaintImages,
-      ])
-
-      try{
-        await appendComplaintToGoogleSheet(complaint);
-      } catch (error) {
-        console.error(
-          "Google Sheets sync failed:", error
-        );
-      }
+      ]);
       
       res.status(201).json({
         success: true,
