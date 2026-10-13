@@ -205,48 +205,49 @@ npm run dev
 | **Enforcement Action Form** | `Frontend/src/pages/EnforcementActionForm.tsx` | Complete | 1400px wide layout, 5 outcome branches, statutory compliance period validation, edit pre-population |
 | **Case Detail View** | `Frontend/src/pages/CaseDetailPage.tsx` | Complete | Statutory timeline, notices, replies, demolition records, close case & review reply modals, hook ordering fixes |
 | **Operational Dashboard** | `Frontend/src/features/dashboard/DashboardPage.tsx` | Complete | Live role-scoped KPIs, status bars, Needs Attention alerts, recent complaints |
-| **Officers Performance** | `Frontend/src/features/officers/OfficersPage.tsx` | Complete | 4 KPI cards, 3-card Top Performers Podium, workload bars, detail drawer, ATP supervisory rollup |
+| **Drive Proxy & Lightbox** | `server/routes/driveRoutes.ts`, `Frontend/src/shared/components/ImageViewerModal.tsx` | Complete | Universal Google Drive file streaming proxy (`/api/drive/files/:fileId`), disk caching (`server/uploads/drive_cache/`), and in-app image lightbox modal |
+| **In-App Notification Center** | `server/routes/notificationRoutes.ts`, `Frontend/src/layout/Topbar.tsx`, `MobileHeader.tsx` | Complete | Dual-write push events to PostgreSQL `notifications`, notification feed API (`GET /api/notifications`), mark read, live unread polling |
+| **PWA Web App Manifest** | `Frontend/public/manifest.webmanifest`, `Frontend/index.html` | Complete | Web manifest, home-screen icons (`icon-192.png`, `icon-512.png`), viewport & apple touch icon tags |
+| **Migrations Runner** | `server/migrations/runMigrations.ts` | Complete | Automated runner for migrations 001–007 against PostgreSQL with secure user seeding |
 
 ---
 
-## 6. Prioritized Roadmap & Next Session Execution Order
+## 6. Current Milestone Status & Next Steps
 
-### 6.1 Honest Priority Stack
+### 6.1 Completed in Latest Deliverables
 
-1. **Recently Completed (Closed Loose Ends)**:
-   - **Section 270 Notification Trigger**: Wired push notification dispatch in `POST /api/inspections` when `violation_found` / Section 270 notice is recorded to notify the supervising ATP (`case-${caseId}-notice-270`).
-   - **Frontend `.env.example`**: Created `Frontend/.env.example` documenting `VITE_API_BASE_URL` and environment defaults.
-   - **Persistent 365-Day Session**: Configured `JWT_EXPIRES_IN=365d` so officers do not have to log in every day.
-   - **Security PIN Update**: Added `POST /api/auth/change-pin` with bcrypt hashing and immediate session renewal.
-   - **Officer Profile Portal**: Implemented `/profile` with civic administrative styling, jurisdiction tags, PIN change, test push button, and device logout.
-   - **Upstream Sync**: Merged responsive mobile redesign, 12 mobile screens, and dropdown enhancements from `ad-dev`.
+1. **PWA Manifest & Installability**:
+   - `Frontend/public/manifest.webmanifest` created with name, short name, start URL, standalone display, and theme colors.
+   - PWA icons (`icon-192.png`, `icon-512.png`) and standard mobile viewport meta tags added in `Frontend/index.html`.
+   - Enabled native "Add to Home Screen" on mobile devices with standalone window frame.
 
-2. **Next Meaningful Feature: PWA Manifest + Installability**:
-   - Enables native **"Add to Home Screen"** on mobile for field inspectors (opens fullscreen without browser chrome, shows app icon on home screen, loads faster, reliable push delivery).
-   - Create `Frontend/public/manifest.webmanifest`.
-   - Add mobile viewport & PWA meta tags in `Frontend/index.html` (`<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="mobile-web-app-capable">`, `<meta name="apple-mobile-web-app-capable">`).
-   - Place standard icons (`icon-192.png`, `icon-512.png`, maskable) in `Frontend/public/`.
-   - **Target Commit**: `"PWA installability : added web manifest, mobile viewport tags, and home screen app icons"`
+2. **In-App Notification Center (PWA Phase 2)**:
+   - Migration `007_create_notifications_table.sql` applied to PostgreSQL.
+   - Dual-write pattern in `server/services/pushService.ts` writes every push alert to `notifications` table.
+   - Built `GET /api/notifications` and `PATCH /api/notifications/:id/read`.
+   - Built notification bell drawer with unread counter in `Topbar.tsx` and live polling in `MobileHeader.tsx`.
 
-3. **Following Feature: In-App Notification Bell & Center (PWA Phase 2)**:
-   - Verified PostgreSQL `notifications` table schema (`notification_id`, `recipient_officer_id`, `type`, `entity_type`, `entity_id`, `title`, `body`, `read_at`, `created_at`).
-   - **Dual-Delivery Pattern**: When `pushService.ts` fires a push notification, simultaneously insert a record into the `notifications` table so officers who miss or dismiss browser pushes can still review them in-app.
-   - API endpoints: `GET /api/notifications` (last 20, unread first) and `PATCH /api/notifications/:id/read`.
-   - Frontend UI: Notification bell icon with unread count badge and slide-out dropdown/drawer in `Frontend/src/layout/Topbar.tsx`.
-   - **Target Commit**: `"In-app notification center : implemented notifications API, pushService dual-write, and Topbar notification bell drawer"`
+3. **Universal Google Drive Image Access Proxy & Caching**:
+   - Built `GET /api/drive/files/:fileId` with disk caching in `server/uploads/drive_cache/` (<10ms cache hits).
+   - Strict record-association security guard (prevents arbitrary Google Drive file exfiltration).
+   - Shared URL parser `driveUrl.ts` and in-app Lightbox modal `ImageViewerModal.tsx` with zoom, download, and keyboard navigation.
 
-4. **Deferred to Post-MVP Scope (Non-Blocking)**:
-   - **SLA Delayed Case Flagging & Case Score**: Requires background cron/worker infrastructure.
-   - **Statutory Notice PDF Templates**: Physical print generation for Section 270/269 notices.
-   - **Offline Draft Storage & Background Sync**: Complex IndexedDB client-side synchronization for zero-connectivity field inspections.
+4. **Mobile UI & Responsive Header Polish**:
+   - Styled `.mobile-subpage-header`, `.mobile-back-btn`, `.mobile-subpage-title`, and badges across mobile pages.
+   - Resolved header text collision (`← BackConstruction Status`).
+   - Hidden redundant 3-line desktop banner on mobile viewports.
+   - Squeezed input row fixed with responsive wrapping and placeholder cleanup.
 
-### 6.2 Next Session Execution Sequence
-```
-1. Add manifest.webmanifest + PWA icons + index.html tags (30 min)
-   ─── COMMIT: "PWA installability" ───
-2. Add dual-write insertion into notifications table in pushService.ts (15 min)
-3. Build GET /api/notifications + PATCH /api/notifications/:id/read endpoints (20 min)
-4. Build notification bell dropdown in Topbar.tsx (30 min)
-   ─── COMMIT: "In-app notification center" ───
-```
+5. **Production Hardening & Upstream Merge**:
+   - Enforced non-default `INITIAL_ADMIN_PASSWORD` and `INITIAL_OPERATOR_PASSWORD` in `NODE_ENV=production`.
+   - Completely disabled synthetic fallback demo records (`CASE-9A2E3B1C`) in production; real 404/500 responses returned.
+   - Merged upstream `origin/main` (`eaa25cf`) with API base URL normalization, global `Authorization: Bearer <token>` attachment, and dependency security updates.
+
+### 6.2 Next Steps for Production / Staging Pilot
+
+1. **Staging / VPS Deployment**:
+   - Run `npm --prefix server run migrate` against the live production PostgreSQL instance.
+   - Set host production secrets (`JWT_SECRET`, `DATABASE_URL`, `INITIAL_ADMIN_PASSWORD`, `INITIAL_OPERATOR_PASSWORD`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`).
+2. **Field Pilot Verification**:
+   - Test login, complaint intake, BI assignment, inspection evidence upload, notice generation, and enforcement recording end-to-end with pilot officers.
 

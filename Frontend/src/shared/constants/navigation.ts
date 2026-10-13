@@ -5,6 +5,7 @@ export const NAV_ITEMS: { label: string; route: string; icon: string; roles: Rol
   { label: "New Complaint", route: "/complaints/new", icon: "plus", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Complaints", route: "/complaints", icon: "list", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Cases", route: "/cases", icon: "folder", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
+  { label: "Alerts", route: "/notices", icon: "bell", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Field Inspections", route: "/field-inspection", icon: "search", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Construction Status", route: "/construction-status", icon: "edit", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
   { label: "Officers", route: "/officers", icon: "users", roles: ["Operator", "Officer", "ATP", "MTP", "JC", "C", "Admin"] },
@@ -56,7 +57,8 @@ export const formatPageTitle = (route: string): string => {
     case "/cases":
       return "Cases";
     case "/notices":
-      return "Notices";
+    case "/alerts":
+      return "Alerts & Notifications";
     case "/gis-map":
       return "GIS / Map";
     case "/reports":

@@ -5,6 +5,7 @@ import type { AppComplaint } from "../../shared/types";
 import { API_BASE_URL } from "../../shared/utils/apiConfig";
 import { getDriveFileProxyUrl } from "../../shared/utils/driveUrl";
 import ImageViewerModal from "../../shared/components/ImageViewerModal";
+import { useAuth } from "../../context/AuthContext";
 
 type DriveFile = {
   fileId: string;
@@ -37,6 +38,7 @@ type StoredComplaint = {
   ward?: string;
   address: string;
   description: string;
+  assignedOfficerId?: string | null;
   assignedOfficerName: string | null;
   assignedOfficerMobile: string | null;
   assignedAtpName: string | null;
@@ -47,6 +49,8 @@ type StoredComplaint = {
   caseId?: string | null;
   created_by?: { name: string; role: string } | null;
   createdBy?: { name: string; role: string } | null;
+  assignmentAcknowledgedAt?: string | null;
+  acknowledgedByOfficerId?: string | null;
 };
 
 const TIMELINE_STAGES = [
@@ -79,6 +83,8 @@ function readLocalComplaint(complaintId: string): StoredComplaint | null {
 }
 
 function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, navigate }: ComplaintDetailPageProps) {
+  const { user } = useAuth();
+  const isBI = (user?.role || "").toLowerCase() === "bi";
   const [mobileTab, setMobileTab] = useState<"overview" | "timeline" | "evidence" | "case">("overview");
   const [storedComplaint, setStoredComplaint] = useState<StoredComplaint | null>(
     () => readLocalComplaint(complaintId),
@@ -88,6 +94,25 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
   const [loading, setLoading] = useState(!storedComplaint);
   const [error, setError] = useState("");
   const [viewerImage, setViewerImage] = useState<{ url: string; title?: string } | null>(null);
+
+  const isAssignedToMe = Boolean(
+    storedComplaint?.assignedOfficerId &&
+    user?.officerId &&
+    storedComplaint.assignedOfficerId.trim().toUpperCase() === user.officerId.trim().toUpperCase()
+  );
+  const isAcknowledged = Boolean(storedComplaint?.assignmentAcknowledgedAt);
+  const canStartInspection = isBI && isAssignedToMe;
+
+  const [showSuccessBanner, setShowSuccessBanner] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.location.href.includes("inspectionSuccess=true");
+    }
+    return false;
+  });
+
+  const handleStartInspection = () => {
+    navigate(`/field-inspection?complaintId=${encodeURIComponent(complaintId)}`);
+  };
 
   const apiUrl = API_BASE_URL;
 
@@ -122,6 +147,43 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
       active = false;
     };
   }, [complaintId, apiUrl]);
+
+  // Auto-acknowledge assignment if viewed by the assigned BI
+  useEffect(() => {
+    if (!storedComplaint || !user?.officerId || !isBI) return;
+    const isMyAssignment = Boolean(
+      storedComplaint.assignedOfficerId &&
+      storedComplaint.assignedOfficerId.trim().toUpperCase() === user.officerId.trim().toUpperCase()
+    );
+
+    if (isMyAssignment && !storedComplaint.assignmentAcknowledgedAt) {
+      const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
+      fetch(`${apiUrl}/complaints/${encodeURIComponent(complaintId)}/acknowledge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.assignmentAcknowledgedAt) {
+            setStoredComplaint((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    assignmentAcknowledgedAt: data.assignmentAcknowledgedAt,
+                    acknowledgedByOfficerId: user.officerId || null,
+                  }
+                : null
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn("[ComplaintDetail] Auto-acknowledgement notice:", err);
+        });
+    }
+  }, [complaintId, storedComplaint?.assignedOfficerId, storedComplaint?.assignmentAcknowledgedAt, user?.officerId, isBI, apiUrl]);
 
   useEffect(() => {
     let active = true;
@@ -257,15 +319,82 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           </div>
         </div>
 
+        {/* Success Banner */}
+        {showSuccessBanner && (
+          <div
+            style={{
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              color: "#065f46",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              marginBottom: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <Icon name="check-circle" />
+              <div>
+                <strong style={{ fontSize: "13.5px", display: "block" }}>Field Inspection Submitted!</strong>
+                <span style={{ fontSize: "12px" }}>The inspection and evidence have been recorded against this complaint.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSuccessBanner(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#065f46", padding: "4px" }}
+              aria-label="Dismiss"
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
+
         {/* Hero Header Card */}
         <div className="mobile-hero-header">
           <div className="mobile-hero-header__top">
             <span className="mobile-hero-header__id">{complaint.id}</span>
-            <StatusBadge status={complaint.status} />
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              {isAssignedToMe && !isAcknowledged && (
+                <span className="badge-new-assignment">NEW</span>
+              )}
+              <StatusBadge status={complaint.status} />
+            </div>
           </div>
           <div className="mobile-hero-header__sub">
             Registered on {complaint.registered || "Recent"}
+            {isAssignedToMe && isAcknowledged && (
+              <span style={{ display: "inline-block", marginLeft: "8px", color: "#166534", fontSize: "11px", fontWeight: 600 }}>
+                • ✓ Acknowledged
+              </span>
+            )}
           </div>
+          {canStartInspection && (
+            <div style={{ marginTop: "14px" }}>
+              <button
+                type="button"
+                className="primary-button button-full"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "11px 16px",
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                }}
+                onClick={handleStartInspection}
+              >
+                <Icon name="search" />
+                <span>Start Inspection</span>
+                <Icon name="arrow" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tab Pills */}
@@ -467,18 +596,86 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
           <Icon name="arrow" /> All complaints
         </button>
 
-        <div className="detail-header">
-          <div className="detail-header__meta">{complaint.id}</div>
-          <h2>{complaint.title}</h2>
-          <div className="detail-header__info">
-            <StatusBadge status={complaint.status} />
-            <span>Registered {complaint.registered}</span>
-            {(storedComplaint?.created_by || storedComplaint?.createdBy) && (
-              <span style={{ color: "var(--muted, #64748b)" }}>
-                • Registered by: <strong>{(storedComplaint.created_by || storedComplaint.createdBy)?.name}</strong> ({(storedComplaint.created_by || storedComplaint.createdBy)?.role})
-              </span>
-            )}
+        {/* Success Banner */}
+        {showSuccessBanner && (
+          <div
+            style={{
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              color: "#065f46",
+              padding: "14px 20px",
+              borderRadius: "8px",
+              marginBottom: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <Icon name="check-circle" />
+              <div>
+                <strong style={{ fontSize: "14.5px", display: "block" }}>Field Inspection Submitted Successfully!</strong>
+                <span style={{ fontSize: "13px" }}>The field visit report and evidence photographs have been saved against this complaint.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSuccessBanner(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#065f46", padding: "4px" }}
+              aria-label="Dismiss"
+            >
+              <Icon name="close" />
+            </button>
           </div>
+        )}
+
+        <div className="detail-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+          <div style={{ flex: 1, minWidth: "280px" }}>
+            <div className="detail-header__meta" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>{complaint.id}</span>
+              {isAssignedToMe && !isAcknowledged && (
+                <span className="badge-new-assignment">NEW ASSIGNMENT</span>
+              )}
+              {isAssignedToMe && isAcknowledged && (
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: "#dcfce7", color: "#166534", fontWeight: 600 }}>
+                  ✓ Acknowledged
+                </span>
+              )}
+            </div>
+            <h2>{complaint.title}</h2>
+            <div className="detail-header__info">
+              <StatusBadge status={complaint.status} />
+              <span>Registered {complaint.registered}</span>
+              {(storedComplaint?.created_by || storedComplaint?.createdBy) && (
+                <span style={{ color: "var(--muted, #64748b)" }}>
+                  • Registered by: <strong>{(storedComplaint.created_by || storedComplaint.createdBy)?.name}</strong> ({(storedComplaint.created_by || storedComplaint.createdBy)?.role})
+                </span>
+              )}
+            </div>
+          </div>
+          {canStartInspection && (
+            <div style={{ alignSelf: "center" }}>
+              <button
+                type="button"
+                className="primary-button"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 20px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 6px rgba(11,25,87,0.25)",
+                }}
+                onClick={handleStartInspection}
+              >
+                <Icon name="search" />
+                <span>Start Inspection</span>
+                <Icon name="arrow" />
+              </button>
+            </div>
+          )}
         </div>
 
         {storedComplaint?.caseId && (
@@ -643,6 +840,24 @@ function ComplaintDetailPage({ complaint: fallbackComplaint, complaintId, naviga
       </div>
 
       <aside className="detail-side">
+        {canStartInspection && (
+          <div className="panel side-card" style={{ borderLeft: "4px solid var(--accent, #0b1957)", background: "#f8fafc" }}>
+            <h3 style={{ margin: "0 0 6px 0", fontSize: "14px", fontWeight: 700 }}>Next Action</h3>
+            <p style={{ fontSize: "12px", color: "var(--muted, #64748b)", margin: "0 0 12px 0", lineHeight: "1.4" }}>
+              Conduct the mandatory field inspection for this assigned complaint.
+            </p>
+            <button
+              type="button"
+              className="primary-button button-full"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+              onClick={handleStartInspection}
+            >
+              <Icon name="search" />
+              <span>Start Inspection</span>
+            </button>
+          </div>
+        )}
+
         <div className="panel side-card">
           <h3>Assignment</h3>
           <div className="actor-row">

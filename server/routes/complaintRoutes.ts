@@ -404,6 +404,21 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
     if (existingCaseResult.rows.length > 0) {
       caseId = existingCaseResult.rows[0].case_id;
 
+      // Handle reassignment: archive unread notifications for previously assigned BI
+      const prevBiId = complaint.assigned_officer_id?.trim();
+      const isReassigned = Boolean(prevBiId && biOfficerId && prevBiId.toUpperCase() !== biOfficerId.toUpperCase());
+      if (isReassigned) {
+        await client.query(
+          `UPDATE notifications
+           SET read_at = NOW()
+           WHERE entity_type = 'complaint'
+             AND entity_id = $1
+             AND UPPER(recipient_officer_id) = UPPER($2)
+             AND read_at IS NULL`,
+          [complaintId, prevBiId]
+        );
+      }
+
       await client.query(
         `UPDATE complaints
          SET assigned_officer_id = COALESCE($1, assigned_officer_id),
@@ -412,7 +427,9 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
              assigned_atp_id = COALESCE($4, assigned_atp_id),
              assigned_atp_name = COALESCE($5, assigned_atp_name),
              assigned_atp_mobile = COALESCE($6, assigned_atp_mobile),
-             status = 'Assigned'
+             status = 'Assigned',
+             assignment_acknowledged_at = NULL,
+             acknowledged_by_officer_id = NULL
          WHERE complaint_id = $7`,
         [biOfficerId, biOfficerName, biOfficerMobile, atpOfficerId, atpOfficerName, atpOfficerMobile, complaintId]
       );
@@ -433,9 +450,16 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
       if (biOfficerId) {
         void notifyOfficer(biOfficerId, {
           title: "New Complaint Assigned",
-          body: `Complaint ${complaintId} assigned. Case: ${caseId}`,
-          tag: `case-${caseId}-assigned`,
-          url: `/cases/${encodeURIComponent(caseId)}`,
+          body: `Complaint #${complaintId} assigned. Case: ${caseId}`,
+          tag: `complaint-${complaintId}-assigned`,
+          url: `/complaints/${encodeURIComponent(complaintId)}`,
+          type: "complaint_assignment",
+          entityType: "complaint",
+          entityId: complaintId,
+          data: {
+            complaintId,
+            caseId,
+          },
         });
       }
 
@@ -511,6 +535,21 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
       [caseId, complaintId]
     );
 
+    // Handle reassignment for new case flow: archive unread notifications for previously assigned BI
+    const prevBiId = complaint.assigned_officer_id?.trim();
+    const isReassigned = Boolean(prevBiId && biOfficerId && prevBiId.toUpperCase() !== biOfficerId.toUpperCase());
+    if (isReassigned) {
+      await client.query(
+        `UPDATE notifications
+         SET read_at = NOW()
+         WHERE entity_type = 'complaint'
+           AND entity_id = $1
+           AND UPPER(recipient_officer_id) = UPPER($2)
+           AND read_at IS NULL`,
+        [complaintId, prevBiId]
+      );
+    }
+
     await client.query(
       `UPDATE complaints
        SET assigned_officer_id = COALESCE($1, assigned_officer_id),
@@ -519,7 +558,9 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
            assigned_atp_id = COALESCE($4, assigned_atp_id),
            assigned_atp_name = COALESCE($5, assigned_atp_name),
            assigned_atp_mobile = COALESCE($6, assigned_atp_mobile),
-           status = 'Assigned'
+           status = 'Assigned',
+           assignment_acknowledged_at = NULL,
+           acknowledged_by_officer_id = NULL
        WHERE complaint_id = $7`,
       [biOfficerId, biOfficerName, biOfficerMobile, atpOfficerId, atpOfficerName, atpOfficerMobile, complaintId]
     );
@@ -536,9 +577,16 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
     if (biOfficerId) {
       void notifyOfficer(biOfficerId, {
         title: "New Complaint Assigned",
-        body: `Complaint ${complaintId} assigned. New Case: ${caseId}`,
-        tag: `case-${caseId}-assigned`,
-        url: `/cases/${encodeURIComponent(caseId)}`,
+        body: `Complaint #${complaintId} assigned. New Case: ${caseId}`,
+        tag: `complaint-${complaintId}-assigned`,
+        url: `/complaints/${encodeURIComponent(complaintId)}`,
+        type: "complaint_assignment",
+        entityType: "complaint",
+        entityId: complaintId,
+        data: {
+          complaintId,
+          caseId,
+        },
       });
     }
 
@@ -564,6 +612,88 @@ router.post("/complaints/:complaintId/assign", async (req, res) => {
     client.release();
   }
 });
+
+// ── POST & PATCH /api/complaints/:complaintId/acknowledge ─────────────────────
+const handleAcknowledgeComplaint = async (req: express.Request, res: express.Response): Promise<void> => {
+  const complaintId = (Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : String(req.params.complaintId || "")).trim();
+  const actor = req.user;
+
+  if (!actor) {
+    res.status(401).json({ success: false, message: "Authentication required." });
+    return;
+  }
+
+  try {
+    const compRes = await pool.query(
+      `SELECT complaint_id, assigned_officer_id, assignment_acknowledged_at, acknowledged_by_officer_id
+       FROM complaints WHERE complaint_id = $1 LIMIT 1`,
+      [complaintId]
+    );
+
+    if (compRes.rowCount === 0) {
+      res.status(404).json({ success: false, message: `Complaint ${complaintId} not found.` });
+      return;
+    }
+
+    const complaint = compRes.rows[0];
+    const actorOfficerId = actor.officerId?.trim() || "";
+    const actorRole = (actor.role || "").toLowerCase();
+
+    const isAssignedOfficer = Boolean(
+      actorOfficerId &&
+      complaint.assigned_officer_id &&
+      actorOfficerId.toUpperCase() === complaint.assigned_officer_id.trim().toUpperCase()
+    );
+    const isAuthority = ["admin", "superadmin", "operator", "jc", "mtp", "atp"].includes(actorRole);
+
+    if (!isAssignedOfficer && !isAuthority) {
+      res.status(403).json({
+        success: false,
+        message: "Forbidden: You are not the assigned Building Inspector for this complaint.",
+      });
+      return;
+    }
+
+    const acknowledgingOfficer = actorOfficerId || complaint.assigned_officer_id || "OFFICER";
+
+    const updateRes = await pool.query(
+      `UPDATE complaints
+       SET assignment_acknowledged_at = NOW(),
+           acknowledged_by_officer_id = $1
+       WHERE complaint_id = $2
+       RETURNING assignment_acknowledged_at AS "assignmentAcknowledgedAt",
+                 acknowledged_by_officer_id AS "acknowledgedByOfficerId"`,
+      [acknowledgingOfficer, complaintId]
+    );
+
+    // Mark corresponding in-app notification read for this officer
+    if (complaint.assigned_officer_id) {
+      await pool.query(
+        `UPDATE notifications
+         SET read_at = NOW()
+         WHERE entity_type = 'complaint'
+           AND entity_id = $1
+           AND UPPER(recipient_officer_id) = UPPER($2)
+           AND read_at IS NULL`,
+        [complaintId, complaint.assigned_officer_id]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "Complaint assignment acknowledged successfully.",
+      complaintId,
+      assignmentAcknowledgedAt: updateRes.rows[0]?.assignmentAcknowledgedAt,
+      acknowledgedByOfficerId: updateRes.rows[0]?.acknowledgedByOfficerId,
+    });
+  } catch (error) {
+    console.error(`[Complaints] Error acknowledging complaint ${complaintId}:`, error);
+    res.status(500).json({ success: false, message: "Unable to acknowledge complaint assignment." });
+  }
+};
+
+router.post("/complaints/:complaintId/acknowledge", handleAcknowledgeComplaint);
+router.patch("/complaints/:complaintId/acknowledge", handleAcknowledgeComplaint);
 
 // ── GET /api/cases ────────────────────────────────────────────────────────────
 router.get("/cases", async (req, res) => {
@@ -596,12 +726,15 @@ router.get("/cases", async (req, res) => {
       ${whereClause}
       ORDER BY c.created_at DESC
     `, params);
-    if (result.rows.length > 0) {
-      res.json({ success: true, cases: result.rows });
+    res.json({ success: true, cases: result.rows });
+    return;
+  } catch (error) {
+    if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+      console.error("[Cases] PostgreSQL query failed:", error);
+      res.status(500).json({ success: false, message: "Database query failed." });
       return;
     }
-  } catch (error) {
-    console.warn("[Cases] PostgreSQL query failed, using fallback case list:", error);
+    console.warn("[Cases] PostgreSQL query failed, using fallback case list (DEV ONLY):", error);
   }
 
   // High-availability fallback case list
@@ -770,8 +903,18 @@ router.get("/cases/:caseId", async (req, res) => {
       });
       return;
     }
+
+    if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+      res.status(404).json({ success: false, message: `Case ${caseId} not found.` });
+      return;
+    }
   } catch (error) {
-    console.warn(`[Cases] PostgreSQL lookup failed for ${caseId}:`, error);
+    if (process.env.NODE_ENV === "production" || !process.env.ALLOW_LOCAL_FALLBACK) {
+      console.error(`[Cases] PostgreSQL lookup failed for ${caseId}:`, error);
+      res.status(500).json({ success: false, message: "Database query failed." });
+      return;
+    }
+    console.warn(`[Cases] PostgreSQL lookup failed for ${caseId}, using fallback case record (DEV ONLY):`, error);
   }
 
   // Fallback case lookup for demo & offline reliability
@@ -1920,9 +2063,41 @@ router.post(
       }
 
       // Build attachment metadata
-      // Officer mapping
-      const bi = await findResponsibleOfficer(derivedZone, block, "BI");
-      const atp = await findResponsibleOfficer(derivedZone, block, "ATP");
+      // Officer mapping: allow explicit assignment in request body, otherwise resolve via roster
+      let biOfficerId = body.assignedOfficerId?.trim() || body.officerId?.trim() || null;
+      let biOfficerName = body.assignedOfficerName?.trim() || body.officerName?.trim() || null;
+      let biOfficerMobile = body.assignedOfficerMobile?.trim() || body.officerMobile?.trim() || null;
+
+      if (!biOfficerId) {
+        const bi = await findResponsibleOfficer(derivedZone, block, "BI");
+        if (bi) {
+          biOfficerId = bi.officerId;
+          biOfficerName = bi.name;
+          biOfficerMobile = bi.mobile;
+        }
+      } else if (!biOfficerName) {
+        const offRes = await pool.query(
+          "SELECT name, phone FROM officers WHERE UPPER(officer_id) = UPPER($1) LIMIT 1",
+          [biOfficerId]
+        );
+        if (offRes.rows.length > 0) {
+          biOfficerName = offRes.rows[0].name;
+          biOfficerMobile = offRes.rows[0].phone;
+        }
+      }
+
+      let atpOfficerId = body.assignedAtpId?.trim() || body.atpId?.trim() || null;
+      let atpOfficerName = body.assignedAtpName?.trim() || body.atpName?.trim() || null;
+      let atpOfficerMobile = body.assignedAtpMobile?.trim() || body.atpMobile?.trim() || null;
+
+      if (!atpOfficerId) {
+        const atp = await findResponsibleOfficer(derivedZone, block, "ATP");
+        if (atp) {
+          atpOfficerId = atp.officerId;
+          atpOfficerName = atp.name;
+          atpOfficerMobile = atp.mobile;
+        }
+      }
 
       // Generate ID and persist
       const complaintId = await generateComplaintId();
@@ -2009,18 +2184,38 @@ router.post(
         description:          body.description.trim(),
         attachments,
         driveFolderUrl:       driveFolder.folderUrl,
-        assignedOfficerId:    bi?.officerId    ?? null,
-        assignedOfficerName:  bi?.name         ?? null,
-        assignedOfficerMobile: bi?.mobile      ?? null,
-        assignedAtpId:        atp?.officerId   ?? null,
-        assignedAtpName:      atp?.name        ?? null,
-        assignedAtpMobile:    atp?.mobile     ?? null,
-        status:               "Registered" as const,
+        assignedOfficerId:    biOfficerId,
+        assignedOfficerName:  biOfficerName,
+        assignedOfficerMobile: biOfficerMobile,
+        assignedAtpId:        atpOfficerId,
+        assignedAtpName:      atpOfficerName,
+        assignedAtpMobile:    atpOfficerMobile,
+        status:               biOfficerId ? ("Assigned" as const) : ("Registered" as const),
         createdAt:            new Date().toISOString(),
         submittedByUserId:    req.user?.userId ?? null,
+        assignmentAcknowledgedAt: null,
+        acknowledgedByOfficerId: null,
       };
 
       await saveComplaint(complaint);
+
+      // Web Push and In-App notification to assigned Building Inspector (BI)
+      if (biOfficerId) {
+        void notifyOfficer(biOfficerId, {
+          title: "New Complaint Assigned",
+          body: `Complaint #${complaintId} in ${block} (${derivedZone}) has been assigned to you.`,
+          tag: `complaint-${complaintId}-assigned`,
+          url: `/complaints/${encodeURIComponent(complaintId)}`,
+          type: "complaint_assignment",
+          entityType: "complaint",
+          entityId: complaintId,
+          data: {
+            complaintId,
+            block,
+            zone: derivedZone,
+          },
+        });
+      }
 
       await deleteTemporaryFiles([
         ...sourceImages,
@@ -2434,7 +2629,7 @@ const hasNoticeData = Boolean(
 
       /*
        * ------------------------------------------------------
-       * 7. COMPLAINT VALIDATION
+       * 7. COMPLAINT VALIDATION & AUTHORIZATION
        * ------------------------------------------------------
        */
 
@@ -2459,9 +2654,15 @@ const hasNoticeData = Boolean(
         }
 
         const complaintResult =
-          await pool.query(
+          await pool.query<{
+            complaint_id: string;
+            block: string;
+            zone: string;
+            assigned_officer_id: string | null;
+            status: string;
+          }>(
             `
-              SELECT complaint_id
+              SELECT complaint_id, block, zone, assigned_officer_id, status
               FROM complaints
               WHERE complaint_id = $1
               LIMIT 1
@@ -2477,15 +2678,58 @@ const hasNoticeData = Boolean(
           });
           return;
         }
+
+        const targetComplaint = complaintResult.rows[0];
+        const userRole = (req.user?.role || "").toLowerCase();
+        const userOfficerId = req.user?.officerId?.trim().toUpperCase();
+        const assignedOfficerId = targetComplaint.assigned_officer_id?.trim().toUpperCase();
+
+        if (userRole === "bi") {
+          // If assigned to an officer, verify it matches the current BI
+          if (assignedOfficerId && userOfficerId && assignedOfficerId !== userOfficerId) {
+            res.status(403).json({
+              success: false,
+              message: "Forbidden: You are not authorized to inspect this complaint as it is assigned to another officer.",
+            });
+            return;
+          }
+
+          // Verify block assignment
+          if (assignedBlocks !== null && !isBlockAssigned(targetComplaint.block, assignedBlocks)) {
+            res.status(403).json({
+              success: false,
+              message: "Forbidden: Access restricted. You are not assigned to this complaint's block.",
+            });
+            return;
+          }
+        }
+
+        // Prevent accidental rapid duplicate submissions
+        const duplicateCheck = await pool.query(
+          `SELECT visit_id FROM field_visits
+           WHERE complaint_id = $1
+             AND bi_id = $2
+             AND submitted_at > NOW() - INTERVAL '10 seconds'
+           LIMIT 1`,
+          [complaintId, reportingOfficer.officerId]
+        );
+        if ((duplicateCheck.rowCount ?? 0) > 0) {
+          res.status(409).json({
+            success: false,
+            message: "An inspection was just submitted for this complaint. Please avoid duplicate submissions.",
+          });
+          return;
+        }
       }
 
 
       /*
        * ------------------------------------------------------
-       * 8. PROACTIVE CASE CREATION
+       * 8. CASE IDENTIFICATION OR CREATION
        * ------------------------------------------------------
        *
-       * A proactive field inspection starts a case.
+       * Reuses existing cases linked to this complaint to prevent duplicates.
+       * Creates a new case for proactive violations or unlinked complaints.
        */
 
       let caseId:
@@ -2496,104 +2740,155 @@ const hasNoticeData = Boolean(
         inspectionOutcome === "violation_found" ||
         inspectionOutcome === "complete_violated"
       ) {
-        caseId = await generateCaseId();
-
-        const caseSourceType = sourceOfReport === "complaint"
-          ? "complaint"
-          : "proactive_bi";
-
-        const primaryComplaintId = 
-          sourceOfReport === "complaint"
-            ? complaintId
-            : null;
-
-        const initialCaseStatus = "Open";
-
-        await pool.query(
-          `
-            INSERT INTO cases (
-              case_id,
-              source_type,
-              primary_complaint_id,
-              building_identity,
-              location,
-              zone,
-              block,
-              ward,
-              latitude,
-              longitude,
-              assigned_bi_id,
-              assigned_bi_name,
-              assigned_atp_id,
-              assigned_atp_name,
-              current_status,
-              created_at,
-              updated_at
-            )
-            VALUES (
-              $1,
-              $2,
-              $3,
-              $4,
-              $5,
-              $6,
-              $7,
-              $8,
-              $9,
-              $10,
-              $11,
-              $12,
-              $13,
-              $14,
-              $15,
-              NOW(),
-              NOW()
-            )
-          `,
-          [
-            caseId,
-            caseSourceType,
-            primaryComplaintId,
-            finalBuildingType,
-            location,
-            derivedZone,
-            block,
-            body.ward?.trim() || null,
-            latitude,
-            longitude,
-            reportingOfficer.officerId,
-            reportingOfficer.name,
-            atp?.officerId ?? null,
-            atp?.name ?? null,
-            initialCaseStatus,
-          ],
-        );
-
-        /*
-         * Link complaint-based violations to the case.
-         */
-        if(sourceOfReport === "complaint" && complaintId) {
-          await pool.query(
-            `
-              INSERT INTO case_complaints (
-                case_id,
-                complaint_id,
-                relationship_type,
-                linked_at
-              )
-              VALUES ($1, $2, 'primary', NOW())
-              ON CONFLICT (case_id, complaint_id) 
-              DO NOTHING
-            `,
-            [caseId, complaintId],
+        let existingCaseId: string | null = null;
+        if (body.caseId?.trim()) {
+          existingCaseId = body.caseId.trim();
+        } else if (sourceOfReport === "complaint" && complaintId) {
+          const caseCheck = await pool.query<{ case_id: string }>(
+            `SELECT case_id FROM cases WHERE primary_complaint_id = $1
+             UNION
+             SELECT case_id FROM case_complaints WHERE complaint_id = $1
+             LIMIT 1`,
+            [complaintId]
           );
+          if ((caseCheck.rowCount ?? 0) > 0) {
+            existingCaseId = caseCheck.rows[0].case_id;
+          }
         }
 
-        /**
-         * Create the permanent Google Drive folder
-         * for newly created proactive case.
-         */ 
-        await createCaseDriveFolder(caseId);
+        if (existingCaseId) {
+          caseId = existingCaseId;
+          await pool.query(
+            `UPDATE cases
+             SET building_identity = COALESCE($1, building_identity),
+                 location = COALESCE($2, location),
+                 latitude = COALESCE($3, latitude),
+                 longitude = COALESCE($4, longitude),
+                 updated_at = NOW()
+             WHERE LOWER(case_id) = LOWER($5)`,
+            [finalBuildingType, location, latitude, longitude, caseId]
+          );
+
+          if (sourceOfReport === "complaint" && complaintId) {
+            await pool.query(
+              `INSERT INTO case_complaints (case_id, complaint_id, relationship_type, linked_at)
+               VALUES ($1, $2, 'primary', NOW())
+               ON CONFLICT (case_id, complaint_id) DO NOTHING`,
+              [caseId, complaintId]
+            );
+          }
+        } else {
+          caseId = await generateCaseId();
+
+          const caseSourceType = sourceOfReport === "complaint"
+            ? "complaint"
+            : "proactive_bi";
+
+          const primaryComplaintId = 
+            sourceOfReport === "complaint"
+              ? complaintId
+              : null;
+
+          const initialCaseStatus = "Open";
+
+          await pool.query(
+            `
+              INSERT INTO cases (
+                case_id,
+                source_type,
+                primary_complaint_id,
+                building_identity,
+                location,
+                zone,
+                block,
+                ward,
+                latitude,
+                longitude,
+                assigned_bi_id,
+                assigned_bi_name,
+                assigned_atp_id,
+                assigned_atp_name,
+                current_status,
+                created_at,
+                updated_at
+              )
+              VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                $9,
+                $10,
+                $11,
+                $12,
+                $13,
+                $14,
+                $15,
+                NOW(),
+                NOW()
+              )
+            `,
+            [
+              caseId,
+              caseSourceType,
+              primaryComplaintId,
+              finalBuildingType,
+              location,
+              derivedZone,
+              block,
+              body.ward?.trim() || null,
+              latitude,
+              longitude,
+              reportingOfficer.officerId,
+              reportingOfficer.name,
+              atp?.officerId ?? null,
+              atp?.name ?? null,
+              initialCaseStatus,
+            ],
+          );
+
+          /*
+           * Link complaint-based violations to the case.
+           */
+          if (sourceOfReport === "complaint" && complaintId) {
+            await pool.query(
+              `
+                INSERT INTO case_complaints (
+                  case_id,
+                  complaint_id,
+                  relationship_type,
+                  linked_at
+                )
+                VALUES ($1, $2, 'primary', NOW())
+                ON CONFLICT (case_id, complaint_id) 
+                DO NOTHING
+              `,
+              [caseId, complaintId],
+            );
+          }
+
+          /**
+           * Create the permanent Google Drive folder
+           * for newly created proactive case.
+           */ 
+          await createCaseDriveFolder(caseId);
+        }
+      } else if (sourceOfReport === "complaint" && complaintId) {
+        // Link to existing case if present even if no violation is found
+        const caseCheck = await pool.query<{ case_id: string }>(
+          `SELECT case_id FROM cases WHERE primary_complaint_id = $1
+           UNION
+           SELECT case_id FROM case_complaints WHERE complaint_id = $1
+           LIMIT 1`,
+          [complaintId]
+        );
+        if ((caseCheck.rowCount ?? 0) > 0) {
+          caseId = caseCheck.rows[0].case_id;
+        }
       }
 
 
@@ -2873,6 +3168,37 @@ if (hasNoticeData && inspectionOutcome !== "complete_violated") {
       await deleteTemporaryFiles(
         temporaryFiles,
       );
+
+      /*
+       * ------------------------------------------------------
+       * 15.5 UPDATE COMPLAINT STATUS & NOTIFICATIONS
+       * ------------------------------------------------------
+       */
+
+      if (sourceOfReport === "complaint" && complaintId) {
+        await pool.query(
+          `UPDATE complaints
+           SET status = CASE
+             WHEN status IN ('Registered', 'Assigned') THEN 'In progress'
+             ELSE status
+           END,
+           assignment_acknowledged_at = COALESCE(assignment_acknowledged_at, NOW()),
+           acknowledged_by_officer_id = COALESCE(acknowledged_by_officer_id, $2)
+           WHERE complaint_id = $1`,
+          [complaintId, reportingOfficer.officerId]
+        );
+
+        // Mark unread in-app assignment notifications as read for this officer
+        await pool.query(
+          `UPDATE notifications
+           SET read_at = NOW()
+           WHERE entity_type = 'complaint'
+             AND entity_id = $1
+             AND UPPER(recipient_officer_id) = UPPER($2)
+             AND read_at IS NULL`,
+          [complaintId, reportingOfficer.officerId]
+        );
+      }
 
 
       /*

@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import Icon from "../shared/components/Icon";
 import { API_BASE_URL } from "../shared/utils/apiConfig";
 
+import {
+  NOTIFICATIONS_UPDATED_EVENT,
+  type NotificationsUpdatedDetail,
+} from "../shared/utils/notificationEvents";
+
 type MobileHeaderProps = {
   title?: string;
   userName?: string;
@@ -40,7 +45,21 @@ export default function MobileHeader({
     };
     fetchUnread();
     const interval = window.setInterval(fetchUnread, 30000);
-    return () => window.clearInterval(interval);
+
+    const handleSync = (event: Event) => {
+      const customEvent = event as CustomEvent<NotificationsUpdatedDetail>;
+      if (typeof customEvent.detail?.unreadCount === "number") {
+        setLiveUnreadCount(customEvent.detail.unreadCount);
+      } else {
+        fetchUnread();
+      }
+    };
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handleSync);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleSync);
+    };
   }, [propUnreadCount]);
 
   const initials = userName

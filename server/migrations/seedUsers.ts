@@ -37,8 +37,10 @@ export async function seedUsers(): Promise<void> {
     );
     if (adminCheck.rowCount === 0) {
       const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || "Admin@MCL2026";
-      if (process.env.NODE_ENV === "production" && adminPassword === "Admin@MCL2026") {
-        console.warn("⚠️  [Security Warning]: Seeding admin user with default password in production. Please set INITIAL_ADMIN_PASSWORD.");
+      if (process.env.NODE_ENV === "production" && (!process.env.INITIAL_ADMIN_PASSWORD || adminPassword === "Admin@MCL2026")) {
+        throw new Error(
+          "FATAL [Security]: INITIAL_ADMIN_PASSWORD must be configured with a secure non-default password in production."
+        );
       }
       const adminHash = await bcrypt.hash(adminPassword, rounds);
       await client.query(
@@ -58,8 +60,10 @@ export async function seedUsers(): Promise<void> {
     );
     if (operatorCheck.rowCount === 0) {
       const opPassword = process.env.INITIAL_OPERATOR_PASSWORD || "Admin@MCL2026";
-      if (process.env.NODE_ENV === "production" && opPassword === "Admin@MCL2026") {
-        console.warn("⚠️  [Security Warning]: Seeding operator user with default password in production. Please set INITIAL_OPERATOR_PASSWORD.");
+      if (process.env.NODE_ENV === "production" && (!process.env.INITIAL_OPERATOR_PASSWORD || opPassword === "Admin@MCL2026")) {
+        throw new Error(
+          "FATAL [Security]: INITIAL_OPERATOR_PASSWORD must be configured with a secure non-default password in production."
+        );
       }
       const opHash = await bcrypt.hash(opPassword, rounds);
       await client.query(

@@ -24,14 +24,27 @@ const serverRoot = node_path_1.default.basename(moduleDirectory) === "dist"
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use("/uploads", express_1.default.static(node_path_1.default.join(serverRoot, "uploads")));
+// Health check endpoint
+app.get(["/health", "/api/health"], (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+// Mount routes under both /api/* and /* to seamlessly support all frontend base URL configs
 app.use("/api/auth", authRoutes_1.default);
+app.use("/auth", authRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
+app.use("/users", userRoutes_1.default);
 app.use("/api/analytics", analyticsRoutes_1.default);
+app.use("/analytics", analyticsRoutes_1.default);
 app.use("/api/push", pushRoutes_1.default);
+app.use("/push", pushRoutes_1.default);
 app.use("/api/notifications", notificationRoutes_1.default);
+app.use("/notifications", notificationRoutes_1.default);
 app.use("/api/drive", driveRoutes_1.default);
+app.use("/drive", driveRoutes_1.default);
 app.use("/api", complaintRoutes_1.default);
+app.use(complaintRoutes_1.default);
 app.use("/api", enforcementRoutes_1.default);
+app.use(enforcementRoutes_1.default);
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(PORT, async () => {
     console.log(`🚀 [Server] Running on http://localhost:${PORT}`);

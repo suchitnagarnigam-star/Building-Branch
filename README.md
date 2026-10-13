@@ -4,21 +4,32 @@ MCL-BB is an internal complaint-management application for the Municipal Corpora
 
 ## Stack
 
-- Frontend: React 19, TypeScript, Vite, custom CSS
+- Frontend: React 19, TypeScript, Vite, custom CSS, PWA (`manifest.webmanifest`, service worker)
 - Backend: Node.js, Express 5, TypeScript
 - Authentication & RBAC: JWT (JSON Web Tokens) with 365-day persistent login sessions, bcrypt PIN/password hashing, AuthContext with global fetch interceptor, and block-level access control (`server/services/accessControl.ts`)
-- Database: PostgreSQL through `pg` (with Neon cloud pooling)
+- Database: PostgreSQL through `pg` (with Neon cloud pooling & automated migrations 001–007)
 - Development runtime: `tsx`
-- File storage: Google Drive API (per-complaint folders, case demolition evidence, & file uploads; temporary staging in `server/uploads/`)
+- File storage & Proxy: Google Drive API with secure universal proxy (`/api/drive/files/:fileId`), disk caching (`server/uploads/drive_cache/`), and in-app Lightbox viewer
+- Push & In-App Notifications: Web Push (VAPID) dual-written to PostgreSQL `notifications` table and in-app notification center
 - Integrations: Google Sheets sync, Google Drive service
 - OCR: Dual-engine pipeline — Mistral OCR (primary) with local `tesseract.js` (images) and `pdf-parse` (PDFs) fallbacks
 - Complaint extraction: Anthropic Claude structured JSON output
+
+## Database Migrations
+
+Run database migrations 001–007 and user seeds against PostgreSQL:
+
+```bash
+cd server
+npm run migrate      # Applies migrations 001 through 007 in order
+npm run seed:users   # Seeds initial superadmin & operator accounts
+```
 
 ## Run locally
 
 From the repository root, use two terminals:
 
-```powershell
+```bash
 cd Frontend
 npm install
 npm run dev
@@ -26,7 +37,7 @@ npm run dev
 
 The frontend runs at `http://localhost:5173`.
 
-```powershell
+```bash
 cd server
 npm install
 npm run dev
@@ -224,7 +235,12 @@ Processing endpoints:
 - `GET /api/cases/:caseId/enforcement` (retrieves recorded demolition details, cost recovery, stay orders, & Drive evidence files)
 - `POST /api/cases/:caseId/enforcement` (statutory demolition & enforcement action recording, Google Drive upload, & status transition)
 
-### Web Push Notifications (PWA)
+### Google Drive Universal Proxy & Evidence Access
+- `GET /api/drive/files/:fileId` (authorized streaming proxy for evidence images & notice PDFs attached to cases, with disk caching, ETag 304, and access restriction safeguards)
+
+### In-App Notifications & Web Push (PWA)
+- `GET /api/notifications` (in-app notification center feed with unread counts)
+- `PATCH /api/notifications/:id/read` (marks specific notification as read)
 - `GET /api/push/vapid-public-key` (returns server VAPID public key for browser push subscription)
 - `POST /api/push/subscribe` (upserts officer device push subscription with unique constraints)
 - `DELETE /api/push/subscribe` (removes device endpoint from subscription table)
@@ -242,6 +258,24 @@ Processing endpoints:
 - `POST /api/users` (superadmin create user)
 - `PUT /api/users/:userId` (superadmin update user)
 - `DELETE /api/users/:userId` (superadmin delete user)
+
+## Production Deployment Configuration
+
+On your production server (e.g. Railway, Render, VPS), set the following environment variables:
+
+| Variable | Description |
+| :--- | :--- |
+| `NODE_ENV` | `production` (strictly blocks hardcoded fallbacks and enforces secrets) |
+| `PORT` | `5000` (or dynamic host port) |
+| `DATABASE_URL` | PostgreSQL connection string (`sslmode=require`) |
+| `JWT_SECRET` | Strong random secret key (min 32 chars) |
+| `INITIAL_ADMIN_PASSWORD` | Strong password for initial superadmin account seeding |
+| `INITIAL_OPERATOR_PASSWORD` | Strong password for initial operator account seeding |
+| `VAPID_PUBLIC_KEY` | Public VAPID key for Web Push |
+| `VAPID_PRIVATE_KEY` | Private VAPID key for Web Push |
+| `VAPID_SUBJECT` | Contact URI (e.g. `mailto:mcl-bb@ludhiana.gov.in`) |
+| `GOOGLE_DRIVE_WEB_APP_URL` | Apps Script URL for Drive folder & evidence creation |
+| `GOOGLE_SHEETS_WEB_APP_URL` | Apps Script URL for Google Sheets synchronization |
 
 ## Layout
 

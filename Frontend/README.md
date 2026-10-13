@@ -48,8 +48,11 @@ The frontend uses an application shell pattern:
 
 ## PWA & Web Push Architecture
 
+- **Web App Manifest (`public/manifest.webmanifest`)**: Provides installable Progressive Web App metadata with standalone window display, theme color (`#0b1957`), and responsive 192px / 512px home screen icons.
 - **Service Worker (`public/sw.js`)**: Background event listener managing Web Push notifications with statutory deduplication tags (`tag: case-${caseId}-...`) and smart window focus on `notificationclick`.
 - **Subscription Hook (`src/hooks/usePushNotifications.ts`)**: Automatically requests permission and registers officer browser push endpoints with `/api/push/subscribe` using VAPID keys upon authenticated login.
+- **In-App Notification Center (`src/layout/Topbar.tsx` & `MobileHeader.tsx`)**: Bell icon with live unread badge polling `/api/notifications`, slide-out notification drawer, and click-to-read actions.
+- **Evidence Lightbox Modal (`src/shared/components/ImageViewerModal.tsx`)**: Fullscreen evidence image preview with zoom controls, download, external link, and ESC dismiss across all case and complaint detail views.
 
 
 ---

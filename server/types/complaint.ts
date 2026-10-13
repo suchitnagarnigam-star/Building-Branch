@@ -50,6 +50,8 @@ export interface Complaint {
   submittedByUserId?: number | null;
   createdBy?: { name: string; role: string } | null;
   created_by?: { name: string; role: string } | null;
+  assignmentAcknowledgedAt?: string | null;
+  acknowledgedByOfficerId?: string | null;
 }
 
 export interface AttachmentMeta {

@@ -32,22 +32,58 @@ export interface PushPayload {
 export async function notifyOfficer(officerId: string, payload: PushPayload): Promise<void> {
   if (!officerId) return;
 
-  // 1. Dual-write into persistent in-app notifications table
+  // 1. Dual-write into persistent in-app notifications table (with deduplication)
   try {
-    await pool.query(
-      `INSERT INTO notifications (
-         recipient_officer_id, type, entity_type, entity_id, title, body, url, read_at, created_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, NOW())`,
-      [
-        officerId,
-        payload.type || "statutory_alert",
-        payload.entityType || null,
-        payload.entityId || null,
-        payload.title,
-        payload.body,
-        payload.url || "/",
-      ]
-    );
+    if (payload.entityType && payload.entityId) {
+      const existing = await pool.query(
+        `SELECT notification_id FROM notifications
+         WHERE UPPER(recipient_officer_id) = UPPER($1)
+           AND entity_type = $2
+           AND entity_id = $3
+           AND read_at IS NULL
+         LIMIT 1`,
+        [officerId, payload.entityType, payload.entityId]
+      );
+
+      if (existing.rowCount && existing.rowCount > 0) {
+        await pool.query(
+          `UPDATE notifications
+           SET title = $1, body = $2, url = $3, created_at = NOW()
+           WHERE notification_id = $4`,
+          [payload.title, payload.body, payload.url || "/", existing.rows[0].notification_id]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO notifications (
+             recipient_officer_id, type, entity_type, entity_id, title, body, url, read_at, created_at
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, NOW())`,
+          [
+            officerId,
+            payload.type || "statutory_alert",
+            payload.entityType,
+            payload.entityId,
+            payload.title,
+            payload.body,
+            payload.url || "/",
+          ]
+        );
+      }
+    } else {
+      await pool.query(
+        `INSERT INTO notifications (
+           recipient_officer_id, type, entity_type, entity_id, title, body, url, read_at, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, NOW())`,
+        [
+          officerId,
+          payload.type || "statutory_alert",
+          payload.entityType || null,
+          payload.entityId || null,
+          payload.title,
+          payload.body,
+          payload.url || "/",
+        ]
+      );
+    }
   } catch (dbError) {
     console.warn(`[PushService] Failed to persist in-app notification for officer ${officerId}:`, dbError);
   }
