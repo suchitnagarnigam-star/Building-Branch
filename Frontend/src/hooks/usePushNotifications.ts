@@ -17,6 +17,124 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 /**
+ * Subscribes the current browser to push notifications and syncs with the server.
+ */
+export async function subscribeToPushNotifications(): Promise<{
+  success: boolean;
+  permission: NotificationPermission;
+  error?: string;
+}> {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window) ||
+    !("Notification" in window)
+  ) {
+    return { success: false, permission: "denied", error: "Push notifications are not supported on this browser or platform." };
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      return { success: false, permission, error: permission === "denied" ? "Permission denied in browser settings." : "Permission prompt dismissed." };
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const keyRes = await fetch(`${API_BASE_URL}/push/vapid-public-key`);
+    const keyData = await keyRes.json();
+
+    if (!keyData.success || !keyData.publicKey) {
+      return { success: false, permission, error: "Failed to fetch VAPID public key from server." };
+    }
+
+    const applicationServerKey = urlBase64ToUint8Array(keyData.publicKey);
+    let subscription = await reg.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey as unknown as BufferSource,
+      });
+    }
+
+    const syncRes = await fetch(`${API_BASE_URL}/push/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription.toJSON()),
+    });
+
+    if (!syncRes.ok) {
+      const errJson = await syncRes.json().catch(() => ({}));
+      return { success: false, permission, error: errJson.message || "Failed to persist subscription on server." };
+    }
+
+    return { success: true, permission: "granted" };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, permission: Notification.permission, error: message };
+  }
+}
+
+/**
+ * Unsubscribes the current device from push notifications and deletes from server.
+ */
+export async function unsubscribeFromPushNotifications(): Promise<boolean> {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window)
+  ) {
+    return false;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const subscription = await reg.pushManager.getSubscription();
+
+    if (subscription) {
+      const endpoint = subscription.endpoint;
+      await subscription.unsubscribe();
+
+      await fetch(`${API_BASE_URL}/push/subscribe`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint }),
+      }).catch(() => {});
+    }
+    return true;
+  } catch (err) {
+    console.warn("[PushNotifications] Error unsubscribing:", err);
+    return false;
+  }
+}
+
+/**
+ * Checks if the current browser already has an active push subscription.
+ */
+export async function checkPushSubscriptionActive(): Promise<boolean> {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window) ||
+    !("Notification" in window)
+  ) {
+    return false;
+  }
+
+  if (Notification.permission !== "granted") {
+    return false;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const subscription = await reg.pushManager.getSubscription();
+    return Boolean(subscription);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hook to request push permissions and synchronize Web Push subscriptions with the MCL backend.
  * Automatically activates for authenticated officers with an assigned officerId.
  */
@@ -44,46 +162,37 @@ export function usePushNotifications(): void {
           return;
         }
 
-        const permission =
-          Notification.permission === "granted"
-            ? "granted"
-            : await Notification.requestPermission();
+        if (Notification.permission === "granted") {
+          const reg = await navigator.serviceWorker.ready;
+          if (isCancelled) return;
 
-        if (permission !== "granted" || isCancelled) {
-          return;
-        }
+          const keyRes = await fetch(`${API_BASE_URL}/push/vapid-public-key`);
+          const keyData = await keyRes.json();
 
-        const reg = await navigator.serviceWorker.ready;
-        if (isCancelled) return;
+          if (!keyData.success || !keyData.publicKey || isCancelled) {
+            return;
+          }
 
-        const keyRes = await fetch(`${API_BASE_URL}/push/vapid-public-key`);
-        const keyData = await keyRes.json();
+          const applicationServerKey = urlBase64ToUint8Array(keyData.publicKey);
+          let subscription = await reg.pushManager.getSubscription();
 
-        if (!keyData.success || !keyData.publicKey || isCancelled) {
-          return;
-        }
+          if (!subscription) {
+            subscription = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: applicationServerKey as unknown as BufferSource,
+            });
+          }
 
-        const applicationServerKey = urlBase64ToUint8Array(keyData.publicKey);
+          if (isCancelled) return;
 
-        let subscription = await reg.pushManager.getSubscription();
-
-        if (!subscription) {
-          subscription = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: applicationServerKey as unknown as BufferSource,
+          await fetch(`${API_BASE_URL}/push/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(subscription.toJSON()),
           });
         }
-
-        if (isCancelled) return;
-
-        // Sync subscription with server (global fetch interceptor attaches Bearer token)
-        await fetch(`${API_BASE_URL}/push/subscribe`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(subscription.toJSON()),
-        });
       } catch (err) {
-        console.warn("[PushNotifications] Push registration notice:", err);
+        console.warn("[PushNotifications] Auto-sync notice:", err);
       }
     }
 
@@ -94,3 +203,4 @@ export function usePushNotifications(): void {
     };
   }, [user?.officerId]);
 }
+

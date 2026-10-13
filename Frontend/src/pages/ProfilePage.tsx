@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../shared/components/Icon";
 import { API_BASE_URL } from "../shared/utils/apiConfig";
+import {
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  checkPushSubscriptionActive,
+} from "../hooks/usePushNotifications";
 import "./ProfilePage.css";
 
 type ProfilePageProps = {
@@ -25,16 +30,25 @@ export default function ProfilePage({ navigate, onLogout }: ProfilePageProps) {
 
   // Push notification states
   const [pushPermission, setPushPermission] = useState<string>("default");
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const [isTogglingPush, setIsTogglingPush] = useState(false);
+  const [pushActionMessage, setPushActionMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isTestingPush, setIsTestingPush] = useState(false);
   const [pushTestResult, setPushTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Logout modal
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  useEffect(() => {
+  const refreshPushStatus = async () => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPushPermission(Notification.permission);
+      const active = await checkPushSubscriptionActive();
+      setIsSubscribed(active);
     }
+  };
+
+  useEffect(() => {
+    refreshPushStatus();
   }, []);
 
   // Form submit for Change PIN
@@ -134,6 +148,61 @@ export default function ProfilePage({ navigate, onLogout }: ProfilePageProps) {
       });
     } finally {
       setIsTestingPush(false);
+    }
+  };
+
+  // Toggle push notifications ON or OFF
+  const handleTogglePushNotifications = async () => {
+    setIsTogglingPush(true);
+    setPushActionMessage(null);
+
+    try {
+      if (isSubscribed) {
+        // Turn OFF
+        const success = await unsubscribeFromPushNotifications();
+        if (success) {
+          setIsSubscribed(false);
+          setPushActionMessage({
+            type: "info",
+            text: "Push notifications turned OFF for this device. You will not receive background alerts.",
+          });
+        } else {
+          setPushActionMessage({
+            type: "error",
+            text: "Could not turn off push notifications. Please check your network connection.",
+          });
+        }
+      } else {
+        // Turn ON
+        const res = await subscribeToPushNotifications();
+        setPushPermission(res.permission);
+
+        if (res.success) {
+          setIsSubscribed(true);
+          setPushActionMessage({
+            type: "success",
+            text: "Push notifications turned ON! You will receive background alerts in your phone control centre.",
+          });
+        } else {
+          if (res.permission === "denied") {
+            setPushActionMessage({
+              type: "error",
+              text: "Notifications are blocked by your browser settings. To re-enable, tap the padlock / site settings icon in your browser address bar and change Notifications to 'Allow'.",
+            });
+          } else {
+            setPushActionMessage({
+              type: "error",
+              text: res.error || "Permission was not granted.",
+            });
+          }
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error updating notification settings.";
+      setPushActionMessage({ type: "error", text: msg });
+    } finally {
+      await refreshPushStatus();
+      setIsTogglingPush(false);
     }
   };
 
@@ -316,14 +385,39 @@ export default function ProfilePage({ navigate, onLogout }: ProfilePageProps) {
           </div>
 
           <div className="profile-meta-list">
+            {/* Status & Active Switch */}
+            <div className="profile-meta-row" style={{ alignItems: "center" }}>
+              <div>
+                <span className="profile-meta-label">Push Alerts on this Device</span>
+                <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>
+                  {isSubscribed ? "Device is actively receiving notifications" : "Device notifications are currently turned off"}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button
+                  type="button"
+                  className={`profile-toggle-btn ${isSubscribed ? "profile-toggle-btn--active" : ""}`}
+                  onClick={handleTogglePushNotifications}
+                  disabled={isTogglingPush}
+                  title={isSubscribed ? "Click to turn off notifications" : "Click to turn on notifications"}
+                  aria-pressed={isSubscribed}
+                >
+                  <span className="profile-toggle-btn__thumb" />
+                  <span className="profile-toggle-btn__label">{isSubscribed ? "ON" : "OFF"}</span>
+                </button>
+              </div>
+            </div>
+
             <div className="profile-meta-row">
-              <span className="profile-meta-label">Browser Push Status</span>
+              <span className="profile-meta-label">Browser Permission State</span>
               <span className="profile-meta-val">
-                {pushPermission === "granted"
-                  ? "Subscribed & Ready"
-                  : pushPermission === "denied"
-                  ? "Notifications blocked in browser settings"
-                  : "Permission prompt pending"}
+                {pushPermission === "granted" ? (
+                  <span style={{ color: "#16a34a", fontWeight: 700 }}>● Allowed</span>
+                ) : pushPermission === "denied" ? (
+                  <span style={{ color: "#dc2626", fontWeight: 700 }}>✕ Blocked</span>
+                ) : (
+                  <span style={{ color: "#d97706", fontWeight: 700 }}>▲ Not Prompted</span>
+                )}
               </span>
             </div>
 
@@ -336,31 +430,96 @@ export default function ProfilePage({ navigate, onLogout }: ProfilePageProps) {
 
             <div style={{ marginTop: "6px" }}>
               <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 12px", lineHeight: 1.45 }}>
-                Field inspectors receive instant vibration and sound notifications upon case assignment or notice
-                replies even when the browser tab is closed.
+                Field inspectors receive instant vibration and sound alerts in the phone control centre upon case assignment or notice
+                replies even when the browser or app is closed.
               </p>
+
+              {pushActionMessage && (
+                <div
+                  className={`profile-alert ${
+                    pushActionMessage.type === "success"
+                      ? "profile-alert--success"
+                      : pushActionMessage.type === "error"
+                      ? "profile-alert--error"
+                      : "profile-alert--info"
+                  }`}
+                  style={{ marginBottom: "12px" }}
+                >
+                  <Icon
+                    name={
+                      pushActionMessage.type === "success"
+                        ? "check-circle"
+                        : pushActionMessage.type === "error"
+                        ? "alert"
+                        : "info"
+                    }
+                  />
+                  <span>{pushActionMessage.text}</span>
+                </div>
+              )}
+
+              {pushPermission === "denied" && (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                    marginBottom: "14px",
+                    fontSize: "12px",
+                    color: "#991b1b",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <strong>How to re-allow blocked notifications:</strong>
+                  <ol style={{ margin: "6px 0 0", paddingLeft: "18px" }}>
+                    <li>Tap the <strong>tune / padlock icon (🔒)</strong> on the left side of the browser URL bar.</li>
+                    <li>Tap <strong>Site settings</strong> or <strong>Permissions</strong>.</li>
+                    <li>Change <strong>Notifications</strong> from <em>Blocked</em> to <strong>Allow</strong>.</li>
+                    <li>Reload the page and tap the toggle switch above to <strong>ON</strong>.</li>
+                  </ol>
+                </div>
+              )}
 
               {pushTestResult && (
                 <div
                   className={`profile-alert ${
                     pushTestResult.success ? "profile-alert--success" : "profile-alert--error"
                   }`}
+                  style={{ marginBottom: "12px" }}
                 >
                   <Icon name={pushTestResult.success ? "check-circle" : "alert"} />
                   <span>{pushTestResult.message}</span>
                 </div>
               )}
 
-              <button
-                type="button"
-                className="profile-btn profile-btn--outline"
-                style={{ width: "100%" }}
-                onClick={handleTestPush}
-                disabled={isTestingPush}
-              >
-                <Icon name="bell" />
-                <span>{isTestingPush ? "Dispatching Alert..." : "Send Test Push Notification"}</span>
-              </button>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                {!isSubscribed && (
+                  <button
+                    type="button"
+                    className="profile-btn profile-btn--primary"
+                    style={{ flex: 1, minWidth: "160px" }}
+                    onClick={handleTogglePushNotifications}
+                    disabled={isTogglingPush}
+                  >
+                    <Icon name="bell" />
+                    <span>{isTogglingPush ? "Enabling..." : "Enable Push Notifications"}</span>
+                  </button>
+                )}
+
+                {isSubscribed && (
+                  <button
+                    type="button"
+                    className="profile-btn profile-btn--outline"
+                    style={{ flex: 1, minWidth: "160px" }}
+                    onClick={handleTestPush}
+                    disabled={isTestingPush}
+                  >
+                    <Icon name="bell" />
+                    <span>{isTestingPush ? "Dispatching Alert..." : "Send Test Phone Notification"}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </section>
