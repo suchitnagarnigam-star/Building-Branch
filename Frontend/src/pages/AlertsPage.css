@@ -392,6 +392,12 @@
   border: 1px solid #dbeafe;
 }
 
+.alert-card__ref-chip--case {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
 .alert-card__ref-label {
   font-size: 11px;
   color: #64748b;

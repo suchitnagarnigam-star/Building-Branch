@@ -13,7 +13,6 @@ const officerMapping_1 = require("../services/officerMapping");
 const complaintStorage_1 = require("../services/complaintStorage");
 const locationMapping_1 = require("../services/locationMapping");
 const officerMapping_js_1 = require("../services/officerMapping.js");
-const googleSheetsService_1 = require("../services/googleSheetsService");
 const ocrService_1 = require("../services/ocrService");
 const claudeService_1 = require("../services/claudeService");
 const driveService_1 = require("../services/driveService");
@@ -806,6 +805,9 @@ router.post("/cases/:caseId/review-reply", (0, auth_1.requireRole)("atp", "mtp",
                 body: `Violator reply for Case ${actualCaseId} was evaluated as ${verdict}`,
                 tag: `case-${actualCaseId}-reply-review`,
                 url: `/cases/${encodeURIComponent(actualCaseId)}`,
+                type: "case_reply_review",
+                entityType: "case",
+                entityId: actualCaseId,
             });
         }
         res.json({
@@ -872,6 +874,9 @@ router.post("/cases/:caseId/close", (0, auth_1.requireRole)("atp", "mtp", "jc", 
             body: `Case ${actualCaseId} closed by ${req.user?.name}: ${closureReason}`,
             tag: `case-${actualCaseId}-closed`,
             url: `/cases/${encodeURIComponent(actualCaseId)}`,
+            type: "case_closed",
+            entityType: "case",
+            entityId: actualCaseId,
         });
         res.json({
             success: true,
@@ -1208,6 +1213,9 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
                         body: `Notice ${noticeNumber} issued for Case ${actualCaseId}`,
                         tag: `case-${actualCaseId}-notice-269`,
                         url: `/cases/${encodeURIComponent(actualCaseId)}`,
+                        type: "notice_269_issued",
+                        entityType: "case",
+                        entityId: actualCaseId,
                     });
                 }
             }
@@ -1315,9 +1323,9 @@ router.post("/cases/:caseId/construction-status", handleConstructionUpload, asyn
             historyNote,
         ]);
         await client.query("COMMIT");
-        // Clean up local temp files that were successfully uploaded to remote Drive
+        // Clean up local temp files that were successfully uploaded to remote Drive (non-blocking)
         if (temporaryFilesToDelete.length > 0) {
-            await deleteTemporaryFiles(temporaryFilesToDelete);
+            void deleteTemporaryFiles(temporaryFilesToDelete);
         }
         // 9. Fetch and return full updated summary
         const summaryResult = await database_1.pool.query("SELECT * FROM case_construction_summary WHERE case_id = $1 ORDER BY construction_status_id DESC LIMIT 1", [actualCaseId]);
@@ -1359,6 +1367,13 @@ router.get("/complaints/:complaintId/files", async (req, res) => {
         });
     }
     catch (error) {
+        if (error?.message && /folder not found/i.test(error.message)) {
+            res.json({
+                success: true,
+                files: [],
+            });
+            return;
+        }
         console.error("[Drive] Failed to list complaint files:", error);
         res.status(500).json({
             success: false,
@@ -1586,26 +1601,15 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
         }
         // Generate ID and persist
         const complaintId = await (0, complaintStorage_1.generateComplaintId)();
-        console.log(`[Drive] Creating folder for complaint ${complaintId}...`);
-        const driveFolder = await (0, driveService_1.createComplaintDriveFolder)(complaintId);
-        console.log(`[Drive] Folder ready: ${driveFolder.folderUrl}`);
-        /*
-         * Upload external source files.
-         *
-         * sourceImage → source_1, source_2, ...
-         */
-        if (sourceImages.length > 0) {
-            console.log(`[Drive] Uploading ${sourceImages.length} source file(s)...`);
-            await (0, driveService_1.uploadComplaintFiles)(complaintId, "source", sourceImages);
+        let driveFolderUrl = null;
+        try {
+            console.log(`[Drive] Creating folder for complaint ${complaintId}...`);
+            const driveFolder = await (0, driveService_1.createComplaintDriveFolder)(complaintId);
+            driveFolderUrl = driveFolder.folderUrl ?? null;
+            console.log(`[Drive] Folder ready: ${driveFolderUrl}`);
         }
-        /*
-         * Upload complaint/preliminary evidence.
-         *
-         * complaintImage → pre_1, pre_2, ...
-         */
-        if (complaintImages.length > 0) {
-            console.log(`[Drive] Uploading ${complaintImages.length} pre file(s)...`);
-            await (0, driveService_1.uploadComplaintFiles)(complaintId, "pre", complaintImages);
+        catch (folderError) {
+            console.warn(`[Drive] Could not create folder for complaint ${complaintId}:`, folderError);
         }
         /*
          * We no longer use local server storage as permanent
@@ -1639,7 +1643,7 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
             title: body.title.trim(),
             description: body.description.trim(),
             attachments,
-            driveFolderUrl: driveFolder.folderUrl,
+            driveFolderUrl,
             assignedOfficerId: biOfficerId,
             assignedOfficerName: biOfficerName,
             assignedOfficerMobile: biOfficerMobile,
@@ -1653,7 +1657,15 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
             acknowledgedByOfficerId: null,
         };
         await (0, complaintStorage_1.saveComplaint)(complaint);
-        // Web Push and In-App notification to assigned Building Inspector (BI)
+        // Return response immediately so UI can display the registered complaint without delay
+        res.status(201).json({
+            success: true,
+            complaintId: complaint.complaintId,
+            message: "Complaint registered successfully.",
+            complaint,
+        });
+        // Background tasks (non-blocking):
+        // 1. Web Push and In-App notification to assigned Building Inspector (BI)
         if (biOfficerId) {
             void (0, pushService_1.notifyOfficer)(biOfficerId, {
                 title: "New Complaint Assigned",
@@ -1670,25 +1682,36 @@ router.post("/complaints", (0, auth_1.requireRole)("superadmin", "operator", "jc
                 },
             });
         }
-        await deleteTemporaryFiles([
-            ...sourceImages,
-            ...complaintImages,
-        ]);
-        try {
-            await (0, googleSheetsService_1.appendComplaintToGoogleSheet)(complaint);
-        }
-        catch (error) {
-            console.error("Google Sheets sync failed:", error);
-        }
-        res.status(201).json({
-            success: true,
-            complaintId: complaint.complaintId,
-            message: "Complaint registered successfully.",
-            complaint,
-        });
+        // 2. Upload files to Google Drive in the background and clean up temporary files once done
+        void (async () => {
+            try {
+                if (sourceImages.length > 0) {
+                    console.log(`[Drive] Uploading ${sourceImages.length} source file(s)...`);
+                    await (0, driveService_1.uploadComplaintFiles)(complaintId, "source", sourceImages);
+                }
+                if (complaintImages.length > 0) {
+                    console.log(`[Drive] Uploading ${complaintImages.length} pre file(s)...`);
+                    await (0, driveService_1.uploadComplaintFiles)(complaintId, "pre", complaintImages);
+                }
+            }
+            catch (uploadError) {
+                console.error(`[Drive] Background file upload failed for complaint ${complaintId}:`, uploadError);
+            }
+            finally {
+                void deleteTemporaryFiles([
+                    ...sourceImages,
+                    ...complaintImages,
+                ]);
+            }
+        })();
     }
     catch (error) {
         console.error("Error registering complaint:", error);
+        // Clean up temp files if registration failed
+        void deleteTemporaryFiles([
+            ...req.files?.["sourceImage"] ?? [],
+            ...req.files?.["complaintImage"] ?? [],
+        ]);
         res.status(500).json({ success: false, message: "Unable to register complaint." });
     }
 });
@@ -1948,7 +1971,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
         }
         /*
          * ------------------------------------------------------
-         * 7. COMPLAINT VALIDATION
+         * 7. COMPLAINT VALIDATION & AUTHORIZATION
          * ------------------------------------------------------
          */
         let complaintId = null;
@@ -1964,7 +1987,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 return;
             }
             const complaintResult = await database_1.pool.query(`
-              SELECT complaint_id
+              SELECT complaint_id, block, zone, assigned_officer_id, status
               FROM complaints
               WHERE complaint_id = $1
               LIMIT 1
@@ -1976,102 +1999,178 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                 });
                 return;
             }
+            const targetComplaint = complaintResult.rows[0];
+            const userRole = (req.user?.role || "").toLowerCase();
+            const userOfficerId = req.user?.officerId?.trim().toUpperCase();
+            const assignedOfficerId = targetComplaint.assigned_officer_id?.trim().toUpperCase();
+            if (userRole === "bi") {
+                // If assigned to an officer, verify it matches the current BI
+                if (assignedOfficerId && userOfficerId && assignedOfficerId !== userOfficerId) {
+                    res.status(403).json({
+                        success: false,
+                        message: "Forbidden: You are not authorized to inspect this complaint as it is assigned to another officer.",
+                    });
+                    return;
+                }
+                // Verify block assignment
+                if (assignedBlocks !== null && !(0, accessControl_1.isBlockAssigned)(targetComplaint.block, assignedBlocks)) {
+                    res.status(403).json({
+                        success: false,
+                        message: "Forbidden: Access restricted. You are not assigned to this complaint's block.",
+                    });
+                    return;
+                }
+            }
+            // Prevent accidental rapid duplicate submissions
+            const duplicateCheck = await database_1.pool.query(`SELECT visit_id FROM field_visits
+           WHERE complaint_id = $1
+             AND bi_id = $2
+             AND submitted_at > NOW() - INTERVAL '10 seconds'
+           LIMIT 1`, [complaintId, reportingOfficer.officerId]);
+            if ((duplicateCheck.rowCount ?? 0) > 0) {
+                res.status(409).json({
+                    success: false,
+                    message: "An inspection was just submitted for this complaint. Please avoid duplicate submissions.",
+                });
+                return;
+            }
         }
         /*
          * ------------------------------------------------------
-         * 8. PROACTIVE CASE CREATION
+         * 8. CASE IDENTIFICATION OR CREATION
          * ------------------------------------------------------
          *
-         * A proactive field inspection starts a case.
+         * Reuses existing cases linked to this complaint to prevent duplicates.
+         * Creates a new case for proactive violations or unlinked complaints.
          */
         let caseId = null;
         if (inspectionOutcome === "violation_found" ||
             inspectionOutcome === "complete_violated") {
-            caseId = await generateCaseId();
-            const caseSourceType = sourceOfReport === "complaint"
-                ? "complaint"
-                : "proactive_bi";
-            const primaryComplaintId = sourceOfReport === "complaint"
-                ? complaintId
-                : null;
-            const initialCaseStatus = "Open";
-            await database_1.pool.query(`
-            INSERT INTO cases (
-              case_id,
-              source_type,
-              primary_complaint_id,
-              building_identity,
-              location,
-              zone,
-              block,
-              ward,
-              latitude,
-              longitude,
-              assigned_bi_id,
-              assigned_bi_name,
-              assigned_atp_id,
-              assigned_atp_name,
-              current_status,
-              created_at,
-              updated_at
-            )
-            VALUES (
-              $1,
-              $2,
-              $3,
-              $4,
-              $5,
-              $6,
-              $7,
-              $8,
-              $9,
-              $10,
-              $11,
-              $12,
-              $13,
-              $14,
-              $15,
-              NOW(),
-              NOW()
-            )
-          `, [
-                caseId,
-                caseSourceType,
-                primaryComplaintId,
-                finalBuildingType,
+            let existingCaseId = null;
+            if (body.caseId?.trim()) {
+                existingCaseId = body.caseId.trim();
+            }
+            else if (sourceOfReport === "complaint" && complaintId) {
+                const caseCheck = await database_1.pool.query(`SELECT case_id FROM cases WHERE primary_complaint_id = $1
+             UNION
+             SELECT case_id FROM case_complaints WHERE complaint_id = $1
+             LIMIT 1`, [complaintId]);
+                if ((caseCheck.rowCount ?? 0) > 0) {
+                    existingCaseId = caseCheck.rows[0].case_id;
+                }
+            }
+            if (existingCaseId) {
+                caseId = existingCaseId;
+                await database_1.pool.query(`UPDATE cases
+             SET building_identity = COALESCE($1, building_identity),
+                 location = COALESCE($2, location),
+                 latitude = COALESCE($3, latitude),
+                 longitude = COALESCE($4, longitude),
+                 updated_at = NOW()
+             WHERE LOWER(case_id) = LOWER($5)`, [finalBuildingType, location, latitude, longitude, caseId]);
+                if (sourceOfReport === "complaint" && complaintId) {
+                    await database_1.pool.query(`INSERT INTO case_complaints (case_id, complaint_id, relationship_type, linked_at)
+               VALUES ($1, $2, 'primary', NOW())
+               ON CONFLICT (case_id, complaint_id) DO NOTHING`, [caseId, complaintId]);
+                }
+            }
+            else {
+                caseId = await generateCaseId();
+                const caseSourceType = sourceOfReport === "complaint"
+                    ? "complaint"
+                    : "proactive_bi";
+                const primaryComplaintId = sourceOfReport === "complaint"
+                    ? complaintId
+                    : null;
+                const initialCaseStatus = "Open";
+                await database_1.pool.query(`
+              INSERT INTO cases (
+                case_id,
+                source_type,
+                primary_complaint_id,
+                building_identity,
                 location,
-                derivedZone,
+                zone,
                 block,
-                body.ward?.trim() || null,
+                ward,
                 latitude,
                 longitude,
-                reportingOfficer.officerId,
-                reportingOfficer.name,
-                atp?.officerId ?? null,
-                atp?.name ?? null,
-                initialCaseStatus,
-            ]);
-            /*
-             * Link complaint-based violations to the case.
-             */
-            if (sourceOfReport === "complaint" && complaintId) {
-                await database_1.pool.query(`
-              INSERT INTO case_complaints (
-                case_id,
-                complaint_id,
-                relationship_type,
-                linked_at
+                assigned_bi_id,
+                assigned_bi_name,
+                assigned_atp_id,
+                assigned_atp_name,
+                current_status,
+                created_at,
+                updated_at
               )
-              VALUES ($1, $2, 'primary', NOW())
-              ON CONFLICT (case_id, complaint_id) 
-              DO NOTHING
-            `, [caseId, complaintId]);
+              VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                $9,
+                $10,
+                $11,
+                $12,
+                $13,
+                $14,
+                $15,
+                NOW(),
+                NOW()
+              )
+            `, [
+                    caseId,
+                    caseSourceType,
+                    primaryComplaintId,
+                    finalBuildingType,
+                    location,
+                    derivedZone,
+                    block,
+                    body.ward?.trim() || null,
+                    latitude,
+                    longitude,
+                    reportingOfficer.officerId,
+                    reportingOfficer.name,
+                    atp?.officerId ?? null,
+                    atp?.name ?? null,
+                    initialCaseStatus,
+                ]);
+                /*
+                 * Link complaint-based violations to the case.
+                 */
+                if (sourceOfReport === "complaint" && complaintId) {
+                    await database_1.pool.query(`
+                INSERT INTO case_complaints (
+                  case_id,
+                  complaint_id,
+                  relationship_type,
+                  linked_at
+                )
+                VALUES ($1, $2, 'primary', NOW())
+                ON CONFLICT (case_id, complaint_id) 
+                DO NOTHING
+              `, [caseId, complaintId]);
+                }
+                /**
+                 * Create the permanent Google Drive folder
+                 * for newly created proactive case.
+                 */
+                await (0, driveService_1.createCaseDriveFolder)(caseId);
             }
-            /**
-             * Create the permanent Google Drive folder
-             * for newly created proactive case.
-             */
-            await (0, driveService_1.createCaseDriveFolder)(caseId);
+        }
+        else if (sourceOfReport === "complaint" && complaintId) {
+            // Link to existing case if present even if no violation is found
+            const caseCheck = await database_1.pool.query(`SELECT case_id FROM cases WHERE primary_complaint_id = $1
+           UNION
+           SELECT case_id FROM case_complaints WHERE complaint_id = $1
+           LIMIT 1`, [complaintId]);
+            if ((caseCheck.rowCount ?? 0) > 0) {
+                caseId = caseCheck.rows[0].case_id;
+            }
         }
         /*
          * ------------------------------------------------------
@@ -2153,28 +2252,80 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
         const driveFolder = await (0, driveService_1.createInspectionDriveFolder)(parentType, parentId, visitId);
         /*
          * ------------------------------------------------------
-         * 12. UPLOAD INSPECTION EVIDENCE
+         * 12. UPLOAD INSPECTION EVIDENCE & OPTIONAL NOTICE (CONCURRENT)
          * ------------------------------------------------------
          */
-        const uploadedEvidence = await (0, driveService_1.uploadInspectionEvidenceFiles)(parentType, parentId, visitId, inspectionPhotos);
+        const shouldUploadNotice = Boolean(hasNoticeData &&
+            inspectionOutcome !== "complete_violated" &&
+            noticePhotos.length > 0);
+        const [uploadedEvidence, uploadedNotice] = await Promise.all([
+            (0, driveService_1.uploadInspectionEvidenceFiles)(parentType, parentId, visitId, inspectionPhotos),
+            shouldUploadNotice
+                ? (0, driveService_1.uploadInspectionNoticeFile)(parentType, parentId, visitId, noticePhotos[0])
+                : Promise.resolve(null),
+        ]);
         /*
          * ------------------------------------------------------
-         * 13. SAVE EVIDENCE METADATA
+         * 13. SAVE EVIDENCE METADATA (CONCURRENT)
          * ------------------------------------------------------
          */
-        for (const [index, uploaded] of uploadedEvidence.entries()) {
+        await Promise.all(uploadedEvidence.map((uploaded, index) => {
             const originalFile = inspectionPhotos[index];
+            return database_1.pool.query(`
+              INSERT INTO visit_evidence (
+                visit_id,
+                file_name,
+                mime_type,
+                drive_file_id,
+                drive_file_url,
+                storage_provider,
+                latitude,
+                longitude,
+                captured_at,
+                created_at
+              )
+              VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                'google_drive',
+                $6,
+                $7,
+                $8,
+                NOW()
+              )
+            `, [
+                visitId,
+                uploaded.fileName || originalFile.originalname,
+                uploaded.mimeType || originalFile.mimetype,
+                uploaded.fileId,
+                uploaded.fileUrl || null,
+                latitude,
+                longitude,
+                new Date().toISOString(),
+            ]);
+        }));
+        /*
+         * ------------------------------------------------------
+         * 14. OPTIONAL NOTICE
+         * ------------------------------------------------------
+         */
+        if (uploadedNotice) {
+            const noticeType = "270";
             await database_1.pool.query(`
-            INSERT INTO visit_evidence (
-              visit_id,
-              file_name,
-              mime_type,
+            INSERT INTO notices (
+              case_id,
+              notice_type,
+              notice_number,
+              issued_by_id,
+              issued_by_name,
+              issued_at,
+              document_name,
               drive_file_id,
               drive_file_url,
-              storage_provider,
-              latitude,
-              longitude,
-              captured_at,
+              metadata,
               created_at
             )
             VALUES (
@@ -2183,70 +2334,14 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
               $3,
               $4,
               $5,
-              'google_drive',
               $6,
               $7,
               $8,
+              $9,
+              $10::jsonb,
               NOW()
             )
           `, [
-                visitId,
-                uploaded.fileName ||
-                    originalFile.originalname,
-                uploaded.mimeType ||
-                    originalFile.mimetype,
-                uploaded.fileId,
-                uploaded.fileUrl || null,
-                latitude,
-                longitude,
-                new Date().toISOString(),
-            ]);
-        }
-        /*
-   * ------------------------------------------------------
-   * 14. OPTIONAL NOTICE
-   * ------------------------------------------------------
-   *
-   * At this point notice validation has already happened.
-   *
-   * We only reach this block when:
-   *
-   * - notice number exists
-   * - notice date exists
-   * - notice photo exists
-   * - inspection is case-based
-   */
-        if (hasNoticeData && inspectionOutcome !== "complete_violated") {
-            const uploadedNotice = await (0, driveService_1.uploadInspectionNoticeFile)(parentType, parentId, visitId, noticePhotos[0]);
-            const noticeType = "270";
-            await database_1.pool.query(`
-      INSERT INTO notices (
-        case_id,
-        notice_type,
-        notice_number,
-        issued_by_id,
-        issued_by_name,
-        issued_at,
-        document_name,
-        drive_file_id,
-        drive_file_url,
-        metadata,
-        created_at
-      )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10::jsonb,
-        NOW()
-      )
-    `, [
                 caseId,
                 noticeType,
                 body.noticeNumber.trim(),
@@ -2269,15 +2364,43 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
                     body: `Notice ${body.noticeNumber.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
                     tag: `case-${caseId}-notice-270`,
                     url: `/cases/${encodeURIComponent(caseId)}`,
+                    type: "notice_270_issued",
+                    entityType: "case",
+                    entityId: caseId,
                 });
             }
         }
         /*
          * ------------------------------------------------------
-         * 15. CLEAN TEMPORARY FILES
+         * 15. CLEAN TEMPORARY FILES (NON-BLOCKING)
          * ------------------------------------------------------
          */
-        await deleteTemporaryFiles(temporaryFiles);
+        if (temporaryFiles.length > 0) {
+            void deleteTemporaryFiles(temporaryFiles);
+        }
+        /*
+         * ------------------------------------------------------
+         * 15.5 UPDATE COMPLAINT STATUS & NOTIFICATIONS (CONCURRENT)
+         * ------------------------------------------------------
+         */
+        if (sourceOfReport === "complaint" && complaintId) {
+            await Promise.all([
+                database_1.pool.query(`UPDATE complaints
+             SET status = CASE
+               WHEN status IN ('Registered', 'Assigned') THEN 'In progress'
+               ELSE status
+             END,
+             assignment_acknowledged_at = COALESCE(assignment_acknowledged_at, NOW()),
+             acknowledged_by_officer_id = COALESCE(acknowledged_by_officer_id, $2)
+             WHERE complaint_id = $1`, [complaintId, reportingOfficer.officerId]),
+                database_1.pool.query(`UPDATE notifications
+             SET read_at = NOW()
+             WHERE entity_type = 'complaint'
+               AND entity_id = $1
+               AND UPPER(recipient_officer_id) = UPPER($2)
+               AND read_at IS NULL`, [complaintId, reportingOfficer.officerId]),
+            ]);
+        }
         /*
          * ------------------------------------------------------
          * 16. RESPONSE
@@ -2300,7 +2423,7 @@ router.post("/inspections", (0, auth_1.requireRole)("bi", "atp", "mtp", "jc", "s
          * Best-effort cleanup of temporary uploads.
          */
         if (temporaryFiles.length > 0) {
-            await deleteTemporaryFiles(temporaryFiles);
+            void deleteTemporaryFiles(temporaryFiles);
         }
         res.status(500).json({
             success: false,

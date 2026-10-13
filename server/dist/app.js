@@ -16,6 +16,7 @@ const pushRoutes_1 = __importDefault(require("./routes/pushRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const driveRoutes_1 = __importDefault(require("./routes/driveRoutes"));
 const database_1 = require("./db/database");
+const cronService_1 = require("./services/cronService");
 const app = (0, express_1.default)();
 const moduleDirectory = __dirname;
 const serverRoot = node_path_1.default.basename(moduleDirectory) === "dist"
@@ -23,6 +24,7 @@ const serverRoot = node_path_1.default.basename(moduleDirectory) === "dist"
     : moduleDirectory;
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+app.use(cronService_1.activityTrackerMiddleware);
 app.use("/uploads", express_1.default.static(node_path_1.default.join(serverRoot, "uploads")));
 // Health check endpoint
 app.get(["/health", "/api/health"], (_req, res) => {
@@ -49,5 +51,8 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(PORT, async () => {
     console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
     await (0, database_1.testDatabaseConnection)();
+    if (process.env.NODE_ENV !== "test") {
+        (0, cronService_1.initCronJobs)(PORT);
+    }
 });
 exports.default = app;

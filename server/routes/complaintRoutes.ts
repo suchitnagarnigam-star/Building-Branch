@@ -1020,6 +1020,9 @@ router.post(
           body: `Violator reply for Case ${actualCaseId} was evaluated as ${verdict}`,
           tag: `case-${actualCaseId}-reply-review`,
           url: `/cases/${encodeURIComponent(actualCaseId)}`,
+          type: "case_reply_review",
+          entityType: "case",
+          entityId: actualCaseId,
         });
       }
 
@@ -1111,6 +1114,9 @@ router.post(
         body: `Case ${actualCaseId} closed by ${req.user?.name}: ${closureReason}`,
         tag: `case-${actualCaseId}-closed`,
         url: `/cases/${encodeURIComponent(actualCaseId)}`,
+        type: "case_closed",
+        entityType: "case",
+        entityId: actualCaseId,
       });
 
       res.json({
@@ -1560,6 +1566,9 @@ router.post(
               body: `Notice ${noticeNumber} issued for Case ${actualCaseId}`,
               tag: `case-${actualCaseId}-notice-269`,
               url: `/cases/${encodeURIComponent(actualCaseId)}`,
+              type: "notice_269_issued",
+              entityType: "case",
+              entityId: actualCaseId,
             });
           }
         }
@@ -3158,6 +3167,9 @@ const hasNoticeData = Boolean(
             body: `Notice ${body.noticeNumber!.trim()} issued by ${reportingOfficer.name} for Case ${caseId}`,
             tag: `case-${caseId}-notice-270`,
             url: `/cases/${encodeURIComponent(caseId)}`,
+            type: "notice_270_issued",
+            entityType: "case",
+            entityId: caseId,
           });
         }
       }

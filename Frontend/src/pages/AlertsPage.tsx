@@ -52,23 +52,105 @@ function formatFullDate(isoString?: string): string {
   });
 }
 
-/**
- * Extract or derive complaint reference number
- */
-function getComplaintReference(item: InAppNotification): string | null {
-  if (item.entityId) return item.entityId;
+interface NotificationTarget {
+  entityType: "case" | "complaint" | "profile" | "general";
+  id: string | null;
+  targetRoute: string;
+}
 
-  // Try url /complaints/:id
-  if (item.url && item.url.startsWith("/complaints/")) {
-    const rawId = item.url.replace("/complaints/", "").split(/[?#]/)[0];
-    if (rawId) return decodeURIComponent(rawId);
+/**
+ * Extract target entity information and destination route from notification
+ */
+function getNotificationTarget(item: InAppNotification): NotificationTarget {
+  // 1. Explicit item.url provided
+  if (item.url && item.url !== "/") {
+    const cleanUrl = item.url.trim();
+    if (cleanUrl.startsWith("/cases/")) {
+      const caseId = cleanUrl.replace("/cases/", "").split(/[?#/]/)[0];
+      return {
+        entityType: "case",
+        id: caseId ? decodeURIComponent(caseId) : item.entityId || null,
+        targetRoute: cleanUrl,
+      };
+    }
+    if (cleanUrl.startsWith("/complaints/")) {
+      const complaintId = cleanUrl.replace("/complaints/", "").split(/[?#/]/)[0];
+      return {
+        entityType: "complaint",
+        id: complaintId ? decodeURIComponent(complaintId) : item.entityId || null,
+        targetRoute: cleanUrl,
+      };
+    }
+    if (cleanUrl.startsWith("/profile")) {
+      return {
+        entityType: "profile",
+        id: null,
+        targetRoute: "/profile",
+      };
+    }
+    return {
+      entityType: "general",
+      id: item.entityId || null,
+      targetRoute: cleanUrl,
+    };
   }
 
-  // Regex match in body text (e.g. Complaint #CMP-2026-001)
-  const match = item.body.match(/Complaint\s+#?([A-Za-z0-9_-]+)/i);
-  if (match?.[1]) return match[1];
+  // 2. Check item.entityType and item.entityId
+  if (item.entityType === "case" && item.entityId) {
+    return {
+      entityType: "case",
+      id: item.entityId,
+      targetRoute: `/cases/${encodeURIComponent(item.entityId)}`,
+    };
+  }
 
-  return null;
+  if (item.entityType === "complaint" && item.entityId) {
+    return {
+      entityType: "complaint",
+      id: item.entityId,
+      targetRoute: `/complaints/${encodeURIComponent(item.entityId)}`,
+    };
+  }
+
+  // 3. Regex match for case in body or title (e.g. Case CASE-2026-001 or Case 2026-001)
+  const caseMatch = `${item.title} ${item.body}`.match(/Case\s+([A-Za-z0-9_-]+)/i);
+  if (caseMatch?.[1]) {
+    const rawCaseId = caseMatch[1];
+    return {
+      entityType: "case",
+      id: rawCaseId,
+      targetRoute: `/cases/${encodeURIComponent(rawCaseId)}`,
+    };
+  }
+
+  // 4. Regex match for complaint in body or title (e.g. Complaint #CMP-2026-001 or Complaint CMP-2026-001)
+  const complaintMatch = `${item.title} ${item.body}`.match(/Complaint\s+#?([A-Za-z0-9_-]+)/i);
+  if (complaintMatch?.[1]) {
+    const rawCmpId = complaintMatch[1];
+    return {
+      entityType: "complaint",
+      id: rawCmpId,
+      targetRoute: `/complaints/${encodeURIComponent(rawCmpId)}`,
+    };
+  }
+
+  // 5. Fallback based on entityId or default complaints list
+  if (item.entityId) {
+    const isLikelyCase = item.entityId.toUpperCase().startsWith("CASE-");
+    return {
+      entityType: isLikelyCase ? "case" : "complaint",
+      id: item.entityId,
+      targetRoute: isLikelyCase
+        ? `/cases/${encodeURIComponent(item.entityId)}`
+        : `/complaints/${encodeURIComponent(item.entityId)}`,
+    };
+  }
+
+  return {
+    entityType: "general",
+    id: null,
+    targetRoute: "/dashboard",
+  };
 }
 
 export default function AlertsPage({ navigate }: AlertsPageProps) {
@@ -170,17 +252,9 @@ export default function AlertsPage({ navigate }: AlertsPageProps) {
       }
     }
 
-    // Determine target route
-    const complaintRef = getComplaintReference(item);
-    let targetRoute = "/complaints";
-
-    if (item.url && item.url !== "/" && item.url.startsWith("/complaints/")) {
-      targetRoute = item.url;
-    } else if (complaintRef) {
-      targetRoute = `/complaints/${encodeURIComponent(complaintRef)}`;
-    }
-
-    navigate(targetRoute);
+    // Determine target route (case or complaint detailed view)
+    const target = getNotificationTarget(item);
+    navigate(target.targetRoute);
   };
 
   // Mark all unread notifications as read
@@ -219,8 +293,8 @@ export default function AlertsPage({ navigate }: AlertsPageProps) {
     return base.filter((n) => {
       const titleMatch = n.title?.toLowerCase().includes(q);
       const bodyMatch = n.body?.toLowerCase().includes(q);
-      const ref = getComplaintReference(n);
-      const refMatch = ref ? ref.toLowerCase().includes(q) : false;
+      const target = getNotificationTarget(n);
+      const refMatch = target.id ? target.id.toLowerCase().includes(q) : false;
       return titleMatch || bodyMatch || refMatch;
     });
   }, [activeTab, unseenList, notifications, searchQuery]);
@@ -370,7 +444,7 @@ export default function AlertsPage({ navigate }: AlertsPageProps) {
         /* ── NOTIFICATIONS FEED ── */
         <div className="alerts-list">
           {displayedList.map((item) => {
-            const complaintRef = getComplaintReference(item);
+            const target = getNotificationTarget(item);
             const timeAgo = formatTimeAgo(item.createdAt);
             const fullDate = formatFullDate(item.createdAt);
 
@@ -395,7 +469,13 @@ export default function AlertsPage({ navigate }: AlertsPageProps) {
                   <div className="alert-card__type-wrap">
                     <span className="alert-card__icon-box">
                       <Icon
-                        name={item.type === "complaint_assignment" ? "folder" : "bell"}
+                        name={
+                          target.entityType === "case"
+                            ? "folder"
+                            : item.type === "complaint_assignment"
+                            ? "file-text"
+                            : "bell"
+                        }
                         size={15}
                       />
                     </span>
@@ -427,18 +507,31 @@ export default function AlertsPage({ navigate }: AlertsPageProps) {
 
                 {/* Card Reference & Action Row */}
                 <div className="alert-card__ref-row">
-                  {complaintRef ? (
-                    <div className="alert-card__ref-chip" title="Complaint Reference Number">
-                      <Icon name="file-text" size={13} />
-                      <span className="alert-card__ref-label">Complaint:</span>
-                      <span>#{complaintRef}</span>
+                  {target.id ? (
+                    <div
+                      className={`alert-card__ref-chip ${
+                        target.entityType === "case" ? "alert-card__ref-chip--case" : ""
+                      }`}
+                      title={`${target.entityType === "case" ? "Statutory Case" : "Citizen Complaint"} Reference`}
+                    >
+                      <Icon name={target.entityType === "case" ? "folder" : "file-text"} size={13} />
+                      <span className="alert-card__ref-label">
+                        {target.entityType === "case" ? "Case:" : "Complaint:"}
+                      </span>
+                      <span>{target.entityType === "complaint" && !target.id.startsWith("#") ? `#${target.id}` : target.id}</span>
                     </div>
                   ) : (
                     <span />
                   )}
 
                   <span className="alert-card__action-hint">
-                    <span>Open complaint details</span>
+                    <span>
+                      {target.entityType === "case"
+                        ? "Open case details"
+                        : target.entityType === "complaint"
+                        ? "Open complaint details"
+                        : "View details"}
+                    </span>
                     <Icon name="chevron-right" size={13} />
                   </span>
                 </div>

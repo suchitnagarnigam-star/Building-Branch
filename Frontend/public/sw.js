@@ -46,7 +46,10 @@ self.addEventListener("notificationclick", (event) => {
     return;
   }
 
-  const targetUrl = event.notification.data?.url || "/";
+  const rawTarget = event.notification.data?.url || "/";
+  // Support both hash-based routes (e.g. /cases/123 -> /#/cases/123) and absolute URLs
+  const targetHashRoute = rawTarget.startsWith("#") ? rawTarget : `#${rawTarget.startsWith("/") ? "" : "/"}${rawTarget}`;
+  const fullTargetUrl = new URL(rawTarget.startsWith("/") ? `/#${rawTarget}` : rawTarget, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
@@ -55,7 +58,7 @@ self.addEventListener("notificationclick", (event) => {
         if (client.url.includes(self.location.origin) && "focus" in client) {
           client.focus();
           if ("navigate" in client) {
-            client.navigate(targetUrl);
+            client.navigate(fullTargetUrl);
           }
           return;
         }
@@ -63,7 +66,7 @@ self.addEventListener("notificationclick", (event) => {
 
       // Otherwise open a new tab/window
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(fullTargetUrl);
       }
     })
   );
