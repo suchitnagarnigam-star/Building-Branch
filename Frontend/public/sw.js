@@ -17,16 +17,23 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const title = data.title || "MCL Building Branch Notification";
+  const title = data.title || "MCL Building Branch Alert";
   const options = {
     body: data.body || "New statutory update recorded.",
-    tag: data.tag || undefined, // Replaces previous notification with the same tag
-    icon: "/mcl-logo.png",
-    badge: "/favicon.svg",
+    tag: data.tag || undefined, // Deduplicates / groups notices
+    renotify: Boolean(data.tag), // Vibrate/ring again on replace
+    icon: "/icon-192.png", // Sharp mobile/desktop notification icon
+    badge: "/favicon.svg", // Status bar icon on Android
+    vibrate: [300, 150, 300, 150, 300], // Vibrate alert for phone in pocket/locked
+    timestamp: Date.now(),
+    requireInteraction: true, // Keep notification visible on screen until user interacts
     data: {
       url: data.url || "/",
     },
-    requireInteraction: false,
+    actions: [
+      { action: "open", title: "View Details" },
+      { action: "dismiss", title: "Dismiss" },
+    ],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -34,6 +41,10 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  if (event.action === "dismiss") {
+    return;
+  }
 
   const targetUrl = event.notification.data?.url || "/";
 
