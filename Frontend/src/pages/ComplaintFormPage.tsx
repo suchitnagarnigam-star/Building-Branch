@@ -71,8 +71,8 @@ function ComplaintFormPage({
   const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus>("idle");
   const [registeredComplaintId, setRegisteredComplaintId] = useState<string | null>(null);
   const [successCountdown, setSuccessCountdown] = useState<number>(5);
-  const autoRedirectTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoRedirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
