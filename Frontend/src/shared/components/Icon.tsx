@@ -281,6 +281,16 @@ const icons: Record<string, (className: string) => ReactNode> = {
       <line x1="12" y1="17" x2="12.01" y2="17" />
     </svg>
   ),
+  refresh: (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+    </svg>
+  ),
+  "bell-off": (className) => (
+    <svg {...commonProps} className={className}>
+      <path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5M17 17H4l1.6-1.6A2 2 0 0 0 6 14V8a6 6 0 0 1 .3-1.8M10.3 21a2 2 0 0 0 3.4 0M2 2l20 20" />
+    </svg>
+  ),
 };
 
 

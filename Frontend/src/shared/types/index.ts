@@ -45,3 +45,17 @@ export type Notification = {
   unread: boolean;
   tone: string;
 };
+
+export interface InAppNotification {
+  notificationId: string;
+  recipientOfficerId?: string;
+  type?: string;
+  entityType?: string;
+  entityId?: string;
+  title: string;
+  body: string;
+  url?: string;
+  readAt?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}

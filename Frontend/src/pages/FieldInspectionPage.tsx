@@ -9,6 +9,7 @@ import { API_BASE_URL } from "../shared/utils/apiConfig";
 type FieldInspectionPageProps = {
   navigate: (route: string) => void;
   caseId?: string;
+  complaintId?: string;
 };
 
 type Officer = {
@@ -30,6 +31,9 @@ type Coordinates = {
 type InspectionOutcome = "no_violation" | "violation_found" | "complete_violated" | "";
 type ComplaintLookup = {
   complaintId: string;
+  title?: string;
+  citizenName?: string;
+  phoneNumber?: string;
   assignedOfficerId: string | null;
   assignedOfficerName: string | null;
   assignedAtpId?: string | null;
@@ -38,6 +42,8 @@ type ComplaintLookup = {
   zone: string;
   ward?: string;
   address: string;
+  description?: string;
+  caseId?: string | null;
 };
 
 type CaseLookup = {
@@ -69,21 +75,39 @@ const isBiOfficer = (officer: Officer) => {
   return designation === "BI" || designation.endsWith("-BI");
 };
 
-function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPageProps) {
+function FieldInspectionPage({ navigate, caseId: propCaseId, complaintId: propComplaintId }: FieldInspectionPageProps) {
   const { user } = useAuth();
   const initialCaseId = useMemo(() => {
     if (propCaseId) return propCaseId;
     if (typeof window !== "undefined") {
+      const href = window.location.href;
+      const match = href.match(/[?&](?:caseId|case_id)=([^&]+)/i);
+      if (match) return decodeURIComponent(match[1]);
       const hash = window.location.hash;
-      const match = hash.match(/[?&](?:caseId|case_id)=([^&]+)/i);
-      return match ? decodeURIComponent(match[1]) : "";
+      const hashMatch = hash.match(/[?&](?:caseId|case_id)=([^&]+)/i);
+      return hashMatch ? decodeURIComponent(hashMatch[1]) : "";
     }
     return "";
   }, [propCaseId]);
 
-  const [sourceOfReport, setSourceOfReport] = useState<"complaint" | "field_visit" | "case" | string>(() =>
-    initialCaseId ? "case" : "complaint",
-  );
+  const initialComplaintId = useMemo(() => {
+    if (propComplaintId) return propComplaintId;
+    if (typeof window !== "undefined") {
+      const href = window.location.href;
+      const match = href.match(/[?&](?:complaintId|complaint_id)=([^&]+)/i);
+      if (match) return decodeURIComponent(match[1]);
+      const hash = window.location.hash;
+      const hashMatch = hash.match(/[?&](?:complaintId|complaint_id)=([^&]+)/i);
+      return hashMatch ? decodeURIComponent(hashMatch[1]) : "";
+    }
+    return "";
+  }, [propComplaintId]);
+
+  const [sourceOfReport, setSourceOfReport] = useState<"complaint" | "field_visit" | "case" | string>(() => {
+    if (initialCaseId) return "case";
+    if (initialComplaintId) return "complaint";
+    return "complaint";
+  });
   const [existingCaseId, setExistingCaseId] = useState(initialCaseId);
   const [caseLookup, setCaseLookup] = useState<CaseLookup | null>(null);
   const [caseNotices, setCaseNotices] = useState<Record<string, unknown>[]>([]);
@@ -93,7 +117,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
   const [inspectionOutcome, setInspectionOutcome] = useState<"no_violation"|"violation_found"|"complete_violated"|"">(
     () => (initialCaseId ? "violation_found" : ""),
   );
-  const [complaintId, setComplaintId] = useState("");
+  const [complaintId, setComplaintId] = useState(initialComplaintId);
   const [complaintLookup, setComplaintLookup] = useState<ComplaintLookup | null>(null);
   const [complaintLoading, setComplaintLoading] = useState(false);
   const [complaintError, setComplaintError] = useState("");
@@ -177,8 +201,13 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
       setComplaintLoading(true);
       setComplaintError("");
       try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
         const response = await fetch(`${COMPLAINTS_API_URL}/${encodeURIComponent(id)}`, {
           signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         });
         const result = await response.json() as { success?: boolean; complaint?: ComplaintLookup; message?: string };
         if (!response.ok || !result.success || !result.complaint) {
@@ -187,10 +216,24 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
 
         const complaint = result.complaint;
         setComplaintLookup(complaint);
-        setReportingOfficer(complaint.assignedOfficerId ?? "");
-        setBlock(complaint.block);
-        setWard(complaint.ward ?? "");
-        setLocation(complaint.address);
+        if (complaint.assignedOfficerId) {
+          setReportingOfficer(complaint.assignedOfficerId);
+        }
+        if (complaint.block) {
+          setBlock(complaint.block);
+        }
+        if (complaint.ward) {
+          setWard(complaint.ward);
+        }
+        if (complaint.address) {
+          setLocation(complaint.address);
+        }
+        if (complaint.description) {
+          setDescription((prev) => (prev ? prev : complaint.description || ""));
+        }
+        if (complaint.caseId) {
+          setExistingCaseId(complaint.caseId);
+        }
       } catch (reason: unknown) {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
         setComplaintLookup(null);
@@ -198,7 +241,7 @@ function FieldInspectionPage({ navigate, caseId: propCaseId }: FieldInspectionPa
       } finally {
         if (!controller.signal.aborted) setComplaintLoading(false);
       }
-    }, 400);
+    }, 300);
 
     return () => {
       window.clearTimeout(timer);
@@ -461,6 +504,7 @@ const submitInspection = async (
   event: FormEvent<HTMLFormElement>,
 ) => {
   event.preventDefault();
+  if (submitting) return;
   setSubmitError("");
 
   const effectiveInspectionOutcome =
@@ -704,9 +748,13 @@ const submitInspection = async (
       );
     }
 
+    const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
     const response = await fetch(INSPECTIONS_API_URL, {
       method: "POST",
       body: formData,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
 
     const result = await response.json();
@@ -719,9 +767,11 @@ const submitInspection = async (
     }
 
     /*
-     * Successful submission.
+     * Successful submission: Navigate back to Complaint Details with success banner, or to case/dashboard.
      */
-    if (result.caseId) {
+    if (result.complaintId) {
+      navigate(`/complaints/${encodeURIComponent(result.complaintId)}?inspectionSuccess=true`);
+    } else if (result.caseId) {
       navigate(`/cases/${encodeURIComponent(result.caseId)}`);
     } else {
       navigate("/dashboard");
@@ -1079,7 +1129,12 @@ const submitInspection = async (
                 />
                 {complaintLoading && <small>Loading complaint details...</small>}
                 {complaintError && <small className="field-error">{complaintError}</small>}
-                {complaintLookup && <small className="field-success">Complaint details loaded.</small>}
+                {complaintLookup && (
+                  <small className="field-success" style={{ display: "block", marginTop: "4px" }}>
+                    ✓ Linked to Complaint #{complaintLookup.complaintId}
+                    {complaintLookup.title ? ` (${complaintLookup.title})` : ""}
+                  </small>
+                )}
               </div>
             )}
 
@@ -1224,7 +1279,13 @@ const submitInspection = async (
           <button
             type="button"
             className="secondary-button"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              if (complaintId.trim()) {
+                navigate(`/complaints/${encodeURIComponent(complaintId.trim())}`);
+              } else {
+                navigate("/dashboard");
+              }
+            }}
             disabled={submitting}
           >
             Cancel

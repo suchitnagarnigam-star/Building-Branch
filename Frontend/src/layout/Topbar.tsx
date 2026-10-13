@@ -3,49 +3,10 @@ import { useFontScale } from "../shared/hooks/useFontScale";
 import Icon from "../shared/components/Icon";
 import { API_BASE_URL } from "../shared/utils/apiConfig";
 
-type InAppNotification = {
-  notificationId: string;
-  recipientOfficerId: string;
-  type: string;
-  title: string;
-  body: string;
-  url: string;
-  readAt: string | null;
-  isRead: boolean;
-  createdAt: string;
-};
-
-function formatTimeAgo(dateStr: string): string {
-  try {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    if (diffSec < 60) return "Just now";
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
-    const diffDays = Math.floor(diffHr / 24);
-    return `${diffDays}d ago`;
-  } catch {
-    return "";
-  }
-}
-
-function getNotificationStripeColor(type?: string): string {
-  switch (type) {
-    case "demolition":
-    case "violation":
-      return "red";
-    case "notice":
-    case "statutory_alert":
-      return "amber";
-    case "approval":
-    case "closure":
-      return "green";
-    default:
-      return "blue";
-  }
-}
+import {
+  NOTIFICATIONS_UPDATED_EVENT,
+  type NotificationsUpdatedDetail,
+} from "../shared/utils/notificationEvents";
 
 type TopbarProps = {
   userName?: string;
@@ -65,10 +26,7 @@ function Topbar({
   const fontPopoverRef = useRef<HTMLDivElement>(null);
 
   // In-app notifications
-  const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
 
   const getAuthHeaders = (): Record<string, string> => {
     const token = typeof window !== "undefined" ? localStorage.getItem("mcl_token") : null;
@@ -80,9 +38,8 @@ function Topbar({
       const res = await fetch(`${API_BASE_URL}/notifications`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.notifications)) {
-          setNotifications(data.notifications);
-          setUnreadCount(data.unreadCount ?? 0);
+        if (data.success && typeof data.unreadCount === "number") {
+          setUnreadCount(data.unreadCount);
         }
       }
     } catch {
@@ -93,57 +50,22 @@ function Topbar({
   useEffect(() => {
     fetchNotifications();
     const interval = window.setInterval(fetchNotifications, 30000);
-    return () => window.clearInterval(interval);
-  }, []);
 
-  useEffect(() => {
-    if (!isNotifOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotifOpen(false);
+    const handleSync = (event: Event) => {
+      const customEvent = event as CustomEvent<NotificationsUpdatedDetail>;
+      if (typeof customEvent.detail?.unreadCount === "number") {
+        setUnreadCount(customEvent.detail.unreadCount);
+      } else {
+        fetchNotifications();
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isNotifOpen]);
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handleSync);
 
-  const handleMarkAllAsRead = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/notifications/read-all`, {
-        method: "PATCH",
-        headers: getAuthHeaders(),
-      });
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
-      );
-      setUnreadCount(0);
-    } catch {
-      // silent
-    }
-  };
-
-  const handleNotificationClick = async (item: InAppNotification) => {
-    if (!item.isRead) {
-      try {
-        await fetch(`${API_BASE_URL}/notifications/${item.notificationId}/read`, {
-          method: "PATCH",
-          headers: getAuthHeaders(),
-        });
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.notificationId === item.notificationId ? { ...n, isRead: true } : n
-          )
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch {
-        // continue
-      }
-    }
-    setIsNotifOpen(false);
-    if (item.url && navigate) {
-      navigate(item.url);
-    }
-  };
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleSync);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
@@ -298,129 +220,26 @@ function Topbar({
             )}
           </div>
 
-          {/* Notification Bell Dropdown */}
-          <div className="notification-wrap" ref={notifRef}>
+          {/* Top Notification Bell */}
+          <div className="notification-wrap">
             <button
               type="button"
-              className={`icon-button ${isNotifOpen ? "topbar__text-size-btn--active" : ""}`}
-              onClick={() => setIsNotifOpen((prev) => !prev)}
+              className="icon-button"
+              onClick={() => {
+                if (navigate) {
+                  navigate("/notices");
+                }
+              }}
               aria-label="Notifications"
-              title="Statutory Notifications"
+              title="Statutory Notifications & Alerts"
             >
               <Icon name="bell" />
-              {unreadCount > 0 && <span className="notification-dot" />}
+              {unreadCount > 0 && (
+                <span className="topbar__badge" title={`${unreadCount} unseen alerts`}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
-
-            {isNotifOpen && (
-              <div className="notification-menu">
-                <div
-                  className="notification-menu__header"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: "10px",
-                  }}
-                >
-                  <strong style={{ color: "var(--ink)", fontSize: "13px" }}>
-                    Notifications {unreadCount > 0 && `(${unreadCount})`}
-                  </strong>
-                  {unreadCount > 0 && (
-                    <button
-                      type="button"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#2563eb",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        padding: 0,
-                      }}
-                      onClick={handleMarkAllAsRead}
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-
-                <div style={{ maxHeight: "320px", overflowY: "auto" }}>
-                  {notifications.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "24px 14px",
-                        textAlign: "center",
-                        color: "var(--muted)",
-                        fontSize: "12.5px",
-                      }}
-                    >
-                      No notifications yet
-                    </div>
-                  ) : (
-                    notifications.map((item) => (
-                      <button
-                        key={item.notificationId}
-                        type="button"
-                        className="notification-item"
-                        style={{
-                          opacity: item.isRead ? 0.72 : 1,
-                          width: "100%",
-                          background: item.isRead ? "transparent" : "rgba(37, 99, 235, 0.03)",
-                        }}
-                        onClick={() => handleNotificationClick(item)}
-                      >
-                        <span
-                          className={`notification-item__stripe notification-item__stripe--${getNotificationStripeColor(
-                            item.type
-                          )}`}
-                        />
-                        <div className="notification-item__content">
-                          <strong
-                            style={{
-                              fontSize: "13px",
-                              color: item.isRead ? "#475569" : "#0f172a",
-                            }}
-                          >
-                            {item.title}
-                          </strong>
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              color: "#64748b",
-                              lineHeight: 1.35,
-                            }}
-                          >
-                            {item.body}
-                          </span>
-                          <small
-                            style={{
-                              fontSize: "11px",
-                              color: "#94a3b8",
-                              marginTop: "2px",
-                            }}
-                          >
-                            {formatTimeAgo(item.createdAt)}
-                          </small>
-                        </div>
-                        {!item.isRead && <span className="notification-item__dot" />}
-                      </button>
-                    ))
-                  )}
-                </div>
-
-                <div
-                  className="notification-menu__footer"
-                  style={{ textAlign: "center", fontSize: "11.5px" }}
-                  onClick={() => {
-                    setIsNotifOpen(false);
-                    navigate?.("/cases");
-                  }}
-                >
-                  View All Statutory Cases
-                </div>
-              </div>
-            )}
           </div>
 
           <div

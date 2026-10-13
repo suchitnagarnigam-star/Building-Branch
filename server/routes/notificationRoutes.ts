@@ -9,12 +9,14 @@ router.use(authenticateToken);
 /**
  * GET /api/notifications
  * Returns recent in-app notifications for the authenticated officer or superadmin.
+ * Query param ?unreadOnly=true optionally filters only unseen/unread notifications.
  */
 router.get("/", async (req: Request, res: Response) => {
   try {
     const officerId = req.user?.officerId || null;
     const role = (req.user?.role || "").toLowerCase();
     const isSuperAdmin = role === "superadmin" || role === "admin";
+    const unreadOnly = req.query.unreadOnly === "true";
 
     let queryText: string;
     let params: any[];
@@ -34,6 +36,7 @@ router.get("/", async (req: Request, res: Response) => {
           (read_at IS NOT NULL) AS "isRead",
           created_at AS "createdAt"
         FROM notifications
+        ${unreadOnly ? "WHERE read_at IS NULL" : ""}
         ORDER BY created_at DESC
         LIMIT 50
       `;
@@ -54,6 +57,7 @@ router.get("/", async (req: Request, res: Response) => {
           created_at AS "createdAt"
         FROM notifications
         WHERE UPPER(recipient_officer_id) = UPPER($1)
+          ${unreadOnly ? "AND read_at IS NULL" : ""}
         ORDER BY created_at DESC
         LIMIT 50
       `;
@@ -65,7 +69,15 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     const { rows } = await pool.query(queryText, params);
-    const unreadCount = rows.filter((r) => !r.isRead).length;
+
+    // Compute accurate unread count directly from database
+    const countRes = await pool.query(
+      isSuperAdmin
+        ? "SELECT COUNT(*)::int AS count FROM notifications WHERE read_at IS NULL"
+        : "SELECT COUNT(*)::int AS count FROM notifications WHERE UPPER(recipient_officer_id) = UPPER($1) AND read_at IS NULL",
+      isSuperAdmin || !officerId ? [] : [officerId]
+    );
+    const unreadCount = Number(countRes.rows[0]?.count || 0);
 
     res.json({
       success: true,
@@ -82,10 +94,10 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 /**
- * PATCH /api/notifications/read-all
+ * PATCH & POST /api/notifications/read-all
  * Marks all unread notifications for the active officer as read.
  */
-router.patch("/read-all", async (req: Request, res: Response) => {
+const handleMarkAllRead = async (req: Request, res: Response) => {
   try {
     const officerId = req.user?.officerId || null;
     const role = (req.user?.role || "").toLowerCase();
@@ -105,6 +117,7 @@ router.patch("/read-all", async (req: Request, res: Response) => {
     res.json({
       success: true,
       message: "All notifications marked as read.",
+      unreadCount: 0,
     });
   } catch (error) {
     console.error("[Notifications] Failed to mark all as read:", error);
@@ -113,13 +126,16 @@ router.patch("/read-all", async (req: Request, res: Response) => {
       message: "Unable to update notifications.",
     });
   }
-});
+};
+
+router.patch("/read-all", handleMarkAllRead);
+router.post("/read-all", handleMarkAllRead);
 
 /**
- * PATCH /api/notifications/:id/read
+ * PATCH & POST /api/notifications/:id/read
  * Marks a specific notification as read.
  */
-router.patch("/:id/read", async (req: Request, res: Response) => {
+const handleMarkNotificationRead = async (req: Request, res: Response) => {
   try {
     const notificationId = req.params.id;
     const officerId = req.user?.officerId || null;
@@ -129,12 +145,18 @@ router.patch("/:id/read", async (req: Request, res: Response) => {
     let result;
     if (isSuperAdmin) {
       result = await pool.query(
-        "UPDATE notifications SET read_at = NOW() WHERE notification_id = $1 RETURNING notification_id",
+        `UPDATE notifications
+         SET read_at = NOW()
+         WHERE notification_id = $1
+         RETURNING notification_id, entity_type, entity_id, recipient_officer_id, read_at`,
         [notificationId]
       );
     } else if (officerId) {
       result = await pool.query(
-        "UPDATE notifications SET read_at = NOW() WHERE notification_id = $1 AND UPPER(recipient_officer_id) = UPPER($2) RETURNING notification_id",
+        `UPDATE notifications
+         SET read_at = NOW()
+         WHERE notification_id = $1 AND UPPER(recipient_officer_id) = UPPER($2)
+         RETURNING notification_id, entity_type, entity_id, recipient_officer_id, read_at`,
         [notificationId, officerId]
       );
     } else {
@@ -150,9 +172,19 @@ router.patch("/:id/read", async (req: Request, res: Response) => {
       return;
     }
 
+    const countRes = await pool.query(
+      isSuperAdmin
+        ? "SELECT COUNT(*)::int AS count FROM notifications WHERE read_at IS NULL"
+        : "SELECT COUNT(*)::int AS count FROM notifications WHERE UPPER(recipient_officer_id) = UPPER($1) AND read_at IS NULL",
+      isSuperAdmin || !officerId ? [] : [officerId]
+    );
+    const unreadCount = Number(countRes.rows[0]?.count || 0);
+
     res.json({
       success: true,
       message: "Notification marked as read.",
+      notification: result.rows[0],
+      unreadCount,
     });
   } catch (error) {
     console.error(`[Notifications] Failed to mark notification ${req.params.id} as read:`, error);
@@ -161,7 +193,10 @@ router.patch("/:id/read", async (req: Request, res: Response) => {
       message: "Unable to update notification status.",
     });
   }
-});
+};
+
+router.patch("/:id/read", handleMarkNotificationRead);
+router.post("/:id/read", handleMarkNotificationRead);
 
 export default router;
 
