@@ -1,4 +1,6 @@
-// Service Worker for MCL Building Branch (MCL-BB) Push Notifications
+// Service Worker for MCL Building Branch (MCL-BB) Push Notifications v2.2
+const SW_VERSION = "mcl-bb-sw-v2.2";
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -29,6 +31,7 @@ self.addEventListener("push", (event) => {
     requireInteraction: true, // Keep notification visible on screen until user interacts
     data: {
       url: data.url || "/",
+      version: SW_VERSION,
     },
     actions: [
       { action: "open", title: "View Details" },
@@ -48,15 +51,21 @@ self.addEventListener("notificationclick", (event) => {
 
   const rawTarget = event.notification.data?.url || "/";
   // Support both hash-based routes (e.g. /cases/123 -> /#/cases/123) and absolute URLs
-  const targetHashRoute = rawTarget.startsWith("#") ? rawTarget : `#${rawTarget.startsWith("/") ? "" : "/"}${rawTarget}`;
-  const fullTargetUrl = new URL(rawTarget.startsWith("/") ? `/#${rawTarget}` : rawTarget, self.location.origin).href;
+  const cleanTarget = rawTarget.replace(/^#\/?/, "");
+  const targetHashRoute = `#/${cleanTarget.startsWith("/") ? cleanTarget.slice(1) : cleanTarget}`;
+  const fullTargetUrl = new URL(`/${targetHashRoute}`, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open under the same origin, focus it and navigate
+      // If a window is already open under the same origin, focus it, postMessage and navigate
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && "focus" in client) {
           client.focus();
+          // Send message to live React router
+          client.postMessage({
+            type: "NAVIGATE_TO",
+            url: targetHashRoute,
+          });
           if ("navigate" in client) {
             client.navigate(fullTargetUrl);
           }
@@ -64,7 +73,7 @@ self.addEventListener("notificationclick", (event) => {
         }
       }
 
-      // Otherwise open a new tab/window
+      // Otherwise open a new tab/window directly with the hash route
       if (self.clients.openWindow) {
         return self.clients.openWindow(fullTargetUrl);
       }

@@ -23,12 +23,18 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Register Service Worker for PWA Web Push notifications
+// Register Service Worker for PWA Web Push notifications with proactive update checks
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.error('[SW] Service worker registration failed:', err);
-    });
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        // Force update check so mobile devices immediately receive the latest SW navigation handlers
+        void reg.update();
+      })
+      .catch((err) => {
+        console.error('[SW] Service worker registration failed:', err);
+      });
   });
 }
 
